@@ -182,6 +182,8 @@ final class Tr {
         p("Work", "İş");
         p("Recent destinations", "Son hedefler");
         p("Set", "Ayarla");
+        p("set", "ayarla");
+        p("Empty", "Boş");
         p("No destinations yet", "Henüz hedef yok");
         p("Change home address", "Ev adresini değiştir");
         p("Change work address", "İş adresini değiştir");
