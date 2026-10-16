@@ -245,7 +245,7 @@ public class SettingsScreen extends Screen {
             }
         });
         sub(s("Vreme i datum", "Time and date"), new Page() { public void build() { buildTime(); } });
-        LinearLayout lang = sub("Jezik/Language", new Page() { public void build() { buildLanguage(); } });
+        LinearLayout lang = sub(Mib.isTr(act) ? "Dil/Language" : "Jezik/Language", new Page() { public void build() { buildLanguage(); } });
         addLeading(lang, flag());
         sub(s("Jedinice", "Units"), new Page() { public void build() { buildUnits(); } });
         sub(s("Navigacija", "Navigation"), new Page() { public void build() { buildNav(); } });
@@ -496,10 +496,9 @@ public class SettingsScreen extends Screen {
     /** 30 colours for the UI accent ("ambient lighting"); the whole UI follows the choice. */
     private void buildAmbient() {
         int cur = Prefs.integer(act, Prefs.AMBIENT, Mib.DEFAULT_AMBIENT);
-        boolean en = "en".equals(Prefs.str(act, Prefs.LANGUAGE, "sr"));
         for (Object[] a : Mib.AMBIENT) {
             final int color = (Integer) a[2];
-            LinearLayout row = choice((String) (en ? a[1] : a[0]), color == cur, new Runnable() {
+            LinearLayout row = choice(s((String) a[0], (String) a[1]), color == cur, new Runnable() {
                 public void run() {
                     Prefs.put(act, Prefs.AMBIENT, color);
                     act.restartUi();
@@ -537,6 +536,9 @@ public class SettingsScreen extends Screen {
         });
         choice("English", "en".equals(cur), new Runnable() {
             public void run() { setLanguage("en"); }
+        });
+        choice("Türkçe", "tr".equals(cur), new Runnable() {
+            public void run() { setLanguage("tr"); }
         });
     }
 
@@ -1556,7 +1558,7 @@ public class SettingsScreen extends Screen {
     /** Serbian tricolour, as the factory language bar shows the country flag. */
     private View flag() {
         ImageView f = new ImageView(act);
-        f.setImageResource(R.drawable.ui_ic_flag_rs);
+        f.setImageResource(Mib.isTr(act) ? R.drawable.ui_ic_flag_tr : R.drawable.ui_ic_flag_rs);
         f.setScaleType(ImageView.ScaleType.CENTER_CROP);
         return f;
     }

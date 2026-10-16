@@ -80,10 +80,15 @@ public final class Mib {
 
     // ---- Language ---------------------------------------------------------------------------
 
-    /** Serbian (Latin) by default, like the factory unit; English as an option. */
+    /** Serbian (Latin) by default, like the factory unit; English and Turkish as options. */
     public static String t(Context c, String sr, String en) {
-        return "en".equals(Prefs.str(c, Prefs.LANGUAGE, "sr")) ? en : sr;
+        String l = Prefs.str(c, Prefs.LANGUAGE, "sr");
+        if ("tr".equals(l)) return Tr.get(en);
+        return "en".equals(l) ? en : sr;
     }
+
+    /** True for every language that is not Serbian (English text is the base for them). */
+    public static boolean isTr(Context c) { return "tr".equals(Prefs.str(c, Prefs.LANGUAGE, "sr")); }
 
     // ---- Sizing -----------------------------------------------------------------------------
 

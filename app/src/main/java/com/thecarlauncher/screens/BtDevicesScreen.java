@@ -231,8 +231,9 @@ public class BtDevicesScreen extends Screen implements BtDevices.Listener {
             return;
         }
         note(name != null
-                ? s("Na telefonu uključi Bluetooth i izaberi „" + name + "“, ili izaberi telefon sa liste:",
-                        "On the phone, turn on Bluetooth and choose \"" + name + "\", or pick the phone from the list:")
+                ? Mib.t(act, "Na telefonu uključi Bluetooth i izaberi „" + name + "“, ili izaberi telefon sa liste:",
+                        "On the phone, turn on Bluetooth and choose \"" + name + "\", or pick the phone from the list:",
+                        "Telefonda Bluetooth'u açın ve \"" + name + "\" cihazını seçin ya da telefonu listeden seçin:")
                 : s("Na telefonu uključi Bluetooth i uredi ga vidljivim, pa ga izaberi sa liste:",
                         "Turn on Bluetooth on the phone and make it visible, then pick it from the list:"));
         List<BtDevices.Device> found = bt().found();

@@ -181,7 +181,7 @@ public class AmbientScreen extends Screen {
         index = i;
         slider.setSelected(i);
         int lvl = level();
-        String name = (String) Mib.AMBIENT[i][en() ? 1 : 0];
+        String name = s((String) Mib.AMBIENT[i][0], (String) Mib.AMBIENT[i][1]);
         value.setText(lvl < 100 ? name + "  " + lvl + "%" : name);
     }
 

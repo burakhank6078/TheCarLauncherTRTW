@@ -13,7 +13,7 @@ A home-screen launcher for Android head units, built for a double-DIN unit on th
 classic German factory infotainment system: black background, MENU tiles with blue underlines,
 soft-key bars along the bottom, bordered popups and light settings bars.
 
-Text is in Serbian (Latin) by default; English can be picked under
+Text is in Serbian (Latin) by default; English and Turkish (Türkçe) can be picked under
 *Podešavanja → Jezik/Language*. The screenshots below use English.
 
 ![Main menu](docs/screenshots/menu.png)

@@ -216,7 +216,7 @@ public final class Guidance implements LocationTracker.Listener {
             case "roundabout":
             case "rotary":
             case "roundabout turn":
-                return st.exit > 0 ? s("Kružni tok, " + st.exit + ". izlaz", "Roundabout, exit " + st.exit)
+                return st.exit > 0 ? Mib.t(app, "Kružni tok, " + st.exit + ". izlaz", "Roundabout, exit " + st.exit, "Döner kavşak, " + st.exit + ". çıkış")
                         : s("Kružni tok", "Roundabout");
             case "merge": return s("Uključite se", "Merge");
             case "on ramp": return s("Uđite na put", "Take the ramp");
@@ -257,7 +257,8 @@ public final class Guidance implements LocationTracker.Listener {
             public void onInit(int status) {
                 if (status != TextToSpeech.SUCCESS) return;
                 boolean en = "en".equals(Prefs.str(app, Prefs.LANGUAGE, "sr"));
-                Locale[] wanted = en ? new Locale[]{Locale.ENGLISH}
+                Locale[] wanted = Mib.isTr(app) ? new Locale[]{new Locale("tr", "TR"), new Locale("tr")}
+                        : en ? new Locale[]{Locale.ENGLISH}
                         : new Locale[]{new Locale("sr", "RS"), new Locale("sr"), new Locale("hr", "HR"), new Locale("bs")};
                 for (Locale loc : wanted) {
                     if (tts.isLanguageAvailable(loc) >= TextToSpeech.LANG_AVAILABLE) {
@@ -289,10 +290,10 @@ public final class Guidance implements LocationTracker.Listener {
         }
         double early = Math.max(400, speed * 25);
         double now = Math.max(60, speed * 6);
-        String street = st.name.length() > 0 ? s(", " + st.name, ", onto " + st.name) : "";
+        String street = st.name.length() > 0 ? Mib.t(app, ", " + st.name, ", onto " + st.name, ", " + st.name + " yoluna") : "";
         if (spokenStage < 1 && d < early && d > now * 2) {
             spokenStage = 1;
-            say(s("Za " + spoken(d) + ", ", "In " + spoken(d) + ", ") + instruction(st).toLowerCase(Locale.ROOT) + street);
+            say(Mib.t(app, "Za " + spoken(d) + ", ", "In " + spoken(d) + ", ", spoken(d) + " sonra, ") + instruction(st).toLowerCase(Locale.ROOT) + street);
         } else if (spokenStage < 2 && d <= now) {
             spokenStage = 2;
             say(s("Sada ", "Now ") + instruction(st).toLowerCase(Locale.ROOT));

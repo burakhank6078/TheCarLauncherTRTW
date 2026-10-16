@@ -287,10 +287,12 @@ public class RadioScreen extends Screen implements RadioController.Listener, com
             message.setVisibility(View.VISIBLE);
             String app = LauncherActivity.radioPackage(act);
             String why = radio.error() == null ? s("isključen u Podešavanjima", "switched off in Setup") : radio.error();
-            message.setText(s("FM tjuner nije dostupan na ovom uređaju.\n(" + why + ")\n\n"
+            message.setText(Mib.t(act, "FM tjuner nije dostupan na ovom uređaju.\n(" + why + ")\n\n"
                             + (app != null ? "Dodirnite za radio aplikaciju." : "Radio aplikacija nije pronađena."),
                     "FM tuner is not available on this unit.\n(" + why + ")\n\n"
-                            + (app != null ? "Tap to open the radio app." : "No radio app found.")));
+                            + (app != null ? "Tap to open the radio app." : "No radio app found."),
+                    "FM tuner bu cihazda kullanılamıyor.\n(" + why + ")\n\n"
+                            + (app != null ? "Radyo uygulamasını açmak için dokunun." : "Radyo uygulaması bulunamadı.")));
         }
         radio.addListener(this);
         com.thecarlauncher.radio.RadioLogos.get(act).addListener(this);
@@ -399,7 +401,7 @@ public class RadioScreen extends Screen implements RadioController.Listener, com
 
         void save() {
             radio.savePreset(index);
-            Ui.toast(act, s("Sačuvano na " + (index % PER_PAGE + 1), "Stored on " + (index % PER_PAGE + 1)));
+            Ui.toast(act, Mib.t(act, "Sačuvano na " + (index % PER_PAGE + 1), "Stored on " + (index % PER_PAGE + 1), (index % PER_PAGE + 1) + " numaraya kaydedildi"));
         }
 
         void bind(RadioController.Station st, boolean current) {
