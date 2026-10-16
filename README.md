@@ -1,3 +1,11 @@
+> **Fork notice:** This repository is a fork of [LazarC11/TheCarLauncher](https://github.com/LazarC11/TheCarLauncher), 
+> adapted for TW-based Android head units, with Turkish language support and additional 
+> features (OBD data, ambient lighting) in progress. Developed with the original author's permission.
+>
+> **Fork notu:** Bu depo, LazarC11/TheCarLauncher projesinin TW tabanlı head unit'ler için 
+> uyarlanmış bir fork'udur. Proje sahibinin izniyle geliştirilmektedir.
+
+
 # TheCarLauncher
 
 A home-screen launcher for Android head units, built for a double-DIN unit on the
