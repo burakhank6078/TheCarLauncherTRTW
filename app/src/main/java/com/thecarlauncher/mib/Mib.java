@@ -88,6 +88,12 @@ public final class Mib {
     }
 
     /** True for every language that is not Serbian (English text is the base for them). */
+    /** For texts built from parts, where Turkish word order differs and a lookup is not possible. */
+    public static String t(Context c, String sr, String en, String tr) {
+        String l = Prefs.str(c, Prefs.LANGUAGE, "sr");
+        return "tr".equals(l) ? tr : "en".equals(l) ? en : sr;
+    }
+
     public static boolean isTr(Context c) { return "tr".equals(Prefs.str(c, Prefs.LANGUAGE, "sr")); }
 
     // ---- Sizing -----------------------------------------------------------------------------
