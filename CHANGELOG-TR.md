@@ -5,7 +5,7 @@ Yeni eklenen her özellik için `Tr.java` içindeki eksik çeviriler de tamamlan
 
 ## Sürüm sonrası kontrol listesi
 1. `git fetch upstream && git merge upstream/main`
-2. `powershell -File tools/check-translations.ps1` — eksik Türkçe metinleri listeler
+2. `powershell -ExecutionPolicy Bypass -File tools/check-translations.ps1` — eksik Türkçe metinleri listeler
 3. Eksikleri `app/src/main/java/com/thecarlauncher/mib/Tr.java` içine ekle
 4. Aşağıya yeni sürümün bültenini (yeni özellikler + düzeltmeler) Türkçe yaz
 5. Commit
