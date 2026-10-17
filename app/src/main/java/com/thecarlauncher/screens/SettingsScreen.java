@@ -939,6 +939,18 @@ public class SettingsScreen extends Screen {
         if (sum.isEmpty()) info(s("nijedna još", "none yet"), null);
         for (String l : sum) info(l, null);
         for (String t : com.thecarlauncher.radio.McuSniffer.get().texts()) info(s("Tekst ", "Text ") + t, null);
+        info(s("— TW platforma (vozilo) —", "— TW platform (vehicle) —"), null);
+        final com.thecarlauncher.car.TwProbe tw = com.thecarlauncher.car.TwProbe.get();
+        action(s("Slušaj TW poruke (samo čitanje)", "Listen to TW messages (read-only)"), tw.status(), new Runnable() {
+            public void run() {
+                tw.start();
+                refresh();
+            }
+        });
+        for (String l : tw.summary()) info(l, null);
+        StringBuilder twApi = new StringBuilder();
+        for (String m : tw.api()) twApi.append(m).append(' ');
+        if (twApi.length() > 0) info("TWUtil", twApi.length() > 150 ? twApi.substring(0, 150) : twApi.toString());
         info(s("— Sistemski servisi (BT / QF) —", "— System services (BT / QF) —"), null);
         try {
             String[] services = (String[]) Class.forName("android.os.ServiceManager").getMethod("listServices").invoke(null);

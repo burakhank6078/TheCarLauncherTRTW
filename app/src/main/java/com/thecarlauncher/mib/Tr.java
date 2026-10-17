@@ -342,6 +342,8 @@ final class Tr {
         p("— System services (BT / QF) —", "— Sistem hizmetleri (BT / QF) —");
         p("service list unavailable", "hizmet listesi kullanılamıyor");
         p("— BT app components —", "— BT uygulama bileşenleri —");
+        p("— TW platform (vehicle) —", "— TW platformu (araç) —");
+        p("Listen to TW messages (read-only)", "TW mesajlarını dinle (yalnızca okuma)");
 
         // ---- Phone / radio setup ----
         p("App (ZLink, CarPlay…)", "Uygulama (ZLink, CarPlay…)");
