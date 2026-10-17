@@ -29,7 +29,14 @@ jobs:
       - name: Build release APK
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon --stacktrace
+          set -o pipefail
+          if ! ./gradlew assembleRelease --no-daemon --stacktrace 2>&1 | tee build.log; then
+            # Surface the real error as an annotation so it is readable without opening the log.
+            msg=$(grep -m1 -n 'What went wrong' -A12 build.log | head -14; grep -E 'error:|\.java:[0-9]+' build.log | head -20)
+            msg=$(printf '%s' "$msg" | sed ':a;N;$!ba;s/\n/%0A/g')
+            echo "::error title=Build log::$msg"
+            exit 1
+          fi
           cp app/build/outputs/apk/release/app-release.apk TheCarLauncher.apk
 
       - uses: actions/upload-artifact@v5
