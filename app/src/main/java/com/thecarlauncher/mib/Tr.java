@@ -457,6 +457,9 @@ final class Tr {
         p("Not selected", "Seçilmedi");
         p("No picture selected", "Resim seçilmedi");
         p("Setup → Vehicle", "Ayarlar → Araç");
+        p("Factory car settings", "Fabrika araç ayarları");
+        p("opens the unit's app", "cihazın uygulamasını açar");
+        p("App not found", "Uygulama bulunamadı");
 
         p("Searching for the address…", "Adres aranıyor…");
         p("Calculating the route…", "Rota hesaplanıyor…");

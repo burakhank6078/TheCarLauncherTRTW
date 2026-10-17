@@ -1072,6 +1072,19 @@ public class SettingsScreen extends Screen {
         textRow(s("Model", "Model"), Prefs.VEHICLE_MODEL, "Corsa C");
         pictureRow(s("Slika vozila (Status vozila)", "Car picture (Vehicle status)"), com.thecarlauncher.util.CarImages.EXTERIOR);
         pictureRow(s("Slika unutrašnjosti (Ambijentalno)", "Interior picture (Ambient lighting)"), com.thecarlauncher.util.CarImages.INTERIOR);
+        action(s("Fabrička podešavanja vozila", "Factory car settings"), s("otvara aplikaciju jedinice", "opens the unit's app"), new Runnable() {
+            public void run() {
+                // The unit's own car app (TW platform); it is only opened, nothing of it is copied.
+                Intent i = new Intent();
+                i.setClassName("com.tw.car", "com.tw.car.Golf7MainActivity");
+                if (!Ui.start(act, i)) {
+                    Intent launch = act.getPackageManager().getLaunchIntentForPackage("com.tw.car");
+                    if (launch == null || !Ui.start(act, launch)) {
+                        Ui.toast(act, s("Aplikacija nije pronađena", "App not found"));
+                    }
+                }
+            }
+        });
     }
 
     private void textRow(final String label, final String key, String hint) {
