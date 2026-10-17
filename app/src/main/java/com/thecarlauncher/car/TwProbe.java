@@ -1,7 +1,9 @@
 package com.thecarlauncher.car;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Handler;
-import android.os.Looper;
+import android.os.HandlerThread;
 import android.os.Message;
 
 import java.lang.reflect.Constructor;
@@ -20,10 +22,14 @@ import java.util.TreeSet;
  * com.tw.service, com.tw.car and the Canbus decoder use to talk to the MCU). It only listens:
  * nothing is ever written, so the car is not affected. The latest message per id is kept so the
  * Diagnostics page can show which ids carry speed, rpm, doors and so on while the car is driven.
+ *
+ * Messages are handled on their own thread, and a flag is stored around the risky call: if the
+ * app dies there (native crash), the next tap reports it instead of crashing again.
  */
 public final class TwProbe {
     private static final TwProbe INSTANCE = new TwProbe();
     private static final String CLASS = "android.tw.john.TWUtil";
+    private static final String FLAG = "twprobe_crashed_flag";
 
     private final Map<Integer, String> latest = new LinkedHashMap<>();
     private final Map<Integer, Integer> counts = new LinkedHashMap<>();
@@ -48,9 +54,16 @@ public final class TwProbe {
     }
 
     /** Starts listening once; safe to call again. */
-    public synchronized void start() {
+    public synchronized void start(Context ctx) {
         if (started) return;
+        SharedPreferences sp = ctx.getApplicationContext().getSharedPreferences("launcher", Context.MODE_PRIVATE);
+        if (sp.getBoolean(FLAG, false)) {
+            sp.edit().putBoolean(FLAG, false).commit();
+            status = "last attempt crashed the app - disabled (tap again to retry)";
+            return;
+        }
         started = true;
+        sp.edit().putBoolean(FLAG, true).commit();
         try {
             Class<?> c = Class.forName(CLASS);
             for (Method m : c.getMethods()) {
@@ -65,13 +78,25 @@ public final class TwProbe {
                 status = "TWUtil found, but open/addHandler missing";
                 return;
             }
-            // Listen to every id: the real ids are unknown, and listening changes nothing.
-            short[] ids = new short[0x10000];
-            for (int i = 0; i < ids.length; i++) ids[i] = (short) i;
+            // The real ids are unknown: listen to the low block and the 0xF000 block (listening
+            // changes nothing).
+            short[] ids = new short[0x2000];
+            for (int i = 0; i < 0x1000; i++) {
+                ids[i] = (short) i;
+                ids[0x1000 + i] = (short) (0xF000 + i);
+            }
             Object r = open.invoke(util, (Object) ids);
-            Handler h = new Handler(Looper.getMainLooper()) {
+            HandlerThread ht = new HandlerThread("tw-probe");
+            ht.start();
+            Handler h = new Handler(ht.getLooper()) {
                 @Override
-                public void handleMessage(Message m) { record(m); }
+                public void handleMessage(Message m) {
+                    try {
+                        record(m);
+                    } catch (Throwable ignored) {
+                        // an odd message must never kill the thread
+                    }
+                }
             };
             add.invoke(util, "carlauncher-probe", h);
             if (go != null) go.invoke(util);
@@ -79,9 +104,11 @@ public final class TwProbe {
         } catch (ClassNotFoundException e) {
             status = "TWUtil not on this unit";
         } catch (Throwable t) {
-            Throwable r = t.getCause() != null ? t.getCause() : t;
-            status = "error: " + r.getClass().getSimpleName() + " " + r.getMessage();
+            Throwable cause = t.getCause() != null ? t.getCause() : t;
+            status = "error: " + cause.getClass().getSimpleName() + " " + cause.getMessage();
             started = false;
+        } finally {
+            sp.edit().putBoolean(FLAG, false).commit();
         }
     }
 

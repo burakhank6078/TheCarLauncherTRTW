@@ -825,7 +825,7 @@ public class SettingsScreen extends Screen {
         final com.thecarlauncher.car.TwProbe tw = com.thecarlauncher.car.TwProbe.get();
         action(s("Slušaj TW poruke (samo čitanje)", "Listen to TW messages (read-only)"), tw.status(), new Runnable() {
             public void run() {
-                tw.start();
+                tw.start(act);
                 refresh();
             }
         });
