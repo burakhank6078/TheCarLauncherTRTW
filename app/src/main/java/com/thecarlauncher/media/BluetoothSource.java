@@ -189,6 +189,8 @@ public final class BluetoothSource {
 
     /** Sends a media key to the Bluetooth app, which forwards it to the phone over AVRCP. */
     public void sendKey(int keyCode) {
+        com.thecarlauncher.util.AppLog.d(app, "BT", "sendKey " + KeyEvent.keyCodeToString(keyCode) + " to app=" + appPackage()
+                + " systemKeys=" + Prefs.bool(app, Prefs.BT_SYSTEM_KEYS, false));
         String pkg = appPackage();
         long now = SystemClock.uptimeMillis();
         KeyEvent down = new KeyEvent(now, now, KeyEvent.ACTION_DOWN, keyCode, 0);

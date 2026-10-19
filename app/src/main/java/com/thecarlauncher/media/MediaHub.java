@@ -161,6 +161,7 @@ public final class MediaHub {
 
     private void sync(List<MediaController> list) {
         if (list == null) return;
+        for (MediaController mc : list) log("session " + mc.getPackageName() + actions(mc));
         List<String> seen = new ArrayList<>();
         for (MediaController mc : list) {
             String pkg = mc.getPackageName();
@@ -837,7 +838,30 @@ public final class MediaHub {
 
     // ---- Controls -----------------------------------------------------------------------
 
+    /** Which transport actions a session advertises (so the log shows whether it supports skipping). */
+    private String actions(MediaController mc) {
+        try {
+            android.media.session.PlaybackState ps = mc.getPlaybackState();
+            if (ps == null) return " (no playback state)";
+            long a = ps.getActions();
+            return " (state=" + ps.getState() + " next=" + ((a & android.media.session.PlaybackState.ACTION_SKIP_TO_NEXT) != 0)
+                    + " prev=" + ((a & android.media.session.PlaybackState.ACTION_SKIP_TO_PREVIOUS) != 0)
+                    + " pause=" + ((a & android.media.session.PlaybackState.ACTION_PAUSE) != 0) + ")";
+        } catch (Throwable t) {
+            return "";
+        }
+    }
+
+    private void log(String msg) { com.thecarlauncher.util.AppLog.d(app, "BT", msg); }
+
+    /** One line describing which control path is about to be used (for the diagnostic recorder). */
+    private String ctl(String what) {
+        return what + " btSelected=" + btSelected + " own=" + isOwn() + " radio=" + isRadio() + " active="
+                + (active == null ? "none" : packageOf(active)) + " fallback=" + btFallback();
+    }
+
     public void playPause() {
+        log(ctl("playPause"));
         if (isRadio()) {
             radio().stop();
             return;
@@ -847,6 +871,7 @@ public final class MediaHub {
             return;
         }
         if (btFallback()) {
+            log("-> media key PLAY/PAUSE to BT app");
             bt.sendKey(btPlaying ? KeyEvent.KEYCODE_MEDIA_PAUSE : KeyEvent.KEYCODE_MEDIA_PLAY);
             btPlaying = !btPlaying;
             notifyChanged();
@@ -858,36 +883,43 @@ public final class MediaHub {
             else MusicService.start(app);
             return;
         }
+        log("-> session play/pause on " + packageOf(active) + actions(active));
         if (isPlaying()) active.getTransportControls().pause();
         else active.getTransportControls().play();
     }
 
     public void next() {
+        log(ctl("next"));
         if (isRadio()) {
             radio().seekUp();
         } else if (btSelected && (bt.qfCommand(BluetoothSource.QF_NEXT) || goc().send("MD"))) {
             goc().send("MK");
         } else if (btFallback()) {
+            log("-> media key NEXT to BT app");
             bt.sendKey(KeyEvent.KEYCODE_MEDIA_NEXT);
         } else if (isOwn()) {
             MusicService s = MusicService.get();
             if (s != null) s.next();
         } else {
+            log("-> session skipToNext on " + packageOf(active) + actions(active));
             active.getTransportControls().skipToNext();
         }
     }
 
     public void previous() {
+        log(ctl("previous"));
         if (isRadio()) {
             radio().seekDown();
         } else if (btSelected && (bt.qfCommand(BluetoothSource.QF_PREVIOUS) || goc().send("ME"))) {
             goc().send("MK");
         } else if (btFallback()) {
+            log("-> media key PREVIOUS to BT app");
             bt.sendKey(KeyEvent.KEYCODE_MEDIA_PREVIOUS);
         } else if (isOwn()) {
             MusicService s = MusicService.get();
             if (s != null) s.previous();
         } else {
+            log("-> session skipToPrevious on " + packageOf(active) + actions(active));
             active.getTransportControls().skipToPrevious();
         }
     }

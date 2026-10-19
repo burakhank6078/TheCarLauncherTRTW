@@ -45,6 +45,9 @@ public final class TwProbe {
     private Class<?> cls;
     private Handler handler;
     private int stage;
+    private Context appCtx;
+    private final Map<Long, String> lastLogged = new LinkedHashMap<>();
+    private final Map<Long, Long> lastLoggedAt = new LinkedHashMap<>();
 
     public static TwProbe get() { return INSTANCE; }
 
@@ -67,6 +70,22 @@ public final class TwProbe {
 
     /** Runs the next step; call it once per tap. */
     public synchronized void start(Context ctx) {
+        appCtx = ctx.getApplicationContext();
+        run(ctx);
+        com.thecarlauncher.util.AppLog.d(appCtx, "CAN", status);
+    }
+
+    /** Runs every step in turn (used by the diagnostic recorder); a crashed or failing step stops it. */
+    public synchronized void autoStart(Context ctx) {
+        int guard = 0;
+        while (stage < LAST && guard++ <= LAST) {
+            int before = stage;
+            start(ctx);
+            if (stage == before) break;
+        }
+    }
+
+    private void run(Context ctx) {
         SharedPreferences sp = ctx.getApplicationContext().getSharedPreferences("launcher", Context.MODE_PRIVATE);
         int busy = sp.getInt(BUSY, 0);
         if (busy != 0) {
@@ -177,7 +196,22 @@ public final class TwProbe {
             String s = String.valueOf(m.obj);
             obj = " " + (s.length() > 24 ? s.substring(0, 24) : s);
         }
-        latest.put(key, new SimpleDateFormat("HH:mm:ss", Locale.US).format(new Date())
-                + " " + m.arg1 + "/" + m.arg2 + obj);
+        String payload = m.arg1 + "/" + m.arg2 + obj;
+        latest.put(key, new SimpleDateFormat("HH:mm:ss", Locale.US).format(new Date()) + " " + payload);
+        recordToLog(key, m.what, payload);
+    }
+
+    /** Sends a frame to the diagnostic recorder when it changed (at most twice a second per frame). */
+    private void recordToLog(long key, int what, String payload) {
+        if (appCtx == null) return;
+        long now = System.currentTimeMillis();
+        String prev = lastLogged.get(key);
+        Long at = lastLoggedAt.get(key);
+        if (payload.equals(prev) || (at != null && now - at < 500)) return;
+        lastLogged.put(key, payload);
+        lastLoggedAt.put(key, now);
+        String id = what == 0x501 ? String.format(Locale.US, "0x501/%d", (int) (key & 0xFFFF))
+                : String.format(Locale.US, "0x%X", what);
+        com.thecarlauncher.util.AppLog.d(appCtx, "CAN", id + " " + payload);
     }
 }

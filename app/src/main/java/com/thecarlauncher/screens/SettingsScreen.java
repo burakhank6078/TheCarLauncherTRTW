@@ -248,6 +248,7 @@ public class SettingsScreen extends Screen {
         LinearLayout lang = sub(Mib.isTr(act) ? "Dil/Language" : "Jezik/Language", new Page() { public void build() { buildLanguage(); } });
         addLeading(lang, flag());
         sub(s("Jedinice", "Units"), new Page() { public void build() { buildUnits(); } });
+        sub(s("Snimanje dijagnostike", "Diagnostic recording"), new Page() { public void build() { buildRecording(); } });
         sub(s("Navigacija", "Navigation"), new Page() { public void build() { buildNav(); } });
         LinearLayout sound = sub(s("Zvuk", "Sound"), new Page() { public void build() { buildMedia(); } });
         sound.setOnClickListener(new View.OnClickListener() {
@@ -1067,6 +1068,45 @@ public class SettingsScreen extends Screen {
                 });
     }
 
+
+    // ---- Diagnostic recording ----------------------------------------------------------------
+
+    /** Records what is needed to understand this unit into one file that can be exported to USB. */
+    private void buildRecording() {
+        toggle(s("Snimanje dijagnostike", "Diagnostic recording"), com.thecarlauncher.util.AppLog.LOG_ENABLED, false, new Runnable() {
+            public void run() {
+                com.thecarlauncher.util.AppLog.setEnabled(act, Prefs.bool(act, com.thecarlauncher.util.AppLog.LOG_ENABLED, false));
+                refresh();
+            }
+        });
+        long kb = com.thecarlauncher.util.AppLog.size(act) / 1024;
+        info(s("Veličina zapisa", "Recorded size"), kb + " KB");
+        info(s("Folder", "Folder"), com.thecarlauncher.util.AppLog.folder(act));
+        action(s("Izvezi zapis na USB", "Export the record to USB"), s("USB / preuzimanja", "USB / Downloads"), new Runnable() {
+            public void run() {
+                new Thread(new Runnable() {
+                    public void run() {
+                        final String path = com.thecarlauncher.util.AppLog.export(act);
+                        act.runOnUiThread(new Runnable() {
+                            public void run() {
+                                Ui.toast(act, path != null ? s("Sačuvano: ", "Saved: ") + path
+                                        : s("Izvoz nije uspeo", "Export failed"));
+                            }
+                        });
+                    }
+                }, "log-export").start();
+            }
+        });
+        action(s("Obriši zapis", "Clear the record"), null, new Runnable() {
+            public void run() {
+                com.thecarlauncher.util.AppLog.clear(act);
+                Ui.toast(act, s("Obrisano", "Cleared"));
+                refresh();
+            }
+        });
+        note(s("Beleži sistemske podatke, greške, Canbus poruke i Bluetooth komande, bez lokacije. Vozite normalno, pa izvezite zapis.",
+                "Records system details, errors, Canbus messages and Bluetooth commands, without positions. Drive as usual, then export the record."));
+    }
     private void buildVehicle() {
         textRow(s("Marka", "Brand"), Prefs.VEHICLE_BRAND, "Opel");
         textRow(s("Model", "Model"), Prefs.VEHICLE_MODEL, "Corsa C");
@@ -1075,13 +1115,8 @@ public class SettingsScreen extends Screen {
         action(s("Fabrička podešavanja vozila", "Factory car settings"), s("otvara aplikaciju jedinice", "opens the unit's app"), new Runnable() {
             public void run() {
                 // The unit's own car app (TW platform); it is only opened, nothing of it is copied.
-                Intent i = new Intent();
-                i.setClassName("com.tw.car", "com.tw.car.Golf7MainActivity");
-                if (!Ui.start(act, i)) {
-                    Intent launch = act.getPackageManager().getLaunchIntentForPackage("com.tw.car");
-                    if (launch == null || !Ui.start(act, launch)) {
-                        Ui.toast(act, s("Aplikacija nije pronađena", "App not found"));
-                    }
+                if (!com.thecarlauncher.util.FactoryCar.open(act)) {
+                    Ui.toast(act, s("Aplikacija nije pronađena", "App not found"));
                 }
             }
         });

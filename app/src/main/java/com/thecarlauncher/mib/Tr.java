@@ -460,6 +460,18 @@ final class Tr {
         p("Factory car settings", "Fabrika araç ayarları");
         p("opens the unit's app", "cihazın uygulamasını açar");
         p("App not found", "Uygulama bulunamadı");
+        p("Tyre pressure", "Lastik basıncı");
+        p("Diagnostic recording", "Tanılama kaydı");
+        p("Recorded size", "Kayıt boyutu");
+        p("Folder", "Klasör");
+        p("Export the record to USB", "Kaydı USB'ye aktar");
+        p("USB / Downloads", "USB / İndirilenler");
+        p("Saved: ", "Kaydedildi: ");
+        p("Export failed", "Aktarma başarısız");
+        p("Clear the record", "Kaydı sil");
+        p("Records system details, errors, Canbus messages and Bluetooth commands, without positions. Drive as usual, then export the record.", "Sistem bilgilerini, hataları, Canbus mesajlarını ve Bluetooth komutlarını kaydeder, konum kaydetmez. Normal sürün, sonra kaydı aktarın.");
+        p("Tyre pressure settings", "Lastik basıncı ayarları");
+        p("After adjusting the pressure, open Tyres and choose Reset.", "Basıncı ayarladıktan sonra Lastikler'i açıp Sıfırla'yı seçin.");
 
         p("Searching for the address…", "Adres aranıyor…");
         p("Calculating the route…", "Rota hesaplanıyor…");

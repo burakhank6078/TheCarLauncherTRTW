@@ -39,7 +39,7 @@ import java.util.Locale;
  * Everything comes from GPS and what the driver enters (no diagnostic adapter).
  */
 public class VehicleScreen extends Screen implements LocationTracker.Listener {
-    private static final int STATUS = 0, START = 1, LONG = 2, REFUEL = 3, FUEL = 4, SERVICE = 5, PAGES = 6;
+    private static final int STATUS = 0, TYRES = 1, START = 2, LONG = 3, REFUEL = 4, FUEL = 5, SERVICE = 6, PAGES = 7;
 
     private final Handler main = new Handler(Looper.getMainLooper());
     private TextView title;
@@ -73,6 +73,7 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
             case LONG: return s("Dugoročno", "Long-term");
             case REFUEL: return s("Od dopune", "Since refuelling");
             case FUEL: return s("Gorivo", "Fuel");
+            case TYRES: return s("Pritisak u gumama", "Tyre pressure");
             default: return s("Servis", "Service");
         }
     }
@@ -159,8 +160,8 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
 
     private void showPages(View key) {
         MibPopup p = new MibPopup(act).columns(1);
-        int[] icons = {R.drawable.ui_ic_car_s, R.drawable.ui_ic_clock, R.drawable.ui_ic_route, R.drawable.ui_ic_speedo,
-                R.drawable.ui_ic_speedo, R.drawable.ui_ic_eq};
+        int[] icons = {R.drawable.ui_ic_car_s, R.drawable.ui_ic_car_s, R.drawable.ui_ic_clock, R.drawable.ui_ic_route,
+                R.drawable.ui_ic_speedo, R.drawable.ui_ic_speedo, R.drawable.ui_ic_eq};
         for (int i = 0; i < PAGES; i++) {
             final int idx = i;
             p.add(pageTitle(i), icons[i], i == page, new Runnable() {
@@ -201,6 +202,7 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
                                 s("Cena na 100 km", "Cost per 100 km"), s("Prosečna cena goriva", "Avg. fuel price")});
                 break;
             case FUEL: buildFuel(); break;
+            case TYRES: buildTyres(); break;
             default: buildService(); break;
         }
         boolean action = p == START || p == LONG || p == REFUEL || p == FUEL;
@@ -274,6 +276,63 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
             }
         });
         FrameLayout.LayoutParams bl = new FrameLayout.LayoutParams(Mib.px(act, 320), Mib.px(act, 60),
+                Gravity.BOTTOM | Gravity.LEFT);
+        bl.leftMargin = Mib.px(act, 30);
+        bl.bottomMargin = Mib.px(act, 34);
+        body.addView(btn, bl);
+    }
+
+    // ---- Pritisak u gumama -------------------------------------------------------------------
+
+    /**
+     * Tyre pressure page: the car picture on the right (the one chosen under Setup > Vehicle), a hint
+     * and one button on the left that opens the unit's own car settings, where the tyre pressure
+     * monitor is reset. No pressure is shown and nothing is sent to the car from here.
+     */
+    private void buildTyres() {
+        final ImageView car = new ImageView(act);
+        car.setImageBitmap(com.thecarlauncher.util.CarImages.get(act, com.thecarlauncher.util.CarImages.EXTERIOR));
+        car.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        body.addView(car, new FrameLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT,
+                Gravity.RIGHT | Gravity.BOTTOM));
+        body.post(new Runnable() {
+            @Override
+            public void run() {
+                FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) car.getLayoutParams();
+                lp.width = (int) (body.getWidth() * 0.5f);
+                lp.rightMargin = Mib.px(act, 30);
+                lp.bottomMargin = Mib.px(act, 20);
+                car.setLayoutParams(lp);
+            }
+        });
+
+        LinearLayout col = new LinearLayout(act);
+        col.setOrientation(LinearLayout.VERTICAL);
+        col.setPadding(Mib.px(act, 44), Mib.px(act, 10), 0, 0);
+        TextView hint = Mib.text(act, s("Nakon podešavanja pritiska otvorite Gume i izaberite Resetuj.",
+                "After adjusting the pressure, open Tyres and choose Reset."), 31, Mib.regular(act), Mib.WHITE);
+        hint.setSingleLine(false);
+        col.addView(hint);
+        body.addView(col, new FrameLayout.LayoutParams(Mib.px(act, 470), ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        // Framed button like the factory one on the status page.
+        LinearLayout btn = new LinearLayout(act);
+        btn.setGravity(Gravity.CENTER_VERTICAL);
+        btn.setBackground(Mib.box(act));
+        btn.setPadding(Mib.px(act, 14), 0, Mib.px(act, 30), 0);
+        btn.addView(Mib.icon(act, R.drawable.ui_ic_car_s, Mib.WHITE), new LinearLayout.LayoutParams(Mib.px(act, 44), Mib.px(act, 44)));
+        TextView bt = Mib.text(act, s("Podešavanja guma", "Tyre pressure settings"), 30, Mib.regular(act), Mib.WHITE);
+        bt.setPadding(Mib.px(act, 14), 0, 0, 0);
+        btn.addView(bt);
+        btn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (!com.thecarlauncher.util.FactoryCar.open(act)) {
+                    Ui.toast(act, s("Aplikacija nije pronađena", "App not found"));
+                }
+            }
+        });
+        FrameLayout.LayoutParams bl = new FrameLayout.LayoutParams(Mib.px(act, 440), Mib.px(act, 60),
                 Gravity.BOTTOM | Gravity.LEFT);
         bl.leftMargin = Mib.px(act, 30);
         bl.bottomMargin = Mib.px(act, 34);
@@ -570,7 +629,7 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
     @Override
     public void onShow() {
         LocationTracker.get(act).addListener(this);
-        setPage(page);
+        setPage(STATUS); // the car key always opens the status page first
         main.post(ticker);
     }
 
