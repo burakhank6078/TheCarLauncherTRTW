@@ -52,6 +52,9 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
     /** Values of the OBD-style trip layout (distance, time, speed, consumption, range), or null. */
     private TextView[] trip;
     private int tripPage;
+    /** The page area (behind title and arrows) and the full-page background picture of the trip pages. */
+    private FrameLayout pageRoot;
+    private ImageView tripBg;
 
     private final Runnable ticker = new Runnable() {
         @Override
@@ -88,6 +91,7 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
         LinearLayout r = new LinearLayout(act);
         r.setOrientation(LinearLayout.VERTICAL);
         FrameLayout content = new FrameLayout(act);
+        pageRoot = content;
         r.addView(content, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
 
         int arrow = Mib.px(act, 76), side = Mib.px(act, 18), top = Mib.px(act, 14);
@@ -184,6 +188,10 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
         body.removeAllViews();
         cells = new TextView[6];
         trip = null;
+        if (tripBg != null) {
+            pageRoot.removeView(tripBg);
+            tripBg = null;
+        }
         boolean obd = Prefs.bool(act, Prefs.TRIP_OBD, false);
         if (obd && (p == START || p == LONG || p == REFUEL)) buildTrip(p);
         else switch (p) {
@@ -357,54 +365,43 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
 
     /**
      * Like the factory page: distance and time on the left, average speed and consumption on the
-     * right, the car picture on a road line and the range with a fuel pump at the bottom right.
+     * right and the range with a fuel pump at the bottom right, on the amoled black page. The
+     * chosen "Fuel consumption picture" is the whole page background, also behind the title and arrows (car, road and lines drawn in
+     * the picture itself); with no picture chosen the page stays plain black.
      * The values come from {@link ObdData}; "---" shows until they are known.
      */
     private void buildTrip(int p) {
         tripPage = p;
         trip = new TextView[5];
+        if (!com.thecarlauncher.util.CarImages.NONE.equals(
+                com.thecarlauncher.util.CarImages.mode(act, com.thecarlauncher.util.CarImages.TRIPS))) {
+            tripBg = new ImageView(act);
+            tripBg.setImageBitmap(com.thecarlauncher.util.CarImages.get(act, com.thecarlauncher.util.CarImages.TRIPS));
+            tripBg.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            pageRoot.addView(tripBg, 0, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT));
+        }
+
+        // Left values end at about 30 % of the width, right values start at 50 % (as on the factory page).
         LinearLayout top = new LinearLayout(act);
         top.setOrientation(LinearLayout.HORIZONTAL);
-        top.setPadding(Mib.px(act, 44), Mib.px(act, 10), Mib.px(act, 44), 0);
+        top.setWeightSum(1f);
+        top.setPadding(0, Mib.px(act, 10), 0, 0);
         LinearLayout left = new LinearLayout(act);
         left.setOrientation(LinearLayout.VERTICAL);
+        left.setGravity(Gravity.RIGHT);
         LinearLayout right = new LinearLayout(act);
         right.setOrientation(LinearLayout.VERTICAL);
         trip[0] = tripText(left);
         trip[1] = tripText(left);
         trip[2] = tripText(right);
         trip[3] = tripText(right);
-        top.addView(left, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-        top.addView(right, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        for (int i = 0; i < 2; i++) trip[i].setGravity(Gravity.RIGHT);
+        top.addView(left, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 0.30f));
+        top.addView(new View(act), new LinearLayout.LayoutParams(0, 1, 0.20f));
+        top.addView(right, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 0.50f));
         body.addView(top, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP));
-
-        int roadBottom = Mib.px(act, 118);
-        View road = new View(act);
-        road.setBackgroundColor(0xFF4C4D57);
-        FrameLayout.LayoutParams rl = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-                Math.max(2, Mib.px(act, 2)), Gravity.BOTTOM);
-        rl.bottomMargin = roadBottom;
-        rl.leftMargin = Mib.px(act, 20);
-        rl.rightMargin = Mib.px(act, 20);
-        body.addView(road, rl);
-
-        final ImageView car = new ImageView(act);
-        car.setImageBitmap(com.thecarlauncher.util.CarImages.get(act, com.thecarlauncher.util.CarImages.TRIPS));
-        car.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        FrameLayout.LayoutParams cl = new FrameLayout.LayoutParams(0, 0, Gravity.LEFT | Gravity.BOTTOM);
-        cl.bottomMargin = roadBottom;
-        cl.leftMargin = Mib.px(act, 40);
-        body.addView(car, cl);
-        body.post(new Runnable() {
-            @Override
-            public void run() {
-                FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) car.getLayoutParams();
-                lp.width = (int) (body.getWidth() * 0.36f);
-                lp.height = (int) (body.getHeight() * 0.38f);
-                car.setLayoutParams(lp);
-            }
-        });
 
         LinearLayout range = new LinearLayout(act);
         range.setGravity(Gravity.CENTER_VERTICAL);

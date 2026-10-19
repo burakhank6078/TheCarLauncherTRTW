@@ -462,7 +462,8 @@ final class Tr {
         p("App not found", "Uygulama bulunamadı");
         p("Tyre pressure", "Lastik basıncı");
         p("Tyre picture (Tyre pressure)", "Lastik resmi (Lastik basıncı)");
-        p("Fuel consumption picture (Trip pages)", "Yakıt tüketimi resmi (Yolculuk sayfaları)");
+        p("Fuel consumption picture (Trip pages, 1024×444 px)", "Yakıt tüketimi resmi (Yolculuk sayfaları, 1024×444 px)");
+        p("Whole page: 1024×444 px recommended (PNG, up to 1600 px). The car, road and lines go in the picture.", "Tüm sayfa: 1024×444 px önerilir (PNG, en fazla 1600 px). Araç, yol ve çizgiler resmin içinde olmalı.");
         p("Take trip data from OBD", "Yolculuk verilerini OBD'den al");
         p("On: Since start, Since refuelling and Long-term look like the original MIB 2 and show OBD data. Off: the current view.", "Açık: Başlangıçtan beri, Yakıt aldıktan sonra ve Uzun vadeli sayfaları orijinal MIB 2 gibi görünür ve OBD verilerini gösterir. Kapalı: mevcut görünüm.");
         p("Diagnostic recording", "Tanılama kaydı");

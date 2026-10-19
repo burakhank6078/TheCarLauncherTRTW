@@ -1113,7 +1113,7 @@ public class SettingsScreen extends Screen {
         pictureRow(s("Slika vozila (Status vozila)", "Car picture (Vehicle status)"), com.thecarlauncher.util.CarImages.EXTERIOR);
         pictureRow(s("Slika unutrašnjosti (Ambijentalno)", "Interior picture (Ambient lighting)"), com.thecarlauncher.util.CarImages.INTERIOR);
         pictureRow(s("Slika za gume (Pritisak u gumama)", "Tyre picture (Tyre pressure)"), com.thecarlauncher.util.CarImages.TYRES);
-        pictureRow(s("Slika za potrošnju (Putni računar)", "Fuel consumption picture (Trip pages)"), com.thecarlauncher.util.CarImages.TRIPS);
+        pictureRow(s("Slika za potrošnju (Putni računar, 1024×444 px)", "Fuel consumption picture (Trip pages, 1024×444 px)"), com.thecarlauncher.util.CarImages.TRIPS);
         toggle(s("Podaci putnog računara iz OBD-a", "Take trip data from OBD"), Prefs.TRIP_OBD, false, false);
         note(s("Uključeno: Od starta, Od dopune i Dugoročno u izgledu originalnog MIB 2 sa OBD podacima. Isključeno: dosadašnji prikaz.",
                 "On: Since start, Since refuelling and Long-term look like the original MIB 2 and show OBD data. Off: the current view."));
@@ -1196,6 +1196,10 @@ public class SettingsScreen extends Screen {
 
     private void buildPictures() {
         final int which = pictureFor;
+        if (which == com.thecarlauncher.util.CarImages.TRIPS) {
+            note(s("Cela stranica: preporučeno 1024×444 px (PNG, do 1600 px). Auto, put i linije idu u sliku.",
+                    "Whole page: 1024×444 px recommended (PNG, up to 1600 px). The car, road and lines go in the picture."));
+        }
         if (!com.thecarlauncher.util.ImageFinder.hasPermission(act)) {
             action(s("Dozvoli pristup slikama", "Allow access to pictures"), s("potrebno", "needed"), new Runnable() {
                 public void run() {
