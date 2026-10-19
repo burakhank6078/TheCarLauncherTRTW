@@ -22,6 +22,7 @@ import android.widget.TextView;
 import com.thecarlauncher.LauncherActivity;
 import com.thecarlauncher.R;
 import com.thecarlauncher.car.CarData;
+import com.thecarlauncher.car.ObdData;
 import com.thecarlauncher.mib.Mib;
 import com.thecarlauncher.mib.MibBar;
 import com.thecarlauncher.mib.MibPopup;
@@ -48,6 +49,9 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
     private int page;
     /** Value cells of the data pages, refreshed every second. */
     private TextView[] cells = new TextView[6];
+    /** Values of the OBD-style trip layout (distance, time, speed, consumption, range), or null. */
+    private TextView[] trip;
+    private int tripPage;
 
     private final Runnable ticker = new Runnable() {
         @Override
@@ -179,7 +183,10 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
         title.setText(pageTitle(p));
         body.removeAllViews();
         cells = new TextView[6];
-        switch (p) {
+        trip = null;
+        boolean obd = Prefs.bool(act, Prefs.TRIP_OBD, false);
+        if (obd && (p == START || p == LONG || p == REFUEL)) buildTrip(p);
+        else switch (p) {
             case STATUS: buildStatus(); break;
             case START:
                 buildCells(new int[]{R.drawable.ui_ic_clock, R.drawable.ui_ic_route, R.drawable.ui_ic_speedo,
@@ -205,7 +212,7 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
             case TYRES: buildTyres(); break;
             default: buildService(); break;
         }
-        boolean action = p == START || p == LONG || p == REFUEL || p == FUEL;
+        boolean action = p == FUEL || (!obd && (p == START || p == LONG || p == REFUEL));
         actionKey.setVisibility(action ? View.VISIBLE : View.INVISIBLE);
         if (p == START || p == LONG) actionKey.setLabel(s("Resetuj", "Reset")).setIcon(R.drawable.ui_ic_refresh);
         else actionKey.setLabel(s("Točenje", "Fill-up")).setIcon(R.drawable.ui_ic_plus);
@@ -291,7 +298,7 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
      */
     private void buildTyres() {
         final ImageView car = new ImageView(act);
-        car.setImageBitmap(com.thecarlauncher.util.CarImages.get(act, com.thecarlauncher.util.CarImages.EXTERIOR));
+        car.setImageBitmap(com.thecarlauncher.util.CarImages.get(act, com.thecarlauncher.util.CarImages.TYRES));
         car.setScaleType(ImageView.ScaleType.FIT_CENTER);
         body.addView(car, new FrameLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT,
                 Gravity.RIGHT | Gravity.BOTTOM));
@@ -337,6 +344,128 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
         bl.leftMargin = Mib.px(act, 30);
         bl.bottomMargin = Mib.px(act, 34);
         body.addView(btn, bl);
+    }
+
+    // ---- Trip pages in the original MIB 2 layout (OBD data) ------------------------------------
+
+    private TextView tripText(LinearLayout parent) {
+        TextView t = Mib.text(act, "", 36, Mib.regular(act), Mib.WHITE);
+        t.setPadding(0, Mib.px(act, 6), 0, Mib.px(act, 6));
+        parent.addView(t);
+        return t;
+    }
+
+    /**
+     * Like the factory page: distance and time on the left, average speed and consumption on the
+     * right, the car picture on a road line and the range with a fuel pump at the bottom right.
+     * The values come from {@link ObdData}; "---" shows until they are known.
+     */
+    private void buildTrip(int p) {
+        tripPage = p;
+        trip = new TextView[5];
+        LinearLayout top = new LinearLayout(act);
+        top.setOrientation(LinearLayout.HORIZONTAL);
+        top.setPadding(Mib.px(act, 44), Mib.px(act, 10), Mib.px(act, 44), 0);
+        LinearLayout left = new LinearLayout(act);
+        left.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout right = new LinearLayout(act);
+        right.setOrientation(LinearLayout.VERTICAL);
+        trip[0] = tripText(left);
+        trip[1] = tripText(left);
+        trip[2] = tripText(right);
+        trip[3] = tripText(right);
+        top.addView(left, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        top.addView(right, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        body.addView(top, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP));
+
+        int roadBottom = Mib.px(act, 118);
+        View road = new View(act);
+        road.setBackgroundColor(0xFF4C4D57);
+        FrameLayout.LayoutParams rl = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                Math.max(2, Mib.px(act, 2)), Gravity.BOTTOM);
+        rl.bottomMargin = roadBottom;
+        rl.leftMargin = Mib.px(act, 20);
+        rl.rightMargin = Mib.px(act, 20);
+        body.addView(road, rl);
+
+        final ImageView car = new ImageView(act);
+        car.setImageBitmap(com.thecarlauncher.util.CarImages.get(act, com.thecarlauncher.util.CarImages.TRIPS));
+        car.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        FrameLayout.LayoutParams cl = new FrameLayout.LayoutParams(0, 0, Gravity.LEFT | Gravity.BOTTOM);
+        cl.bottomMargin = roadBottom;
+        cl.leftMargin = Mib.px(act, 40);
+        body.addView(car, cl);
+        body.post(new Runnable() {
+            @Override
+            public void run() {
+                FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) car.getLayoutParams();
+                lp.width = (int) (body.getWidth() * 0.36f);
+                lp.height = (int) (body.getHeight() * 0.38f);
+                car.setLayoutParams(lp);
+            }
+        });
+
+        LinearLayout range = new LinearLayout(act);
+        range.setGravity(Gravity.CENTER_VERTICAL);
+        trip[4] = Mib.text(act, "", 36, Mib.regular(act), Mib.WHITE);
+        range.addView(trip[4]);
+        ImageView pump = new ImageView(act);
+        pump.setImageDrawable(new FuelIcon());
+        LinearLayout.LayoutParams pl = new LinearLayout.LayoutParams(Mib.px(act, 44), Mib.px(act, 44));
+        pl.leftMargin = Mib.px(act, 22);
+        range.addView(pump, pl);
+        FrameLayout.LayoutParams rg = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.RIGHT);
+        rg.rightMargin = Mib.px(act, 44);
+        rg.bottomMargin = Mib.px(act, 34);
+        body.addView(range, rg);
+    }
+
+    private void updateTrip() {
+        int src = tripPage == START ? ObdData.START : tripPage == REFUEL ? ObdData.REFUEL : ObdData.LONG;
+        ObdData d = ObdData.get();
+        boolean metric = Prefs.metric(act);
+        double f = metric ? 1 : 0.621371;
+        String du = metric ? "km" : "mi", su = LocationTracker.unit(act);
+        double dist = d.get(src, ObdData.DIST), ms = d.get(src, ObdData.TIME), spd = d.get(src, ObdData.SPEED);
+        double cons = d.get(src, ObdData.CONS), range = d.get(src, ObdData.RANGE);
+        trip[0].setText(Double.isNaN(dist) ? "--- " + du : String.format(Locale.US, "%.0f %s", dist * f, du));
+        trip[1].setText(Double.isNaN(ms) ? "--:-- h" : hm((long) ms));
+        trip[2].setText("Ø " + (Double.isNaN(spd) ? "---" : String.format(Locale.US, "%.0f", spd * f)) + " " + su);
+        trip[3].setText("Ø " + (Double.isNaN(cons) ? "--.-" : String.format(Locale.US, "%.1f", cons)) + " l/100km");
+        trip[4].setText(Double.isNaN(range) ? "--- " + du : String.format(Locale.US, "%.0f %s", range * f, du));
+    }
+
+    /** A small white fuel pump, drawn crisp at any size. */
+    private static final class FuelIcon extends Drawable {
+        private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+        FuelIcon() {
+            p.setColor(0xFFFFFFFF);
+            p.setStyle(Paint.Style.STROKE);
+            p.setStrokeJoin(Paint.Join.ROUND);
+        }
+
+        @Override
+        public void draw(Canvas c) {
+            android.graphics.Rect b = getBounds();
+            float w = b.width(), h = b.height();
+            p.setStrokeWidth(Math.max(2f, w * 0.07f));
+            float l = b.left + w * 0.12f, t = b.top + h * 0.08f, r = b.left + w * 0.58f, bt = b.top + h * 0.92f;
+            c.drawRect(l, t, r, bt, p);
+            c.drawRect(l + w * 0.08f, t + h * 0.10f, r - w * 0.08f, t + h * 0.38f, p);
+            Path hose = new Path();
+            hose.moveTo(r, t + h * 0.26f);
+            hose.lineTo(b.left + w * 0.84f, t + h * 0.26f);
+            hose.lineTo(b.left + w * 0.84f, t + h * 0.66f);
+            c.drawPath(hose, p);
+            c.drawLine(l - w * 0.06f, bt, r + w * 0.06f, bt, p);
+        }
+
+        @Override public void setAlpha(int a) { p.setAlpha(a); }
+        @Override public void setColorFilter(android.graphics.ColorFilter f) { p.setColorFilter(f); }
+        @Override public int getOpacity() { return android.graphics.PixelFormat.TRANSLUCENT; }
     }
 
     private View statusLine(Drawable mark, String text) {
@@ -667,6 +796,10 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
     }
 
     private void update() {
+        if (trip != null) {
+            updateTrip();
+            return;
+        }
         if (cells[0] == null) return;
         TripComputer tc = TripComputer.get(act);
         boolean metric = Prefs.metric(act);

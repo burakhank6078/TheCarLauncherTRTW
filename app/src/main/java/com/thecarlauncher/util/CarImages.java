@@ -22,18 +22,30 @@ import java.io.InputStream;
  * built-in set (Corsa C) or a picture imported from the unit's storage.
  */
 public final class CarImages {
-    public static final int EXTERIOR = 0, INTERIOR = 1;
+    public static final int EXTERIOR = 0, INTERIOR = 1, TYRES = 2, TRIPS = 3;
     private static final int MAX = 1600;
 
     private CarImages() {}
 
     private static File file(Context c, int which) {
-        return new File(c.getFilesDir(), which == EXTERIOR ? "car_exterior.png" : "car_interior.jpg");
+        switch (which) {
+            case INTERIOR: return new File(c.getFilesDir(), "car_interior.jpg");
+            case TYRES: return new File(c.getFilesDir(), "car_tyres.png");
+            case TRIPS: return new File(c.getFilesDir(), "car_trips.png");
+            default: return new File(c.getFilesDir(), "car_exterior.png");
+        }
     }
 
     public static final String NONE = "none", BUILTIN = "corsa_c", CUSTOM = "custom";
 
-    private static String key(int which) { return which == EXTERIOR ? "car_img_exterior" : "car_img_interior"; }
+    private static String key(int which) {
+        switch (which) {
+            case INTERIOR: return "car_img_interior";
+            case TYRES: return "car_img_tyres";
+            case TRIPS: return "car_img_trips";
+            default: return "car_img_exterior";
+        }
+    }
 
     /** NONE, BUILTIN or CUSTOM. */
     public static String mode(Context c, int which) {
@@ -66,7 +78,7 @@ public final class CarImages {
     }
 
     public static Bitmap builtin(Context c, int which) {
-        return BitmapFactory.decodeResource(c.getResources(), which == EXTERIOR ? R.drawable.car_exterior : R.drawable.car_interior);
+        return BitmapFactory.decodeResource(c.getResources(), which == INTERIOR ? R.drawable.car_interior : R.drawable.car_exterior);
     }
 
     public static void useBuiltin(Context c, int which) {
@@ -80,7 +92,7 @@ public final class CarImages {
         Bitmap b = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
         Canvas cv = new Canvas(b);
         if (which == INTERIOR) cv.drawColor(0xFF0B0B0E);
-        float cx = which == EXTERIOR ? w * 0.55f : w / 2f, top = which == EXTERIOR ? h * 0.30f : h * 0.24f;
+        float cx = which != INTERIOR ? w * 0.55f : w / 2f, top = which != INTERIOR ? h * 0.30f : h * 0.24f;
         float side = 190f, th = side * 0.866f;
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
         p.setColor(0xFFF2A516);
@@ -131,7 +143,7 @@ public final class CarImages {
             if (b == null) return false;
             FileOutputStream fo = new FileOutputStream(file(c, which));
             // PNG keeps a cut-out car's transparent background; the cabin photo is a JPEG.
-            b.compress(which == EXTERIOR ? Bitmap.CompressFormat.PNG : Bitmap.CompressFormat.JPEG, 92, fo);
+            b.compress(which != INTERIOR ? Bitmap.CompressFormat.PNG : Bitmap.CompressFormat.JPEG, 92, fo);
             fo.close();
             Prefs.put(c, key(which), CUSTOM);
             return true;

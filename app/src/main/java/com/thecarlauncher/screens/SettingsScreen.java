@@ -1112,6 +1112,11 @@ public class SettingsScreen extends Screen {
         textRow(s("Model", "Model"), Prefs.VEHICLE_MODEL, "Corsa C");
         pictureRow(s("Slika vozila (Status vozila)", "Car picture (Vehicle status)"), com.thecarlauncher.util.CarImages.EXTERIOR);
         pictureRow(s("Slika unutrašnjosti (Ambijentalno)", "Interior picture (Ambient lighting)"), com.thecarlauncher.util.CarImages.INTERIOR);
+        pictureRow(s("Slika za gume (Pritisak u gumama)", "Tyre picture (Tyre pressure)"), com.thecarlauncher.util.CarImages.TYRES);
+        pictureRow(s("Slika za potrošnju (Putni računar)", "Fuel consumption picture (Trip pages)"), com.thecarlauncher.util.CarImages.TRIPS);
+        toggle(s("Podaci putnog računara iz OBD-a", "Take trip data from OBD"), Prefs.TRIP_OBD, false, false);
+        note(s("Uključeno: Od starta, Od dopune i Dugoročno u izgledu originalnog MIB 2 sa OBD podacima. Isključeno: dosadašnji prikaz.",
+                "On: Since start, Since refuelling and Long-term look like the original MIB 2 and show OBD data. Off: the current view."));
         action(s("Fabrička podešavanja vozila", "Factory car settings"), s("otvara aplikaciju jedinice", "opens the unit's app"), new Runnable() {
             public void run() {
                 // The unit's own car app (TW platform); it is only opened, nothing of it is copied.

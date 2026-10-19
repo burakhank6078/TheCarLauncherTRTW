@@ -45,6 +45,8 @@ public final class Prefs {
     public static final String BT_AUTO_SELECT = "bt_auto_select";
     public static final String ONLINE_COVER = "online_cover";
     public static final String BT_SYSTEM_KEYS = "bt_system_keys";
+    /** Trip pages (Since start / refuelling / long-term) show OBD data in the original MIB 2 layout. */
+    public static final String TRIP_OBD = "trip_from_obd";
     public static final String PROJECTION_PKG = "projection_pkg";
     public static final String SHUFFLE = "shuffle";
     public static final String REPEAT = "repeat";
