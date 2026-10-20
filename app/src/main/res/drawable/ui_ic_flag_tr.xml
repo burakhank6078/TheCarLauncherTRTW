@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Turkish flag, shown next to the language entry in Settings. -->
+<!-- Turkish flag (3:2), shown next to the language entry in Settings. Proportions follow the official flag. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="30dp"
     android:height="20dp"
     android:viewportWidth="30"
     android:viewportHeight="20">
     <path android:fillColor="#E30A17" android:pathData="M0,0h30v20h-30z" />
-    <path android:fillColor="#FFFFFF" android:pathData="M15,10m-5,0a5,5 0,1 1,10 0a5,5 0,1 1,-10 0" />
-    <path android:fillColor="#E30A17" android:pathData="M16.25,10m-4,0a4,4 0,1 1,8 0a4,4 0,1 1,-8 0" />
-    <path android:fillColor="#FFFFFF" android:pathData="M18,10L16.409,9.412L16.342,7.718L15.291,9.049L13.658,8.589L14.6,10L13.658,11.411L15.291,10.951L16.342,12.282L16.409,10.588Z" />
+    <!-- crescent: white disc minus a red disc shifted to the right -->
+    <path android:fillColor="#FFFFFF" android:pathData="M11.1,10m-5,0a5,5 0,1 1,10 0a5,5 0,1 1,-10 0" />
+    <path android:fillColor="#E30A17" android:pathData="M12,10m-4,0a4,4 0,1 1,8 0a4,4 0,1 1,-8 0" />
+    <!-- five-pointed star, one tip pointing at the crescent -->
+    <path android:fillColor="#FFFFFF" android:pathData="M14.583,10L19.105,8.53L16.31,12.38L16.31,7.625L19.105,11.47Z" />
 </vector>
