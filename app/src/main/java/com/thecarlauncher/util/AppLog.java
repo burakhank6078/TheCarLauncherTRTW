@@ -129,10 +129,11 @@ public final class AppLog {
     }
 
     private void write(final String tag, final String msg) {
-        final String line = stamp.format(new Date()) + " " + tag + " " + msg;
+        final long now = System.currentTimeMillis();
+        final String text = tag + " " + msg;
         io.post(new Runnable() {
             @Override
-            public void run() { append(line); }
+            public void run() { append(stamp.format(new Date(now)) + " " + text); } // SimpleDateFormat only on this thread
         });
     }
 
@@ -169,7 +170,7 @@ public final class AppLog {
                     e.printStackTrace(new PrintWriter(sw));
                     synchronized (AppLog.this) {
                         PrintWriter w = new PrintWriter(new FileWriter(new File(dir(), NAME), true), true);
-                        w.println(stamp.format(new Date()) + " CRASH in thread " + t.getName() + "\n" + sw);
+                        w.println(new SimpleDateFormat("MM-dd HH:mm:ss.SSS", Locale.US).format(new Date()) + " CRASH in thread " + t.getName() + "\n" + sw);
                         w.close();
                     }
                 } catch (Throwable ignored) {

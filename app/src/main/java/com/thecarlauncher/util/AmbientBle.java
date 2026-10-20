@@ -74,6 +74,8 @@ public final class AmbientBle {
     private boolean ready, writing, scanning, syncPending;
     private String status = "";
     private Runnable listener;
+    /** Address of the connection connect() is creating right now; null otherwise. */
+    private String pendingAddr;
 
     private AmbientBle(Context c) { app = c.getApplicationContext(); }
 
@@ -208,13 +210,17 @@ public final class AmbientBle {
             set("search failed: " + t);
             return;
         }
-        main.postDelayed(new Runnable() {
-            @Override
-            public void run() { stopScan(); }
-        }, 10000);
+        main.removeCallbacks(scanTimeout); // an earlier search must not end this one early
+        main.postDelayed(scanTimeout, 10000);
     }
 
+    private final Runnable scanTimeout = new Runnable() {
+        @Override
+        public void run() { stopScan(); }
+    };
+
     public void stopScan() {
+        main.removeCallbacks(scanTimeout);
         BluetoothAdapter a = adapter();
         if (!scanning || a == null || a.getBluetoothLeScanner() == null) return;
         try {
@@ -222,7 +228,9 @@ public final class AmbientBle {
         } catch (Throwable ignored) {
         }
         scanning = false;
-        set(found.size() + " device(s) found");
+        int n;
+        synchronized (this) { n = found.size(); }
+        set(n + " device(s) found");
     }
 
     // ---- Connection ---------------------------------------------------------------------------
@@ -230,9 +238,16 @@ public final class AmbientBle {
     private final BluetoothGattCallback callback = new BluetoothGattCallback() {
         @Override
         public void onConnectionStateChange(BluetoothGatt g, int st, int state) {
-            if (gatt != null && g != gatt) return; // late callback of a connection already replaced
+            if (g != gatt) {
+                // A late callback of a connection that was replaced or closed is ignored. The only
+                // newcomer accepted is the one connect() is just creating: its callback may arrive
+                // before connectGatt() has returned and stored it.
+                synchronized (AmbientBle.this) {
+                    if (gatt != null || pendingAddr == null || !pendingAddr.equalsIgnoreCase(g.getDevice().getAddress())) return;
+                    gatt = g;
+                }
+            }
             if (state == android.bluetooth.BluetoothProfile.STATE_CONNECTED) {
-                if (gatt == null) gatt = g; // callback arrived before connect() stored it
                 set("connected, reading services");
                 g.discoverServices();
             } else {
@@ -241,6 +256,7 @@ public final class AmbientBle {
                     writing = false;
                     queue.clear();
                 }
+                main.removeCallbacks(writeTimeout);
                 g.close();
                 if (gatt == g) gatt = null;
                 set("disconnected (" + st + ")");
@@ -257,15 +273,17 @@ public final class AmbientBle {
                 BluetoothGattCharacteristic n = s.getCharacteristic(c[2]);
                 if (w == null) continue;
                 synchronized (AmbientBle.this) { write = w; }
+                boolean waiting = false; // true when onDescriptorWrite will start the session
                 if (n != null) {
                     g.setCharacteristicNotification(n, true);
                     BluetoothGattDescriptor d = n.getDescriptor(CCCD);
                     if (d != null) {
                         d.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
-                        g.writeDescriptor(d);
+                        waiting = g.writeDescriptor(d);
                     }
                 }
                 set("ready (service " + c[0] + ")");
+                if (!waiting) startSession(); // no notifications to switch on
                 return;
             }
             set("this device has no ambient strip service");
@@ -274,16 +292,7 @@ public final class AmbientBle {
         @Override
         public void onDescriptorWrite(BluetoothGatt g, BluetoothGattDescriptor d, int st) {
             if (g != gatt) return;
-            // Notifications are on; now the session can start.
-            synchronized (AmbientBle.this) {
-                ready = true;
-            }
-            send(pack((byte) 0x81, (byte) 1));
-            if (syncPending) {
-                syncPending = false;
-                syncFromPrefs();
-            }
-            changed();
+            startSession(); // notifications are on
         }
 
         @Override
@@ -296,7 +305,34 @@ public final class AmbientBle {
         public void onCharacteristicWrite(BluetoothGatt g, BluetoothGattCharacteristic c, int st) {
             if (g != gatt) return;
             synchronized (AmbientBle.this) { writing = false; }
+            main.removeCallbacks(writeTimeout);
             if (st != BluetoothGatt.GATT_SUCCESS) AppLog.d(app, "BLE", "write status " + st);
+            next();
+        }
+    };
+
+    /** The strip answers the characteristic; from here messages may be sent. */
+    private void startSession() {
+        synchronized (this) { ready = true; }
+        send(pack((byte) 0x81, (byte) 1));
+        boolean sync;
+        synchronized (this) {
+            sync = syncPending;
+            syncPending = false;
+        }
+        if (sync) syncFromPrefs();
+        changed();
+    }
+
+    /** A write whose callback never came must not block the queue for good. */
+    private final Runnable writeTimeout = new Runnable() {
+        @Override
+        public void run() {
+            synchronized (AmbientBle.this) {
+                if (!writing) return;
+                writing = false;
+            }
+            AppLog.d(app, "BLE", "write timed out");
             next();
         }
     };
@@ -316,10 +352,23 @@ public final class AmbientBle {
         Prefs.put(app, ADDR, address);
         try {
             BluetoothDevice d = a.getRemoteDevice(address);
-            synchronized (this) { syncPending = true; }
-            gatt = Build.VERSION.SDK_INT >= 23
+            synchronized (this) {
+                syncPending = true;
+                pendingAddr = address;
+            }
+            BluetoothGatt ng = Build.VERSION.SDK_INT >= 23
                     ? d.connectGatt(app, false, callback, BluetoothDevice.TRANSPORT_LE)
                     : d.connectGatt(app, false, callback);
+            boolean stale;
+            synchronized (this) {
+                stale = pendingAddr == null; // disconnect() was called meanwhile
+                pendingAddr = null;
+                if (!stale) gatt = ng;
+            }
+            if (stale) {
+                if (ng != null) ng.close();
+                return;
+            }
             set("connecting to " + address);
         } catch (Throwable t) {
             set("connect failed: " + t);
@@ -335,16 +384,20 @@ public final class AmbientBle {
             }
         }
         scanning = false;
+        main.removeCallbacks(scanTimeout);
     }
 
     public void disconnect() {
-        BluetoothGatt g = gatt;
-        gatt = null;
+        BluetoothGatt g;
         synchronized (this) {
+            g = gatt;
+            gatt = null;
+            pendingAddr = null;
             ready = false;
             queue.clear();
             writing = false;
         }
+        main.removeCallbacks(writeTimeout);
         if (g != null) {
             try {
                 g.disconnect();
@@ -411,11 +464,20 @@ public final class AmbientBle {
             w = write;
             writing = true;
         }
+        // A characteristic that only allows "write without response" needs that write type.
+        int props = w.getProperties();
+        w.setWriteType((props & BluetoothGattCharacteristic.PROPERTY_WRITE) == 0
+                && (props & BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE) != 0
+                ? BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE : BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT);
         w.setValue(msg);
         boolean ok = g.writeCharacteristic(w);
         AppLog.d(app, "BLE", "tx " + hex(msg) + (ok ? "" : " (not accepted)"));
-        if (!ok) {
+        if (ok) {
+            main.removeCallbacks(writeTimeout);
+            main.postDelayed(writeTimeout, 1500);
+        } else {
             synchronized (this) { writing = false; }
+            next(); // this message is dropped; the rest of the queue still goes out
         }
     }
 

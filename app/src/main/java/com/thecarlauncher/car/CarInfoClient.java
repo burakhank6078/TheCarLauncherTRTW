@@ -41,18 +41,19 @@ public final class CarInfoClient implements ServiceConnection {
 
     private final Context app;
     private HandlerThread thread;
-    private Handler io;
+    private volatile Handler io;
     private volatile IBinder binder;
-    private boolean wanted;
+    private volatile boolean wanted;
     private final Map<Integer, String> last = new HashMap<>();
 
     private final Runnable poll = new Runnable() {
         @Override
         public void run() {
-            if (!wanted || io == null) return;
+            Handler h = io; // setEnabled(false) may clear the field while readAll() runs
+            if (!wanted || h == null) return;
             if (binder == null) return; // reconnecting starts a new loop
             readAll();
-            io.postDelayed(this, INTERVAL_MS);
+            if (wanted) h.postDelayed(this, INTERVAL_MS);
         }
     };
 

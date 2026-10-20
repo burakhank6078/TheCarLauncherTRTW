@@ -861,13 +861,18 @@ public final class MediaHub {
      * Bluetooth app, whose media session shows the song but accepts no commands, and only while the
      * "Allow sending commands" switch in Setup > Vehicle is on. False means "use the other paths".
      */
-    private boolean twBt(int code) {
+    private boolean twBt(final int code) {
         boolean twSource = TW_BT.equals(Prefs.str(app, Prefs.BT_SESSION_PKG, null))
                 || (active != null && TW_BT.equals(packageOf(active)));
-        if (!twSource) return false;
-        boolean ok = com.thecarlauncher.car.TwProbe.get().write(app, 513, 1, code, null);
-        log("-> TWUtil write(513,1," + code + ") ok=" + ok + (ok ? "" : " (" + com.thecarlauncher.car.TwProbe.get().writeError() + ")"));
-        return ok;
+        if (!twSource || !com.thecarlauncher.car.TwProbe.get().usable(app)) return false;
+        // Sent on its own thread (opening TWUtil must not freeze the screen); the outcome goes to the recorder.
+        com.thecarlauncher.car.TwProbe.get().writeAsync(app, 513, 1, code, null, new com.thecarlauncher.car.TwProbe.Result() {
+            @Override
+            public void done(boolean ok, String error) {
+                log("-> TWUtil write(513,1," + code + ") ok=" + ok + (ok ? "" : " (" + error + ")"));
+            }
+        });
+        return true;
     }
 
     private void log(String msg) { com.thecarlauncher.util.AppLog.d(app, "BT", msg); }
@@ -884,11 +889,7 @@ public final class MediaHub {
             radio().stop();
             return;
         }
-        if (btSelected && twBt(TW_PLAY_PAUSE)) {
-            btPlaying = !btPlaying; // as the fallback does; the session confirms later
-            notifyChanged();
-            return;
-        }
+        if (btSelected && twBt(TW_PLAY_PAUSE)) return; // the media session reports the new state
         if (btSelected && (bt.qfCommand(BluetoothSource.QF_PLAY_PAUSE) || goc().send("MA"))) {
             goc().send("VI");
             return;

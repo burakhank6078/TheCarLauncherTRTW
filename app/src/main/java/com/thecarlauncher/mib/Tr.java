@@ -494,6 +494,8 @@ final class Tr {
         p("commands are not allowed", "komutlara izin verilmedi");
         p("TWUtil has no matching write", "TWUtil uygun yazma çağrısı sunmuyor");
         p("TWUtil not on this unit", "TWUtil bu cihazda yok");
+        p("TWUtil crashed the app earlier - not repeated", "TWUtil daha önce uygulamayı çökertti, tekrar denenmedi");
+        p("TWUtil could not be opened", "TWUtil açılamadı");
         p("TWUtil crashed the launcher earlier; trying again", "TWUtil daha önce launcher'ı çökertti; yeniden deneniyor");
         p("Could not send", "Gönderilemedi");
 

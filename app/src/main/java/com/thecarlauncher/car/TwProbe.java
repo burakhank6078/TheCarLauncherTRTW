@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.os.Looper;
 import android.os.Message;
 
 import java.lang.reflect.Constructor;
@@ -48,6 +49,7 @@ public final class TwProbe {
     private Context appCtx;
     private final Map<Long, String> lastLogged = new LinkedHashMap<>();
     private final Map<Long, Long> lastLoggedAt = new LinkedHashMap<>();
+    private final Map<Long, String> pending = new LinkedHashMap<>();
 
     public static TwProbe get() { return INSTANCE; }
 
@@ -108,6 +110,7 @@ public final class TwProbe {
             stage = next;
         } catch (ClassNotFoundException e) {
             status = "TWUtil not on this unit";
+            absent = true;
             stage = LAST;
         } catch (Throwable t) {
             Throwable cause = t.getCause() != null ? t.getCause() : t;
@@ -192,14 +195,61 @@ public final class TwProbe {
     }
 
     /** True when an earlier native crash is recorded. */
-    public synchronized boolean hadCrash(Context ctx) {
+    public boolean hadCrash(Context ctx) {
         return ctx.getApplicationContext().getSharedPreferences("launcher", Context.MODE_PRIVATE).getInt(CRASH, 0) != 0;
     }
 
     /** Why the last write was refused or failed; empty after a successful one. */
     private String writeError = "";
+    private volatile boolean absent;
+    private Handler writer;
 
     public synchronized String writeError() { return writeError; }
+
+    /** Cheap, never waits for a running write, so safe on the UI thread: commands are allowed and TWUtil is neither missing nor known to crash. */
+    public boolean usable(Context ctx) {
+        return !absent && !hadCrash(ctx)
+                && com.thecarlauncher.util.Prefs.bool(ctx.getApplicationContext(), com.thecarlauncher.util.Prefs.TW_COMMANDS, false);
+    }
+
+    /** Receives the outcome of {@link #writeAsync} on the main thread; error is empty on success. */
+    public interface Result {
+        void done(boolean ok, String error);
+    }
+
+    /**
+     * {@link #write} on a separate thread, so opening the channel and the native call never block the
+     * UI or the thread that delivers car messages. The result (may be null) comes back on the main thread.
+     */
+    public void writeAsync(Context ctx, final int what, final int arg1, final int arg2, final Object obj, final Result cb) {
+        final Context app = ctx.getApplicationContext();
+        Handler h;
+        synchronized (this) {
+            if (writer == null) {
+                HandlerThread t = new HandlerThread("tw-write");
+                t.start();
+                writer = new Handler(t.getLooper());
+            }
+            h = writer;
+        }
+        h.post(new Runnable() {
+            @Override
+            public void run() {
+                final boolean ok;
+                final String err;
+                synchronized (TwProbe.this) {
+                    ok = write(app, what, arg1, arg2, obj);
+                    err = writeError;
+                }
+                if (cb != null) {
+                    new Handler(Looper.getMainLooper()).post(new Runnable() {
+                        @Override
+                        public void run() { cb.done(ok, err); }
+                    });
+                }
+            }
+        });
+    }
 
     /** Forgets an earlier native crash so TWUtil may be tried again (called when the switch is toggled). */
     public synchronized void clearCrash(Context ctx) {
@@ -223,7 +273,10 @@ public final class TwProbe {
         }
         if (stage < 4) openOnly(ctx);
         if (util == null || stage < 4) {
-            writeError = status;
+            // status() has the details (and the recorder logged them); the user gets a short fixed reason.
+            writeError = absent ? "TWUtil not on this unit"
+                    : status.contains("crashed the app") ? "TWUtil crashed the app earlier - not repeated"
+                    : "TWUtil could not be opened";
             return false;
         }
         try {
@@ -275,12 +328,37 @@ public final class TwProbe {
     }
 
     /** Sends a frame to the diagnostic recorder when it changed (at most twice a second per frame). */
-    private void recordToLog(long key, int what, String payload) {
+    private void recordToLog(final long key, final int what, String payload) {
         if (appCtx == null) return;
         long now = System.currentTimeMillis();
         String prev = lastLogged.get(key);
+        if (payload.equals(prev)) {
+            pending.remove(key); // back to the logged value
+            return;
+        }
         Long at = lastLoggedAt.get(key);
-        if (payload.equals(prev) || (at != null && now - at < 500)) return;
+        if (at != null && now - at < 500) {
+            // Too soon after the last line: keep the newest value and log it once the pause is over,
+            // so a quick second change is not lost.
+            boolean first = pending.put(key, payload) == null;
+            if (first && handler != null) {
+                handler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        synchronized (TwProbe.this) {
+                            String p = pending.remove(key);
+                            if (p != null && !p.equals(lastLogged.get(key))) emit(key, what, p, System.currentTimeMillis());
+                        }
+                    }
+                }, 500 - (now - at));
+            }
+            return;
+        }
+        pending.remove(key);
+        emit(key, what, payload, now);
+    }
+
+    private void emit(long key, int what, String payload, long now) {
         lastLogged.put(key, payload);
         lastLoggedAt.put(key, now);
         String id = what == 0x501 ? String.format(Locale.US, "0x501/%d", (int) (key & 0xFFFF))
