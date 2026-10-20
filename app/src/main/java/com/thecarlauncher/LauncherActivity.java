@@ -118,6 +118,7 @@ public class LauncherActivity extends Activity implements LocationTracker.Listen
         registerReceiver(mediaMount, mf);
         Mib.loadAmbient(this);
         com.thecarlauncher.util.AppLog.start(this);
+        com.thecarlauncher.car.CarInfoClient.get(this).setEnabled(Prefs.bool(this, Prefs.TRIP_OBD, false));
         com.thecarlauncher.media.Tone.get(this).attachGlobal();
         com.thecarlauncher.media.QfMediaBridge.get(this);
         com.thecarlauncher.media.GocBluetooth.get(this).start();
