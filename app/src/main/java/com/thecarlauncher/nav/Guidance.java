@@ -212,7 +212,7 @@ public final class Guidance implements LocationTracker.Listener {
         String m = st.modifier;
         switch (st.type) {
             case "arrive": return s("Odredište", "Destination");
-            case "depart": return Mib.t(app, "Krenite", "Start", "Yola çıkın");
+            case "depart": return s("Krenite", "Start");
             case "roundabout":
             case "rotary":
             case "roundabout turn":

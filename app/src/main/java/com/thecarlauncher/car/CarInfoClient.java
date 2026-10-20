@@ -50,6 +50,7 @@ public final class CarInfoClient implements ServiceConnection {
         @Override
         public void run() {
             if (!wanted || io == null) return;
+            if (binder == null) return; // reconnecting starts a new loop
             readAll();
             io.postDelayed(this, INTERVAL_MS);
         }
@@ -93,8 +94,16 @@ public final class CarInfoClient implements ServiceConnection {
     public synchronized void onServiceConnected(ComponentName name, IBinder service) {
         binder = service;
         AppLog.d(app, "OBD", "connected to " + name.flattenToShortString());
-        last.clear();
-        if (io != null) io.post(poll);
+        if (io != null) {
+            io.removeCallbacks(poll);
+            io.post(new Runnable() {
+                @Override
+                public void run() {
+                    last.clear(); // on the polling thread, which also reads it
+                    poll.run();
+                }
+            });
+        }
     }
 
     @Override

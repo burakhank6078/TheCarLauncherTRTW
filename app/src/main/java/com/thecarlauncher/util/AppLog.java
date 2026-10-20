@@ -47,6 +47,9 @@ public final class AppLog {
     private PrintWriter out;
     private Process logcat;
     private boolean running;
+    private boolean crashHandlerSet;
+    /** Bumped on every start and stop so an old logcat reader ends instead of writing twice. */
+    private volatile int generation;
 
     private AppLog(Context c) {
         app = c.getApplicationContext();
@@ -103,6 +106,7 @@ public final class AppLog {
         if (!running) return;
         write("LOG", "---- recording stopped ----");
         running = false;
+        generation++; // ends the logcat reader
         if (logcat != null) {
             logcat.destroy();
             logcat = null;
@@ -153,11 +157,14 @@ public final class AppLog {
 
     /** Writes a crash straight to the file before the process dies. */
     private void installCrashHandler() {
+        if (crashHandlerSet) return; // once only; it stays quiet while the recorder is off
+        crashHandlerSet = true;
         final Thread.UncaughtExceptionHandler previous = Thread.getDefaultUncaughtExceptionHandler();
         Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
             @Override
             public void uncaughtException(Thread t, Throwable e) {
                 try {
+                    if (!running) throw new IllegalStateException("recorder off");
                     StringWriter sw = new StringWriter();
                     e.printStackTrace(new PrintWriter(sw));
                     synchronized (AppLog.this) {
@@ -174,14 +181,22 @@ public final class AppLog {
 
     /** This app's own logcat (an app can only read its own lines on Android 4.1+). */
     private void startLogcat() {
+        final int gen = ++generation;
         new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
-                    logcat = Runtime.getRuntime().exec(new String[]{"logcat", "-v", "threadtime", "-T", "1"});
-                    BufferedReader r = new BufferedReader(new InputStreamReader(logcat.getInputStream()));
+                    Process p = Runtime.getRuntime().exec(new String[]{"logcat", "-v", "threadtime", "-T", "1"});
+                    synchronized (AppLog.this) {
+                        if (gen != generation) {
+                            p.destroy(); // stopped while starting
+                            return;
+                        }
+                        logcat = p;
+                    }
+                    BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream()));
                     String l;
-                    while (running && (l = r.readLine()) != null) {
+                    while (gen == generation && (l = r.readLine()) != null) {
                         if (l.length() > 400) l = l.substring(0, 400);
                         write("LC", l);
                     }

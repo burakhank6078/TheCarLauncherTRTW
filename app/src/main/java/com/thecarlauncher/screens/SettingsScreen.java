@@ -1177,8 +1177,17 @@ public class SettingsScreen extends Screen {
                 com.thecarlauncher.car.CarInfoClient.get(act).setEnabled(Prefs.bool(act, Prefs.TRIP_OBD, false));
             }
         });
-        note(s("Uključeno: putni računar kao originalni MIB 2 sa OBD podacima; launcher sme da šalje reset guma i Bluetooth tastere jedinici. Isključeno: dosadašnji prikaz, ništa se ne šalje.",
-                "On: the trip pages look like the original MIB 2 with OBD data and the launcher may send the tyre reset and Bluetooth keys to the unit. Off: the current view, nothing is sent."));
+        note(s("Uključeno: putni računar kao originalni MIB 2 sa podacima iz vozila. Isključeno: dosadašnji prikaz.",
+                "On: the trip pages look like the original MIB 2 and show data from the car. Off: the current view."));
+        toggle(s("Dozvoli slanje komandi jedinici (reset guma, Bluetooth tasteri)", "Allow sending commands to the unit (tyre reset, Bluetooth keys)"),
+                Prefs.TW_COMMANDS, false, new Runnable() {
+                    public void run() {
+                        // Switching it on or off also lets TWUtil try again after an earlier native crash.
+                        com.thecarlauncher.car.TwProbe.get().clearCrash(act);
+                    }
+                });
+        note(s("Isključeno: ništa se ne šalje jedinici ni vozilu.",
+                "Off: nothing is sent to the unit or the car."));
         action(s("Fabrička podešavanja vozila", "Factory car settings"), s("otvara aplikaciju jedinice", "opens the unit's app"), new Runnable() {
             public void run() {
                 // The unit's own car app (TW platform); it is only opened, nothing of it is copied.

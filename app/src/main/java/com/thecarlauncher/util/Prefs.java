@@ -47,6 +47,8 @@ public final class Prefs {
     public static final String BT_SYSTEM_KEYS = "bt_system_keys";
     /** Trip pages (Since start / refuelling / long-term) show OBD data in the original MIB 2 layout. */
     public static final String TRIP_OBD = "trip_from_obd";
+    /** Lets the launcher send commands to the unit over TWUtil (tyre pressure reset, Bluetooth keys). */
+    public static final String TW_COMMANDS = "allow_car_commands";
     public static final String PROJECTION_PKG = "projection_pkg";
     public static final String SHUFFLE = "shuffle";
     public static final String REPEAT = "repeat";

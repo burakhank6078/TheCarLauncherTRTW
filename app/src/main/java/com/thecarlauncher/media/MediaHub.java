@@ -859,14 +859,14 @@ public final class MediaHub {
     /**
      * Sends a Bluetooth music command the way the unit's own key handler does. Only for the TW
      * Bluetooth app, whose media session shows the song but accepts no commands, and only while the
-     * OBD / vehicle switch in Setup > Vehicle is on. False means "use the other paths".
+     * "Allow sending commands" switch in Setup > Vehicle is on. False means "use the other paths".
      */
     private boolean twBt(int code) {
         boolean twSource = TW_BT.equals(Prefs.str(app, Prefs.BT_SESSION_PKG, null))
                 || (active != null && TW_BT.equals(packageOf(active)));
         if (!twSource) return false;
         boolean ok = com.thecarlauncher.car.TwProbe.get().write(app, 513, 1, code, null);
-        log("-> TWUtil write(513,1," + code + ") ok=" + ok);
+        log("-> TWUtil write(513,1," + code + ") ok=" + ok + (ok ? "" : " (" + com.thecarlauncher.car.TwProbe.get().writeError() + ")"));
         return ok;
     }
 
@@ -884,7 +884,8 @@ public final class MediaHub {
             radio().stop();
             return;
         }
-        if (btSelected && (twBt(TW_PLAY_PAUSE) || bt.qfCommand(BluetoothSource.QF_PLAY_PAUSE) || goc().send("MA"))) {
+        if (btSelected && twBt(TW_PLAY_PAUSE)) return;
+        if (btSelected && (bt.qfCommand(BluetoothSource.QF_PLAY_PAUSE) || goc().send("MA"))) {
             goc().send("VI");
             return;
         }
@@ -910,7 +911,9 @@ public final class MediaHub {
         log(ctl("next"));
         if (isRadio()) {
             radio().seekUp();
-        } else if (btSelected && (twBt(TW_NEXT) || bt.qfCommand(BluetoothSource.QF_NEXT) || goc().send("MD"))) {
+        } else if (btSelected && twBt(TW_NEXT)) {
+            // sent to the unit's Bluetooth app
+        } else if (btSelected && (bt.qfCommand(BluetoothSource.QF_NEXT) || goc().send("MD"))) {
             goc().send("MK");
         } else if (btFallback()) {
             log("-> media key NEXT to BT app");
@@ -928,7 +931,9 @@ public final class MediaHub {
         log(ctl("previous"));
         if (isRadio()) {
             radio().seekDown();
-        } else if (btSelected && (twBt(TW_PREVIOUS) || bt.qfCommand(BluetoothSource.QF_PREVIOUS) || goc().send("ME"))) {
+        } else if (btSelected && twBt(TW_PREVIOUS)) {
+            // sent to the unit's Bluetooth app
+        } else if (btSelected && (bt.qfCommand(BluetoothSource.QF_PREVIOUS) || goc().send("ME"))) {
             goc().send("MK");
         } else if (btFallback()) {
             log("-> media key PREVIOUS to BT app");

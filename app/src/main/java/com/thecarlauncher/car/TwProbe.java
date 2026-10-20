@@ -181,26 +181,54 @@ public final class TwProbe {
         }
     }
 
+    /** Why the last write was refused or failed; empty after a successful one. */
+    private String writeError = "";
+
+    public synchronized String writeError() { return writeError; }
+
+    /** Forgets an earlier native crash so TWUtil may be tried again (called when the switch is toggled). */
+    public synchronized void clearCrash(Context ctx) {
+        ctx.getApplicationContext().getSharedPreferences("launcher", Context.MODE_PRIVATE).edit().remove(CRASH).commit();
+        if (stage < 4) status = "not started";
+    }
+
     /**
      * Sends one message over TWUtil, the same call the unit's own apps make (tyre pressure reset,
-     * Bluetooth keys). Only while "Take trip data from OBD" is switched on in Setup > Vehicle.
-     * Starts the channel first when needed. Returns false when it is off or TWUtil is not usable.
+     * Bluetooth keys). Only while "Allow sending commands to the unit" is on in Setup > Vehicle.
+     * Starts the channel first when needed. Returns false when refused or when TWUtil is not usable;
+     * {@link #writeError()} says why. True means TWUtil accepted the call and did not answer with an
+     * error (a negative number).
      */
     public synchronized boolean write(Context ctx, int what, int arg1, int arg2, Object obj) {
         appCtx = ctx.getApplicationContext();
-        if (!com.thecarlauncher.util.Prefs.bool(appCtx, com.thecarlauncher.util.Prefs.TRIP_OBD, false)) return false;
+        writeError = "";
+        if (!com.thecarlauncher.util.Prefs.bool(appCtx, com.thecarlauncher.util.Prefs.TW_COMMANDS, false)) {
+            writeError = "commands are not allowed";
+            return false;
+        }
         if (stage < 4) autoStart(ctx);
-        if (util == null || stage < 4) return false;
+        if (util == null || stage < 4) {
+            writeError = status;
+            return false;
+        }
         try {
             Method w = obj == null ? find(cls, "write", int.class, int.class, int.class)
                     : find(cls, "write", int.class, int.class, int.class, Object.class);
-            if (w == null) return false;
+            if (w == null) {
+                writeError = "TWUtil has no matching write";
+                return false;
+            }
             Object r = obj == null ? w.invoke(util, what, arg1, arg2) : w.invoke(util, what, arg1, arg2, obj);
             com.thecarlauncher.util.AppLog.d(appCtx, "CAN", String.format(Locale.US,
                     "write 0x%X %d/%d%s -> %s", what, arg1, arg2, obj instanceof byte[] ? " " + hex((byte[]) obj) : "", r));
+            if (r instanceof Number && ((Number) r).intValue() < 0) {
+                writeError = "TWUtil answered " + r;
+                return false;
+            }
             return true;
         } catch (Throwable t) {
             com.thecarlauncher.util.AppLog.d(appCtx, "CAN", "write failed: " + t);
+            writeError = String.valueOf(t.getCause() != null ? t.getCause() : t);
             return false;
         }
     }

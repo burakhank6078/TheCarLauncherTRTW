@@ -52,7 +52,7 @@ final class Tr {
         p("Recalculating.", "Yeniden hesaplanıyor.");
         p("You have arrived.", "Varış noktasına ulaştınız.");
         p("Destination", "Varış noktası");
-        p("Start", "Başlat");
+        p("Start", "Başlayın");
         p("Roundabout", "Döner kavşak");
         p("Merge", "Yola katılın");
         p("Take the ramp", "Rampaya girin");
@@ -473,6 +473,10 @@ final class Tr {
         p("Fuel consumption picture (Trip pages, 1024×444 px)", "Yakıt tüketimi resmi (Yolculuk sayfaları, 1024×444 px)");
         p("Whole page: 1024×444 px recommended (PNG, up to 1600 px). The car, road and lines go in the picture.", "Tüm sayfa: 1024×444 px önerilir (PNG, en fazla 1600 px). Araç, yol ve çizgiler resmin içinde olmalı.");
         p("Take trip data from OBD", "Yolculuk verilerini OBD'den al");
+        p("On: the trip pages look like the original MIB 2 and show data from the car. Off: the current view.", "Açık: yolculuk sayfaları orijinal MIB 2 gibi görünür ve araçtan gelen verileri gösterir. Kapalı: mevcut görünüm.");
+        p("Allow sending commands to the unit (tyre reset, Bluetooth keys)", "Üniteye komut göndermeye izin ver (lastik sıfırlama, Bluetooth tuşları)");
+        p("Off: nothing is sent to the unit or the car.", "Kapalı: üniteye ya da araca hiçbir şey gönderilmez.");
+        p("Switch on \"Allow sending commands to the unit\" in Setup → Vehicle", "Ayarlar → Araç bölümünde \"Üniteye komut göndermeye izin ver\" seçeneğini açın");
         p("Diagnostic recording", "Tanılama kaydı");
         p("Recorded size", "Kayıt boyutu");
         p("Folder", "Klasör");
@@ -483,10 +487,8 @@ final class Tr {
         p("Clear the record", "Kaydı sil");
         p("Records system details, errors, Canbus messages and Bluetooth commands, without positions. Drive as usual, then export the record.", "Sistem bilgilerini, hataları, Canbus mesajlarını ve Bluetooth komutlarını kaydeder, konum kaydetmez. Normal sürün, sonra kaydı aktarın.");
         p("Tyre pressure settings", "Lastik basıncı ayarları");
-        p("On: the trip pages look like the original MIB 2 with OBD data and the launcher may send the tyre reset and Bluetooth keys to the unit. Off: the current view, nothing is sent.", "Açık: yolculuk sayfaları orijinal MIB 2 gibi görünür ve OBD verilerini gösterir; launcher lastik sıfırlama ve Bluetooth tuşlarını üniteye gönderebilir. Kapalı: mevcut görünüm, hiçbir şey gönderilmez.");
         p("After adjusting the pressure, press Reset tyre pressure.", "Basıncı ayarladıktan sonra Lastik basıncını sıfırla düğmesine basın.");
         p("Reset tyre pressure", "Lastik basıncını sıfırla");
-        p("Switch on \"Take trip data from OBD\" in Setup → Vehicle", "Ayarlar → Araç bölümünde \"Yolculuk verilerini OBD'den al\" seçeneğini açın");
         p("Reset the tyre pressure monitor? The pressure must be set.", "Lastik basıncı izleme sıfırlansın mı? Basınç ayarlanmış olmalı.");
         p("Command sent", "Komut gönderildi");
         p("Could not send", "Gönderilemedi");

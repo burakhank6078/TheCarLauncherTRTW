@@ -497,9 +497,9 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
     private long lastTyreReset;
 
     private void confirmTyreReset() {
-        if (!Prefs.bool(act, Prefs.TRIP_OBD, false)) {
-            Ui.toast(act, s("Uključite \"Podaci putnog računara iz OBD-a\" u Podešavanja → Vozilo",
-                    "Switch on \"Take trip data from OBD\" in Setup → Vehicle"));
+        if (!Prefs.bool(act, Prefs.TW_COMMANDS, false)) {
+            Ui.toast(act, s("Uključite \"Dozvoli slanje komandi jedinici\" u Podešavanja → Vozilo",
+                    "Switch on \"Allow sending commands to the unit\" in Setup → Vehicle"));
             return;
         }
         Dialogs.choose(act, s("Resetovati pritisak u gumama? Pritisak mora biti podešen.",
@@ -513,7 +513,7 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
                         // Same message as the factory car app: frame 75, bytes (1, 1).
                         boolean ok = com.thecarlauncher.car.TwProbe.get().write(act, 1281, 75, 2, new byte[]{1, 1});
                         Ui.toast(act, ok ? s("Komanda poslata", "Command sent")
-                                : s("Slanje nije uspelo", "Could not send"));
+                                : s("Slanje nije uspelo", "Could not send") + ": " + com.thecarlauncher.car.TwProbe.get().writeError());
                     }
                 });
     }

@@ -139,7 +139,7 @@ public final class AmbientBle {
 
     /** Called when the launcher starts. */
     public void start() {
-        if (enabled(app)) connectSaved();
+        if (enabled(app) && gatt == null) connectSaved(); // not again when the activity is only recreated
     }
 
     private void connectSaved() {
@@ -230,6 +230,7 @@ public final class AmbientBle {
     private final BluetoothGattCallback callback = new BluetoothGattCallback() {
         @Override
         public void onConnectionStateChange(BluetoothGatt g, int st, int state) {
+            if (gatt != null && g != gatt) return; // late callback of a connection already replaced
             if (state == android.bluetooth.BluetoothProfile.STATE_CONNECTED) {
                 set("connected, reading services");
                 g.discoverServices();
