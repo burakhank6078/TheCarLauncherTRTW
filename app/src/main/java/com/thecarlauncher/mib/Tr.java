@@ -33,8 +33,8 @@ final class Tr {
         p("Annual service due now!", "Yıllık bakım zamanı geldi!");
         p("Service in ", "Bakıma kalan: ");
         p(" days", " gün");
-        p("Registration has expired!", "Ruhsat süresi doldu!");
-        p("Registration expires in ", "Ruhsat süresinin dolmasına: ");
+        p("Registration has expired!", "Muayene süresi doldu!");
+        p("Registration expires in ", "Muayeneye kalan: ");
         p("Time for winter tyres", "Kış lastiği zamanı");
         p("You can switch back to summer tyres", "Yaz lastiğine geri dönebilirsiniz");
         p("Low fuel: about ", "Yakıt azaldı: yaklaşık ");
@@ -52,7 +52,7 @@ final class Tr {
         p("Recalculating.", "Yeniden hesaplanıyor.");
         p("You have arrived.", "Varış noktasına ulaştınız.");
         p("Destination", "Varış noktası");
-        p("Start", "Başlangıç");
+        p("Start", "Başlat");
         p("Roundabout", "Döner kavşak");
         p("Merge", "Yola katılın");
         p("Take the ramp", "Rampaya girin");
@@ -410,12 +410,12 @@ final class Tr {
 
         // ---- Vehicle status ----
         p("Vehicle status", "Araç durumu");
-        p("Since start", "Başlangıçtan beri");
-        p("Long-term", "Uzun vadeli");
-        p("Since refuelling", "Yakıt almadan beri");
+        p("Since start", "Başlangıçtan itibaren");
+        p("Long-term", "Uzun süreli");
+        p("Since refuelling", "Yakıt aldıktan sonra");
         p("Fuel", "Yakıt");
         p("Service", "Bakım");
-        p("Select", "Seç");
+        p("Select", "Seçim");
         p("Driving time", "Sürüş süresi");
         p("Distance", "Mesafe");
         p("Average speed", "Ortalama hız");
@@ -447,7 +447,7 @@ final class Tr {
         p("Service done today", "Bakım bugün yapıldı");
         p("+15,000 km / +1 yr", "+15.000 km / +1 yıl");
         p("Next service scheduled", "Sonraki bakım planlandı");
-        p("Registration expires", "Ruhsat bitiş tarihi");
+        p("Registration expires", "Muayene tarihi");
         p("Winter tyres fitted", "Kış lastiği takılı");
         p("Winter tyre reminder (1 Nov – 1 Apr)", "Kış lastiği hatırlatıcısı (1 Kas – 1 Nis)");
         p("Fuel tank", "Yakıt deposu");
