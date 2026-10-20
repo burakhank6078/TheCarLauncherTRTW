@@ -166,6 +166,7 @@ public class AmbientScreen extends Screen {
         if (!done) return;
         if (color(i) != Prefs.integer(act, Prefs.AMBIENT, Mib.DEFAULT_AMBIENT)) {
             Prefs.put(act, Prefs.AMBIENT, color(i));
+            com.thecarlauncher.util.AmbientBle.get(act).syncFromPrefs();
             act.restartUi();
         }
     }
@@ -174,6 +175,7 @@ public class AmbientScreen extends Screen {
         int l = level(), next = LEVELS[0];
         for (int k = 0; k < LEVELS.length; k++) if (LEVELS[k] == l) next = LEVELS[(k + 1) % LEVELS.length];
         Prefs.put(act, Prefs.AMBIENT_LEVEL, next);
+        com.thecarlauncher.util.AmbientBle.get(act).syncFromPrefs();
         act.restartUi();
     }
 

@@ -458,6 +458,14 @@ final class Tr {
         p("No picture selected", "Resim seçilmedi");
         p("Setup → Vehicle", "Ayarlar → Araç");
         p("Factory car settings", "Fabrika araç ayarları");
+        p("Ambient strip (Bluetooth LE)", "Ambiyans şeridi (Bluetooth LE)");
+        p("Control the ambient strip over Bluetooth LE", "Ambiyans şeridini Bluetooth LE ile yönet");
+        p("Status", "Durum");
+        p("Chosen device", "Seçilen cihaz");
+        p("Search for BLE devices", "BLE cihazlarını ara");
+        p("Send the current colour", "Geçerli rengi gönder");
+        p("Forget the device", "Cihazı unut");
+        p("Close the phone app first: the strip accepts one connection. The colour and level of Ambient lighting are sent to the strip.", "Önce telefondaki uygulamayı kapatın: şerit tek bağlantı kabul eder. Ortam aydınlatmasının rengi ve seviyesi şeride gönderilir.");
         p("opens the unit's app", "cihazın uygulamasını açar");
         p("App not found", "Uygulama bulunamadı");
         p("Tyre pressure", "Lastik basıncı");

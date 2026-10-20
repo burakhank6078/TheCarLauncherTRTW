@@ -17,6 +17,10 @@
         android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
         tools:ignore="ScopedStorage" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- Bluetooth LE: the ambient strip (Raise LAMP&FRGN) is controlled the way its phone app does. -->
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />
+    <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />
     <!-- Read-only access to the unit's car info service (TW platform), used by the OBD switch. -->
     <uses-permission android:name="com.tw.carinfoservice.permission.USE_AIDL" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />

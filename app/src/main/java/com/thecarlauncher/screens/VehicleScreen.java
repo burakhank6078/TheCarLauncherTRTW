@@ -179,6 +179,13 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
                 }
             });
         }
+        // Shortcut to the Ambient lighting screen (colours and level, also sent to the BLE strip).
+        p.add(s("Ambijentalno osvetljenje", "Ambient lighting"), R.drawable.ui_ic_eq, false, new Runnable() {
+            @Override
+            public void run() {
+                act.show(LauncherActivity.AMBIENT, true);
+            }
+        });
         p.show(act.getWindow().getDecorView(), key);
     }
 

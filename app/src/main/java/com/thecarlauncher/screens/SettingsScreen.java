@@ -248,6 +248,7 @@ public class SettingsScreen extends Screen {
         LinearLayout lang = sub(Mib.isTr(act) ? "Dil/Language" : "Jezik/Language", new Page() { public void build() { buildLanguage(); } });
         addLeading(lang, flag());
         sub(s("Jedinice", "Units"), new Page() { public void build() { buildUnits(); } });
+        sub(ambientBleTitle(), new Page() { public void build() { buildAmbientBle(); } });
         sub(s("Snimanje dijagnostike", "Diagnostic recording"), new Page() { public void build() { buildRecording(); } });
         sub(s("Navigacija", "Navigation"), new Page() { public void build() { buildNav(); } });
         LinearLayout sound = sub(s("Zvuk", "Sound"), new Page() { public void build() { buildMedia(); } });
@@ -502,6 +503,7 @@ public class SettingsScreen extends Screen {
             LinearLayout row = choice(s((String) a[0], (String) a[1]), color == cur, new Runnable() {
                 public void run() {
                     Prefs.put(act, Prefs.AMBIENT, color);
+                    com.thecarlauncher.util.AmbientBle.get(act).syncFromPrefs();
                     act.restartUi();
                 }
             });
@@ -1068,6 +1070,56 @@ public class SettingsScreen extends Screen {
                 });
     }
 
+
+    // ---- Ambient strip over Bluetooth LE ----------------------------------------------------
+
+    private String ambientBleTitle() { return s("Ambijentalna traka (Bluetooth LE)", "Ambient strip (Bluetooth LE)"); }
+
+    private boolean onAmbientBlePage() {
+        return !stack.isEmpty() && stack.get(stack.size() - 1).title.equals(ambientBleTitle());
+    }
+
+    /** The launcher's Ambient colour and level also set a Raise LAMP&FRGN strip, as the phone app does. */
+    private void buildAmbientBle() {
+        final com.thecarlauncher.util.AmbientBle ble = com.thecarlauncher.util.AmbientBle.get(act);
+        ble.setListener(new Runnable() {
+            public void run() {
+                if (onAmbientBlePage()) refreshKeep();
+            }
+        });
+        toggle(s("Upravljanje trakom preko Bluetooth LE", "Control the ambient strip over Bluetooth LE"),
+                com.thecarlauncher.util.AmbientBle.ON, false, new Runnable() {
+                    public void run() {
+                        ble.setEnabled(Prefs.bool(act, com.thecarlauncher.util.AmbientBle.ON, false));
+                        refreshKeep();
+                    }
+                });
+        info(s("Stanje", "Status"), ble.status().isEmpty() ? "—" : ble.status());
+        String saved = Prefs.str(act, com.thecarlauncher.util.AmbientBle.ADDR, "");
+        info(s("Izabrani uređaj", "Chosen device"), saved.isEmpty() ? "—" : saved);
+        action(s("Traži uređaje", "Search for BLE devices"), null, new Runnable() {
+            public void run() { ble.startScan(); }
+        });
+        for (final com.thecarlauncher.util.AmbientBle.Found f : ble.found()) {
+            action((f.name.isEmpty() ? f.address : f.name) + "  (" + f.rssi + " dBm)", f.address, new Runnable() {
+                public void run() {
+                    Prefs.put(act, com.thecarlauncher.util.AmbientBle.ON, true);
+                    ble.connect(f.address);
+                }
+            });
+        }
+        action(s("Pošalji trenutnu boju", "Send the current colour"), null, new Runnable() {
+            public void run() { ble.syncFromPrefs(); }
+        });
+        action(s("Zaboravi uređaj", "Forget the device"), null, new Runnable() {
+            public void run() {
+                ble.forget();
+                refreshKeep();
+            }
+        });
+        note(s("Zatvorite aplikaciju na telefonu: traka prihvata jednu vezu. Boja i nivo iz Ambijentalnog osvetljenja se šalju traci.",
+                "Close the phone app first: the strip accepts one connection. The colour and level of Ambient lighting are sent to the strip."));
+    }
 
     // ---- Diagnostic recording ----------------------------------------------------------------
 
