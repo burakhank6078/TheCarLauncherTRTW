@@ -1098,7 +1098,13 @@ public class SettingsScreen extends Screen {
         String saved = Prefs.str(act, com.thecarlauncher.util.AmbientBle.ADDR, "");
         info(s("Izabrani uređaj", "Chosen device"), saved.isEmpty() ? "—" : saved);
         action(s("Traži uređaje", "Search for BLE devices"), null, new Runnable() {
-            public void run() { ble.startScan(); }
+            public void run() {
+                if (!com.thecarlauncher.util.AmbientBle.hasPermissions(act)) {
+                    act.requestPermissions(com.thecarlauncher.util.AmbientBle.permissions(), 44);
+                    return;
+                }
+                ble.startScan();
+            }
         });
         for (final com.thecarlauncher.util.AmbientBle.Found f : ble.found()) {
             action((f.name.isEmpty() ? f.address : f.name) + "  (" + f.rssi + " dBm)", f.address, new Runnable() {
@@ -1248,6 +1254,9 @@ public class SettingsScreen extends Screen {
     @Override
     public void onPermissionsChanged() {
         if (onPicturePage()) loadPictures();
+        if (onAmbientBlePage() && com.thecarlauncher.util.AmbientBle.hasPermissions(act)) {
+            com.thecarlauncher.util.AmbientBle.get(act).startScan();
+        }
     }
 
     private void buildPictures() {

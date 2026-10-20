@@ -93,6 +93,22 @@ public final class AmbientBle {
 
     public static boolean enabled(Context c) { return Prefs.bool(c, ON, false); }
 
+    /** Runtime permissions needed to search for and connect to the strip. */
+    public static String[] permissions() {
+        if (Build.VERSION.SDK_INT >= 31) {
+            return new String[]{"android.permission.BLUETOOTH_SCAN", "android.permission.BLUETOOTH_CONNECT"};
+        }
+        return new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION};
+    }
+
+    public static boolean hasPermissions(Context c) {
+        if (Build.VERSION.SDK_INT < 23) return true;
+        for (String p : permissions()) {
+            if (c.checkSelfPermission(p) != PackageManager.PERMISSION_GRANTED) return false;
+        }
+        return true;
+    }
+
     public synchronized String status() { return status; }
 
     public synchronized List<Found> found() { return new ArrayList<>(found); }
@@ -137,7 +153,12 @@ public final class AmbientBle {
         @Override
         public void onScanResult(int type, ScanResult r) {
             BluetoothDevice d = r.getDevice();
-            String name = d.getName();
+            String name;
+            try {
+                name = d.getName();
+            } catch (SecurityException e) {
+                name = null; // the name needs the Bluetooth (nearby devices) permission
+            }
             synchronized (AmbientBle.this) {
                 for (Found f : found) {
                     if (f.address.equals(d.getAddress())) {
@@ -159,6 +180,10 @@ public final class AmbientBle {
     };
 
     public void startScan() {
+        if (!hasPermissions(app)) {
+            set("allow the Bluetooth (nearby devices) permission, then search again");
+            return;
+        }
         BluetoothAdapter a = adapter();
         if (!supported() || a == null) {
             set("Bluetooth LE is not available on this unit");
@@ -271,6 +296,10 @@ public final class AmbientBle {
     };
 
     public void connect(String address) {
+        if (!hasPermissions(app)) {
+            set("allow the Bluetooth (nearby devices) permission first");
+            return;
+        }
         BluetoothAdapter a = adapter();
         if (!supported() || a == null || !a.isEnabled()) {
             set("Bluetooth LE is not available or off");
