@@ -491,6 +491,10 @@ final class Tr {
         p("Reset tyre pressure", "Lastik basıncını sıfırla");
         p("Reset the tyre pressure monitor? The pressure must be set.", "Lastik basıncı izleme sıfırlansın mı? Basınç ayarlanmış olmalı.");
         p("Command sent", "Komut gönderildi");
+        p("commands are not allowed", "komutlara izin verilmedi");
+        p("TWUtil has no matching write", "TWUtil uygun yazma çağrısı sunmuyor");
+        p("TWUtil not on this unit", "TWUtil bu cihazda yok");
+        p("TWUtil crashed the launcher earlier; trying again", "TWUtil daha önce launcher'ı çökertti; yeniden deneniyor");
         p("Could not send", "Gönderilemedi");
 
         p("Searching for the address…", "Adres aranıyor…");

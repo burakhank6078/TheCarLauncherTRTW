@@ -69,7 +69,7 @@ public final class AmbientBle {
     private final Handler main = new Handler(Looper.getMainLooper());
     private final List<Found> found = new ArrayList<>();
     private final LinkedList<byte[]> queue = new LinkedList<>();
-    private BluetoothGatt gatt;
+    private volatile BluetoothGatt gatt;
     private BluetoothGattCharacteristic write;
     private boolean ready, writing, scanning, syncPending;
     private String status = "";
@@ -232,6 +232,7 @@ public final class AmbientBle {
         public void onConnectionStateChange(BluetoothGatt g, int st, int state) {
             if (gatt != null && g != gatt) return; // late callback of a connection already replaced
             if (state == android.bluetooth.BluetoothProfile.STATE_CONNECTED) {
+                if (gatt == null) gatt = g; // callback arrived before connect() stored it
                 set("connected, reading services");
                 g.discoverServices();
             } else {
@@ -248,6 +249,7 @@ public final class AmbientBle {
 
         @Override
         public void onServicesDiscovered(BluetoothGatt g, int st) {
+            if (g != gatt) return; // a connection that was replaced
             for (UUID[] c : CONFIGS) {
                 BluetoothGattService s = g.getService(c[0]);
                 if (s == null) continue;
@@ -271,6 +273,7 @@ public final class AmbientBle {
 
         @Override
         public void onDescriptorWrite(BluetoothGatt g, BluetoothGattDescriptor d, int st) {
+            if (g != gatt) return;
             // Notifications are on; now the session can start.
             synchronized (AmbientBle.this) {
                 ready = true;
@@ -285,11 +288,13 @@ public final class AmbientBle {
 
         @Override
         public void onCharacteristicChanged(BluetoothGatt g, BluetoothGattCharacteristic c) {
+            if (g != gatt) return;
             AppLog.d(app, "BLE", "rx " + hex(c.getValue()));
         }
 
         @Override
         public void onCharacteristicWrite(BluetoothGatt g, BluetoothGattCharacteristic c, int st) {
+            if (g != gatt) return;
             synchronized (AmbientBle.this) { writing = false; }
             if (st != BluetoothGatt.GATT_SUCCESS) AppLog.d(app, "BLE", "write status " + st);
             next();

@@ -42,7 +42,7 @@ public final class CarInfoClient implements ServiceConnection {
     private final Context app;
     private HandlerThread thread;
     private Handler io;
-    private IBinder binder;
+    private volatile IBinder binder;
     private boolean wanted;
     private final Map<Integer, String> last = new HashMap<>();
 

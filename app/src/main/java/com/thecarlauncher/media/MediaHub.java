@@ -884,7 +884,11 @@ public final class MediaHub {
             radio().stop();
             return;
         }
-        if (btSelected && twBt(TW_PLAY_PAUSE)) return;
+        if (btSelected && twBt(TW_PLAY_PAUSE)) {
+            btPlaying = !btPlaying; // as the fallback does; the session confirms later
+            notifyChanged();
+            return;
+        }
         if (btSelected && (bt.qfCommand(BluetoothSource.QF_PLAY_PAUSE) || goc().send("MA"))) {
             goc().send("VI");
             return;

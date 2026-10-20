@@ -496,6 +496,9 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
 
     private long lastTyreReset;
 
+    /** The reasons TwProbe gives are English; Tr.java has the Turkish ones, others show as they are. */
+    private String reason(String r) { return Mib.t(act, r, r); }
+
     private void confirmTyreReset() {
         if (!Prefs.bool(act, Prefs.TW_COMMANDS, false)) {
             Ui.toast(act, s("Uključite \"Dozvoli slanje komandi jedinici\" u Podešavanja → Vozilo",
@@ -513,7 +516,7 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
                         // Same message as the factory car app: frame 75, bytes (1, 1).
                         boolean ok = com.thecarlauncher.car.TwProbe.get().write(act, 1281, 75, 2, new byte[]{1, 1});
                         Ui.toast(act, ok ? s("Komanda poslata", "Command sent")
-                                : s("Slanje nije uspelo", "Could not send") + ": " + com.thecarlauncher.car.TwProbe.get().writeError());
+                                : s("Slanje nije uspelo", "Could not send") + ": " + reason(com.thecarlauncher.car.TwProbe.get().writeError()));
                     }
                 });
     }

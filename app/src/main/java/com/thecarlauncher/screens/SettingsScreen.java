@@ -1182,8 +1182,14 @@ public class SettingsScreen extends Screen {
         toggle(s("Dozvoli slanje komandi jedinici (reset guma, Bluetooth tasteri)", "Allow sending commands to the unit (tyre reset, Bluetooth keys)"),
                 Prefs.TW_COMMANDS, false, new Runnable() {
                     public void run() {
-                        // Switching it on or off also lets TWUtil try again after an earlier native crash.
-                        com.thecarlauncher.car.TwProbe.get().clearCrash(act);
+                        // Switching it on lets TWUtil try again after an earlier native crash (the user is told).
+                        if (Prefs.bool(act, Prefs.TW_COMMANDS, false)) {
+                            com.thecarlauncher.car.TwProbe probe = com.thecarlauncher.car.TwProbe.get();
+                            if (probe.hadCrash(act)) {
+                                Ui.toast(act, s("TWUtil je ranije srušio launcher; pokušava se ponovo", "TWUtil crashed the launcher earlier; trying again"));
+                            }
+                            probe.clearCrash(act);
+                        }
                     }
                 });
         note(s("Isključeno: ništa se ne šalje jedinici ni vozilu.",

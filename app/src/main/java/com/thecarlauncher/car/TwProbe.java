@@ -181,6 +181,21 @@ public final class TwProbe {
         }
     }
 
+    /** Opens and starts the channel (steps 1-4) without attaching the listener; enough to send. */
+    private void openOnly(Context ctx) {
+        int guard = 0;
+        while (stage < 4 && guard++ < 4) {
+            int before = stage;
+            start(ctx);
+            if (stage == before) break;
+        }
+    }
+
+    /** True when an earlier native crash is recorded. */
+    public synchronized boolean hadCrash(Context ctx) {
+        return ctx.getApplicationContext().getSharedPreferences("launcher", Context.MODE_PRIVATE).getInt(CRASH, 0) != 0;
+    }
+
     /** Why the last write was refused or failed; empty after a successful one. */
     private String writeError = "";
 
@@ -206,7 +221,7 @@ public final class TwProbe {
             writeError = "commands are not allowed";
             return false;
         }
-        if (stage < 4) autoStart(ctx);
+        if (stage < 4) openOnly(ctx);
         if (util == null || stage < 4) {
             writeError = status;
             return false;
