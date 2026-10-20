@@ -181,6 +181,36 @@ public final class TwProbe {
         }
     }
 
+    /**
+     * Sends one message over TWUtil, the same call the unit's own apps make (tyre pressure reset,
+     * Bluetooth keys). Only while "Take trip data from OBD" is switched on in Setup > Vehicle.
+     * Starts the channel first when needed. Returns false when it is off or TWUtil is not usable.
+     */
+    public synchronized boolean write(Context ctx, int what, int arg1, int arg2, Object obj) {
+        appCtx = ctx.getApplicationContext();
+        if (!com.thecarlauncher.util.Prefs.bool(appCtx, com.thecarlauncher.util.Prefs.TRIP_OBD, false)) return false;
+        if (stage < 4) autoStart(ctx);
+        if (util == null || stage < 4) return false;
+        try {
+            Method w = obj == null ? find(cls, "write", int.class, int.class, int.class)
+                    : find(cls, "write", int.class, int.class, int.class, Object.class);
+            if (w == null) return false;
+            Object r = obj == null ? w.invoke(util, what, arg1, arg2) : w.invoke(util, what, arg1, arg2, obj);
+            com.thecarlauncher.util.AppLog.d(appCtx, "CAN", String.format(Locale.US,
+                    "write 0x%X %d/%d%s -> %s", what, arg1, arg2, obj instanceof byte[] ? " " + hex((byte[]) obj) : "", r));
+            return true;
+        } catch (Throwable t) {
+            com.thecarlauncher.util.AppLog.d(appCtx, "CAN", "write failed: " + t);
+            return false;
+        }
+    }
+
+    private static String hex(byte[] b) {
+        StringBuilder sb = new StringBuilder();
+        for (byte x : b) sb.append(String.format("%02X", x));
+        return sb.toString();
+    }
+
     private synchronized void record(Message m) {
         // 0x501 frames are told apart by arg1 (the Golf7 frame number); other ids by "what" alone.
         long key = ((long) m.what << 16) | (m.what == 0x501 ? (m.arg1 & 0xFFFF) : 0);

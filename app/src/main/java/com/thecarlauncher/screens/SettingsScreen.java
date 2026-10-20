@@ -1115,8 +1115,8 @@ public class SettingsScreen extends Screen {
         pictureRow(s("Slika za gume (Pritisak u gumama)", "Tyre picture (Tyre pressure)"), com.thecarlauncher.util.CarImages.TYRES);
         pictureRow(s("Slika za potrošnju (Putni računar, 1024×444 px)", "Fuel consumption picture (Trip pages, 1024×444 px)"), com.thecarlauncher.util.CarImages.TRIPS);
         toggle(s("Podaci putnog računara iz OBD-a", "Take trip data from OBD"), Prefs.TRIP_OBD, false, false);
-        note(s("Uključeno: Od starta, Od dopune i Dugoročno u izgledu originalnog MIB 2 sa OBD podacima. Isključeno: dosadašnji prikaz.",
-                "On: Since start, Since refuelling and Long-term look like the original MIB 2 and show OBD data. Off: the current view."));
+        note(s("Uključeno: putni računar kao originalni MIB 2 sa OBD podacima; launcher sme da šalje reset guma i Bluetooth tastere jedinici. Isključeno: dosadašnji prikaz, ništa se ne šalje.",
+                "On: the trip pages look like the original MIB 2 with OBD data and the launcher may send the tyre reset and Bluetooth keys to the unit. Off: the current view, nothing is sent."));
         action(s("Fabrička podešavanja vozila", "Factory car settings"), s("otvara aplikaciju jedinice", "opens the unit's app"), new Runnable() {
             public void run() {
                 // The unit's own car app (TW platform); it is only opened, nothing of it is copied.

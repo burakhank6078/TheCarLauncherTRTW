@@ -324,8 +324,8 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
         LinearLayout col = new LinearLayout(act);
         col.setOrientation(LinearLayout.VERTICAL);
         col.setPadding(Mib.px(act, 44), Mib.px(act, 10), 0, 0);
-        TextView hint = Mib.text(act, s("Nakon podešavanja pritiska otvorite Gume i izaberite Resetuj.",
-                "After adjusting the pressure, open Tyres and choose Reset."), 31, Mib.regular(act), Mib.WHITE);
+        TextView hint = Mib.text(act, s("Nakon podešavanja pritiska pritisnite Resetuj pritisak u gumama.",
+                "After adjusting the pressure, press Reset tyre pressure."), 31, Mib.regular(act), Mib.WHITE);
         hint.setSingleLine(false);
         col.addView(hint);
         body.addView(col, new FrameLayout.LayoutParams(Mib.px(act, 470), ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -352,6 +352,28 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
         bl.leftMargin = Mib.px(act, 30);
         bl.bottomMargin = Mib.px(act, 34);
         body.addView(btn, bl);
+
+        // Reset button: sends the tyre pressure monitor reset the unit's own car app sends (frame 75),
+        // after a confirmation, and only while "Take trip data from OBD" is on in Setup > Vehicle.
+        LinearLayout reset = new LinearLayout(act);
+        reset.setGravity(Gravity.CENTER_VERTICAL);
+        reset.setBackground(Mib.box(act));
+        reset.setPadding(Mib.px(act, 14), 0, Mib.px(act, 30), 0);
+        reset.addView(Mib.icon(act, R.drawable.ui_ic_refresh, Mib.WHITE), new LinearLayout.LayoutParams(Mib.px(act, 44), Mib.px(act, 44)));
+        TextView rt = Mib.text(act, s("Resetuj pritisak u gumama", "Reset tyre pressure"), 30, Mib.regular(act), Mib.WHITE);
+        rt.setPadding(Mib.px(act, 14), 0, 0, 0);
+        reset.addView(rt);
+        reset.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                confirmTyreReset();
+            }
+        });
+        FrameLayout.LayoutParams rl2 = new FrameLayout.LayoutParams(Mib.px(act, 440), Mib.px(act, 60),
+                Gravity.BOTTOM | Gravity.LEFT);
+        rl2.leftMargin = Mib.px(act, 30);
+        rl2.bottomMargin = Mib.px(act, 34 + 60 + 14);
+        body.addView(reset, rl2);
     }
 
     // ---- Trip pages in the original MIB 2 layout (OBD data) ------------------------------------
@@ -463,6 +485,30 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
         @Override public void setAlpha(int a) { p.setAlpha(a); }
         @Override public void setColorFilter(android.graphics.ColorFilter f) { p.setColorFilter(f); }
         @Override public int getOpacity() { return android.graphics.PixelFormat.TRANSLUCENT; }
+    }
+
+    private long lastTyreReset;
+
+    private void confirmTyreReset() {
+        if (!Prefs.bool(act, Prefs.TRIP_OBD, false)) {
+            Ui.toast(act, s("Uključite \"Podaci putnog računara iz OBD-a\" u Podešavanja → Vozilo",
+                    "Switch on \"Take trip data from OBD\" in Setup → Vehicle"));
+            return;
+        }
+        Dialogs.choose(act, s("Resetovati pritisak u gumama? Pritisak mora biti podešen.",
+                "Reset the tyre pressure monitor? The pressure must be set."),
+                new String[]{s("Resetuj", "Reset"), s("Otkaži", "Cancel")}, -1, new Dialogs.Chosen() {
+                    public void onChosen(int i) {
+                        if (i != 0) return;
+                        long now = android.os.SystemClock.elapsedRealtime();
+                        if (now - lastTyreReset < 10000) return; // never twice in a row
+                        lastTyreReset = now;
+                        // Same message as the factory car app: frame 75, bytes (1, 1).
+                        boolean ok = com.thecarlauncher.car.TwProbe.get().write(act, 1281, 75, 2, new byte[]{1, 1});
+                        Ui.toast(act, ok ? s("Komanda poslata", "Command sent")
+                                : s("Slanje nije uspelo", "Could not send"));
+                    }
+                });
     }
 
     private View statusLine(Drawable mark, String text) {

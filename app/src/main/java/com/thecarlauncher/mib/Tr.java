@@ -465,7 +465,6 @@ final class Tr {
         p("Fuel consumption picture (Trip pages, 1024×444 px)", "Yakıt tüketimi resmi (Yolculuk sayfaları, 1024×444 px)");
         p("Whole page: 1024×444 px recommended (PNG, up to 1600 px). The car, road and lines go in the picture.", "Tüm sayfa: 1024×444 px önerilir (PNG, en fazla 1600 px). Araç, yol ve çizgiler resmin içinde olmalı.");
         p("Take trip data from OBD", "Yolculuk verilerini OBD'den al");
-        p("On: Since start, Since refuelling and Long-term look like the original MIB 2 and show OBD data. Off: the current view.", "Açık: Başlangıçtan beri, Yakıt aldıktan sonra ve Uzun vadeli sayfaları orijinal MIB 2 gibi görünür ve OBD verilerini gösterir. Kapalı: mevcut görünüm.");
         p("Diagnostic recording", "Tanılama kaydı");
         p("Recorded size", "Kayıt boyutu");
         p("Folder", "Klasör");
@@ -476,7 +475,13 @@ final class Tr {
         p("Clear the record", "Kaydı sil");
         p("Records system details, errors, Canbus messages and Bluetooth commands, without positions. Drive as usual, then export the record.", "Sistem bilgilerini, hataları, Canbus mesajlarını ve Bluetooth komutlarını kaydeder, konum kaydetmez. Normal sürün, sonra kaydı aktarın.");
         p("Tyre pressure settings", "Lastik basıncı ayarları");
-        p("After adjusting the pressure, open Tyres and choose Reset.", "Basıncı ayarladıktan sonra Lastikler'i açıp Sıfırla'yı seçin.");
+        p("On: the trip pages look like the original MIB 2 with OBD data and the launcher may send the tyre reset and Bluetooth keys to the unit. Off: the current view, nothing is sent.", "Açık: yolculuk sayfaları orijinal MIB 2 gibi görünür ve OBD verilerini gösterir; launcher lastik sıfırlama ve Bluetooth tuşlarını üniteye gönderebilir. Kapalı: mevcut görünüm, hiçbir şey gönderilmez.");
+        p("After adjusting the pressure, press Reset tyre pressure.", "Basıncı ayarladıktan sonra Lastik basıncını sıfırla düğmesine basın.");
+        p("Reset tyre pressure", "Lastik basıncını sıfırla");
+        p("Switch on \"Take trip data from OBD\" in Setup → Vehicle", "Ayarlar → Araç bölümünde \"Yolculuk verilerini OBD'den al\" seçeneğini açın");
+        p("Reset the tyre pressure monitor? The pressure must be set.", "Lastik basıncı izleme sıfırlansın mı? Basınç ayarlanmış olmalı.");
+        p("Command sent", "Komut gönderildi");
+        p("Could not send", "Gönderilemedi");
 
         p("Searching for the address…", "Adres aranıyor…");
         p("Calculating the route…", "Rota hesaplanıyor…");
