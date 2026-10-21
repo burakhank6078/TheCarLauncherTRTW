@@ -1154,6 +1154,72 @@ public class SettingsScreen extends Screen {
         return Mib.t(act, st, st);
     }
 
+    // ---- Canbus test scenario ----------------------------------------------------------------
+
+    /** When each step of the scenario was tapped (this run only); the recorder has the same marks. */
+    private static final java.util.Map<String, String> TEST_DONE = new java.util.LinkedHashMap<>();
+
+    /**
+     * The step list is in assets/canbus-test.txt ("# Group X|title" lines and "no|English|Türkçe" steps).
+     * Tapping a step writes a MARK line with the time to the diagnostic recording; the action is done
+     * right after the tap. Afterwards the recording shows which frame changed at which mark.
+     */
+    private void buildCanTest() {
+        if (!com.thecarlauncher.util.AppLog.enabled(act)) {
+            action(s("Prvo uključite snimanje", "Switch the recording on first"), s("dodirnite", "tap here"), new Runnable() {
+                public void run() {
+                    com.thecarlauncher.util.AppLog.setEnabled(act, true);
+                    refreshKeep();
+                }
+            });
+        } else {
+            info(s("Snimanje", "Recording"), s("uključeno", "on"));
+        }
+        java.util.List<String> lines = new java.util.ArrayList<>();
+        try {
+            java.io.BufferedReader r = new java.io.BufferedReader(new java.io.InputStreamReader(
+                    act.getAssets().open("canbus-test.txt"), "UTF-8"));
+            String l;
+            while ((l = r.readLine()) != null) lines.add(l.trim());
+            r.close();
+        } catch (java.io.IOException e) {
+            info(s("Greška", "Error"), String.valueOf(e.getMessage()));
+            return;
+        }
+        final boolean tr = Mib.isTr(act);
+        for (String line : lines) {
+            if (line.startsWith("# Group ")) {
+                String[] g = line.substring(8).split("\\|", 2);
+                info("— " + (tr && g.length > 1 ? g[1] : g[0]) + " —", null);
+            } else if (!line.startsWith("#") && line.contains("|")) {
+                String[] p = line.split("\\|", 3);
+                if (p.length < 3) continue;
+                final String id = p[0], en = p[1];
+                String done = TEST_DONE.get(id);
+                action(id + "  " + (tr ? p[2] : en), done == null ? "" : "✓ " + done, new Runnable() {
+                    public void run() {
+                        if (!com.thecarlauncher.util.AppLog.enabled(act)) {
+                            Ui.toast(act, s("Prvo uključite snimanje", "Switch the recording on first"));
+                            return;
+                        }
+                        com.thecarlauncher.util.AppLog.d(act, "MARK", id + " " + en);
+                        TEST_DONE.put(id, new java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(new java.util.Date()));
+                        Ui.toast(act, "✓ " + id);
+                        refreshKeep();
+                    }
+                });
+            }
+        }
+        action(s("Obriši oznake", "Clear the marks"), null, new Runnable() {
+            public void run() {
+                TEST_DONE.clear();
+                refreshKeep();
+            }
+        });
+        note(s("Dodirnite korak, pa uradite radnju. Na kraju izvezite zapis na USB (Snimanje dijagnostike).",
+                "Tap a step, then do the action. At the end export the recording to USB (Diagnostic recording)."));
+    }
+
     // ---- Diagnostic recording ----------------------------------------------------------------
 
     /** Records what is needed to understand this unit into one file that can be exported to USB. */
@@ -1180,6 +1246,13 @@ public class SettingsScreen extends Screen {
                         });
                     }
                 }, "log-export").start();
+            }
+        });
+        action(s("Canbus test senaryosu", "Canbus test scenario"), s("koraci sa vremenskim oznakama", "steps with time marks"), new Runnable() {
+            public void run() {
+                push(s("Canbus test senaryosu", "Canbus test scenario"), new Page() {
+                    public void build() { buildCanTest(); }
+                });
             }
         });
         toggle(s("Sakrij naziv ulice na slikama ekrana", "Hide the street name in screenshots"),

@@ -20,6 +20,12 @@ en üstüne eklenir; GitHub sürüm sayfası bu en üst bölümü gösterir.
   Ayarlar → Araç → "Gezi verilerini OBD'den al" açık olmalı. Geçersiz değerler `---` görünür,
   15 dakikadan eski değerler gizlenir.
 
+- **Bakım bilgisi araçtan**: Araç → Bakım sayfasının üstünde aracın kendi "Bakım" ve "Yağ bakımı" hatırlatması
+  (kalan gün ve km, gecikmişse "gecikti") gösterilir. Okuma için "Üniteye komut göndermeye izin ver" açık olmalı;
+  elle girilen kilometre, yağ ve muayene kayıtları olduğu gibi durur.
+- **Canbus test senaryosu**: Ayarlar → Tanılama kaydı → Canbus test senaryosu; her adıma dokununca kayda saat işareti
+  düşer (`docs/CANBUS-TEST-SENARYOSU.md`).
+
 **Ambiyans şeridi (Raise LAMP&FRGN, Bluetooth LE)**
 - Daha hızlı arama, arama sonunda neden bulunamadığını anlatan uyarı (şerit telefona bağlıyken görünmez).
 - Bağlantı takılması düzeltildi; birden fazla bağlantı nesnesi artık temizleniyor.

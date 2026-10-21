@@ -1,0 +1,66 @@
+# Canbus test senaryosu. Satırlar: "# Grup başlığı" ya da "no|English|Türkçe".
+# Her adımda: önce adıma dokun (kayıta saat işareti düşer), sonra eylemi yap. "AÇ-KAPAT" yazan adımlar:
+# eylemi yap, 5 sn bekle, geri al, 5 sn bekle. Adım sırası değişmez; numaralar kayıtta MARK satırında görünür.
+# Group A|Ateşleme AÇIK, motor KAPALI (park halinde, fren pedalı serbest)
+A01|Baseline: touch nothing for 30 s|Başlangıç: 30 sn hiçbir şeye dokunma
+A02|Driver door OPEN-CLOSE|Sürücü kapısı AÇ-KAPAT
+A03|Passenger door OPEN-CLOSE|Yolcu kapısı AÇ-KAPAT
+A04|Rear left door OPEN-CLOSE|Arka sol kapı AÇ-KAPAT
+A05|Rear right door OPEN-CLOSE|Arka sağ kapı AÇ-KAPAT
+A06|Boot OPEN-CLOSE|Bagaj AÇ-KAPAT
+A07|Driver seat belt FASTEN-UNFASTEN|Sürücü emniyet kemeri TAK-ÇIKAR
+A08|Passenger seat belt FASTEN-UNFASTEN|Yolcu emniyet kemeri TAK-ÇIKAR (koltukta biri varsa)
+A09|Parking brake PULL-RELEASE|El freni ÇEK-BIRAK (fren pedalına basarak)
+A10|Parking lights ON-OFF|Park lambaları AÇ-KAPAT
+A11|Low beam ON-OFF|Kısa far AÇ-KAPAT
+A12|Front fog lights ON-OFF|Ön sis farı AÇ-KAPAT (varsa)
+A13|Rear fog light ON-OFF|Arka sis lambası AÇ-KAPAT
+A14|High beam ON-OFF|Uzun far AÇ-KAPAT
+A15|Hazard lights ON-OFF|Dörtlü flaşör AÇ-KAPAT
+A16|Left indicator ON-OFF|Sol sinyal AÇ-KAPAT
+A17|Right indicator ON-OFF|Sağ sinyal AÇ-KAPAT
+A18|Wipers: single wipe, speed 1, speed 2, OFF|Silecek: tek silme, hız 1, hız 2, KAPAT
+A19|Interior light ON-OFF|İç aydınlatma AÇ-KAPAT
+A20|Lock then UNLOCK with the door button|Kapı düğmesiyle kilitle, sonra kilidi AÇ
+A21|Climate temperature 22, then 24, then 20|Klima sıcaklığı 22, sonra 24, sonra 20 (ekrandaki değerleri not et)
+A22|Fan speed 1, then 4, then AUTO|Fan hızı 1, sonra 4, sonra OTO
+A23|A/C ON-OFF|Klima (A/C) AÇ-KAPAT
+A24|Recirculation ON-OFF|İç hava (resirkülasyon) AÇ-KAPAT
+A25|Rear window heating ON-OFF|Arka cam ısıtma AÇ-KAPAT
+A26|Steering wheel: vol+, vol-, next, previous, mode, phone|Direksiyon tuşları: ses+, ses-, ileri, geri, mod, telefon (3 sn arayla)
+A27|Brake pedal PRESS-RELEASE twice|Fren pedalı BAS-BIRAK iki kez
+A28|Gear lever through the gears (note your gearbox)|Vites kolunu tüm vitesler arasında gezdir (fren pedalı basılı; şanzımanını not et)
+# Group B|Motor ÇALIŞIYOR, duruyor, el freni çekili
+B01|Photo: outside temperature on the cluster NOW|Fotoğraf: gösterge panelindeki dış sıcaklığa şimdi bak ve fotoğrafla
+B02|ENGINE START (tap just before turning the key)|MOTOR ÇALIŞTIR (anahtarı çevirmeden hemen önce dokun)
+B03|Idle for 20 s|20 sn rölantide bekle
+B04|Rev to about 2500 rpm, hold 5 s, twice|Devri yaklaşık 2500'e çıkar, 5 sn tut, iki kez
+B05|Steering wheel slowly lock to lock|Direksiyonu yavaşça sondan sona çevir
+B06|Reverse gear for 10 s|Geri vites 10 sn (fren pedalı basılı)
+B07|Wipers and washer once|Silecek ve cam suyu bir kez
+# Group C|Sürüş (boş yol, yanında biri varsa o dokunsun; yoksa kalkmadan önce dokun)
+C01|Gently up to 30 km/h and hold 20 s|Yavaşça 30 km/s'e çık, 20 sn tut
+C02|Hold 50 km/h for 20 s|50 km/s'te 20 sn tut
+C03|Brake to a full stop|Tam durana kadar fren yap
+C04|Turn left at a junction (indicator on)|Kavşakta sola dön (sinyal açık)
+C05|Turn right at a junction (indicator on)|Kavşakta sağa dön (sinyal açık)
+C06|Photo: outside temperature on the cluster NOW|Fotoğraf: gösterge panelindeki dış sıcaklığa şimdi bak ve fotoğrafla
+# Group D|Fabrika "Araç ayarı" uygulamasında sayfa gez (park halinde; hiçbir ayarı değiştirme)
+D01|Open: Drive mode|Aç: Sürüş modu
+D02|Open: ESC|Aç: ESC
+D03|Open: Tyres|Aç: Lastikler
+D04|Open: Service|Aç: Servis
+D05|Open: Light|Aç: Işık
+D06|Open: Opening and closing|Aç: Açma ve kapama
+D07|Open: Parking and manoeuvring|Aç: Park ve manevra
+D08|Open: Driver assistance|Aç: Sürüş asistanları
+D09|Open: Mirrors and wipers|Aç: Aynalar ve silecekler
+D10|Open: Multifunction display|Aç: Çoklu gösterge
+D11|Open: Air conditioning|Aç: Klima
+D12|Open: Units|Aç: Birimler
+D13|Units: temperature C to F and back to C|Birimler: sıcaklık C'den F'ye, sonra tekrar C'ye (zararsız ayar, geri al)
+# Group E|Kapanış
+E01|ENGINE OFF (tap just before)|MOTORU KAPAT (kapatmadan hemen önce dokun)
+E02|Ignition OFF, wait 60 s|Kontağı kapat, 60 sn bekle
+E03|Driver door open, lock the car|Sürücü kapısını aç, aracı kilitle
+E04|End of test|Test sonu (kaydı USB'ye aktar)

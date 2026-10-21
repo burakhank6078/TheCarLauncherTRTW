@@ -727,9 +727,52 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
                 });
     }
 
+    /** Shows the service page again once the car has answered (it takes a moment). */
+    private final Runnable refreshService = new Runnable() {
+        @Override
+        public void run() {
+            if (page == SERVICE) setPage(SERVICE);
+        }
+    };
+
+    private String duePart(com.thecarlauncher.car.ServiceData sd, int which, String unit) {
+        int st = sd.state(which);
+        if (st == 0) return null;
+        return (st == 2 ? s("kasni ", "overdue ") : "") + sd.value(which) + " " + unit;
+    }
+
+    /** "in 90 days · 4,200 km" style text for one of the car's own service reminders. */
+    private String carDue(com.thecarlauncher.car.ServiceData sd, boolean asked, int days, int dist) {
+        if (!sd.known()) return asked ? "…" : "–";
+        String d = duePart(sd, days, s("dana", "days"));
+        String k = duePart(sd, dist, sd.miles() ? "mi" : "km");
+        if (d == null && k == null) return "–";
+        return d == null ? k : k == null ? d : d + " · " + k;
+    }
+
     private void buildService() {
         final CarData cd = CarData.get(act);
         LinearLayout col = list();
+        // What the car itself says (read-only; asked for like the factory car app does). The entries
+        // below are the owner's own and stay as they are.
+        com.thecarlauncher.car.ServiceData sd = com.thecarlauncher.car.ServiceData.get();
+        boolean asked = com.thecarlauncher.car.TwProbe.get().usable(act);
+        if (asked) {
+            com.thecarlauncher.car.TwProbe.get().requestFrameAsync(act, 30);
+            main.removeCallbacks(refreshService);
+            if (!sd.known()) main.postDelayed(refreshService, 3000);
+        }
+        row(col, R.drawable.ui_ic_clock, s("Servis (iz vozila)", "Service (from the car)"),
+                carDue(sd, asked, com.thecarlauncher.car.ServiceData.INSPECTION_DAYS, com.thecarlauncher.car.ServiceData.INSPECTION_DIST), null);
+        row(col, R.drawable.ui_ic_eq, s("Servis ulja (iz vozila)", "Oil change service (from the car)"),
+                carDue(sd, asked, com.thecarlauncher.car.ServiceData.OIL_DAYS, com.thecarlauncher.car.ServiceData.OIL_DIST), null);
+        if (!asked) {
+            TextView hint = Mib.text(act, s("Za podatke iz vozila uključite \"Dozvoli slanje komandi jedinici\" u Podešavanja → Vozilo.",
+                    "To read these from the car, switch on \"Allow sending commands to the unit\" in Setup → Vehicle."), 22, Mib.regular(act), Mib.GREY);
+            hint.setSingleLine(false);
+            hint.setPadding(Mib.px(act, 10), Mib.px(act, 6), Mib.px(act, 10), Mib.px(act, 12));
+            col.addView(hint);
+        }
         row(col, R.drawable.ui_ic_car_s, s("Kilometraža", "Odometer"),
                 cd.hasOdometer() ? km(cd.odometer()) : s("unesite", "enter"), new Runnable() {
                     public void run() {

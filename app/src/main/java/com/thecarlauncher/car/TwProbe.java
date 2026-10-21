@@ -212,6 +212,34 @@ public final class TwProbe {
                 && com.thecarlauncher.util.Prefs.bool(ctx.getApplicationContext(), com.thecarlauncher.util.Prefs.TW_COMMANDS, false);
     }
 
+    private synchronized Handler writerHandler() {
+        if (writer == null) {
+            HandlerThread t = new HandlerThread("tw-write");
+            t.start();
+            writer = new Handler(t.getLooper());
+        }
+        return writer;
+    }
+
+    /**
+     * Asks the unit to send one settings frame (as the factory car app does when a page opens: message
+     * 10 with bytes 1 and the frame number) and makes sure the listener is on to receive the answer.
+     * Only while "Allow sending commands" is on; otherwise nothing happens. Runs on its own thread.
+     */
+    public void requestFrameAsync(Context ctx, final int frame) {
+        final Context app = ctx.getApplicationContext();
+        if (!usable(app)) return;
+        writerHandler().post(new Runnable() {
+            @Override
+            public void run() {
+                synchronized (TwProbe.this) {
+                    autoStart(app);
+                    write(app, 0x501, 10, 2, new byte[]{1, (byte) frame});
+                }
+            }
+        });
+    }
+
     /** Receives the outcome of {@link #writeAsync} on the main thread; error is empty on success. */
     public interface Result {
         void done(boolean ok, String error);
@@ -223,16 +251,7 @@ public final class TwProbe {
      */
     public void writeAsync(Context ctx, final int what, final int arg1, final int arg2, final Object obj, final Result cb) {
         final Context app = ctx.getApplicationContext();
-        Handler h;
-        synchronized (this) {
-            if (writer == null) {
-                HandlerThread t = new HandlerThread("tw-write");
-                t.start();
-                writer = new Handler(t.getLooper());
-            }
-            h = writer;
-        }
-        h.post(new Runnable() {
+        writerHandler().post(new Runnable() {
             @Override
             public void run() {
                 final boolean ok;
@@ -323,6 +342,8 @@ public final class TwProbe {
             obj = " " + (s.length() > 24 ? s.substring(0, 24) : s);
         }
         // Golf 7 trip frames (19 since start, 20 long-term, 21 since refuelling) feed the trip pages.
+        // The car's own service reminder (frame 30), when it was asked for (Vehicle > Service).
+        if (m.what == 0x501 && m.arg1 == 30 && m.obj instanceof byte[]) ServiceData.get().decodeFrame((byte[]) m.obj);
         // Only while "Take trip data from OBD" is on; the listener itself also serves the recorder.
         if (m.what == 0x501 && m.obj instanceof byte[] && appCtx != null
                 && com.thecarlauncher.util.Prefs.bool(appCtx, com.thecarlauncher.util.Prefs.TRIP_OBD, false)
