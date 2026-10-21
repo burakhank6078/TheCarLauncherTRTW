@@ -1094,7 +1094,7 @@ public class SettingsScreen extends Screen {
                         refreshKeep();
                     }
                 });
-        info(s("Stanje", "Status"), ble.status().isEmpty() ? "—" : ble.status());
+        info(s("Stanje", "Status"), ble.status().isEmpty() ? "—" : bleStatus(ble.status()));
         String saved = Prefs.str(act, com.thecarlauncher.util.AmbientBle.ADDR, "");
         info(s("Izabrani uređaj", "Chosen device"), saved.isEmpty() ? "—" : saved);
         action(s("Traži uređaje", "Search for BLE devices"), null, new Runnable() {
@@ -1123,8 +1123,20 @@ public class SettingsScreen extends Screen {
                 refreshKeep();
             }
         });
-        note(s("Zatvorite aplikaciju na telefonu: traka prihvata jednu vezu. Boja i nivo iz Ambijentalnog osvetljenja se šalju traci.",
-                "Close the phone app first: the strip accepts one connection. The colour and level of Ambient lighting are sent to the strip."));
+        note(s("Zatvorite aplikaciju na telefonu i isključite Bluetooth telefona: traka prihvata jednu vezu i dok je povezana sa telefonom ne može se naći. Boja i nivo iz Ambijentalnog osvetljenja se šalju traci.",
+                "Close the phone app and switch the phone's Bluetooth off first: the strip accepts one connection and cannot be found while the phone is connected. The colour and level of Ambient lighting are sent to the strip."));
+    }
+
+    /** The status texts of AmbientBle are English; Tr.java has the Turkish ones, dynamic ones are handled here. */
+    private String bleStatus(String st) {
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("^(\\d+) device\\(s\\) found$").matcher(st);
+        if (m.matches()) return Mib.t(act, st, st, m.group(1) + " cihaz bulundu");
+        String[][] dyn = {{"connecting to ", "bağlanılıyor: "}, {"disconnected (", "bağlantı kesildi ("},
+                {"ready (service ", "hazır (servis "}};
+        for (String[] d : dyn) {
+            if (st.startsWith(d[0])) return Mib.t(act, st, st, d[1] + st.substring(d[0].length()));
+        }
+        return Mib.t(act, st, st);
     }
 
     // ---- Diagnostic recording ----------------------------------------------------------------

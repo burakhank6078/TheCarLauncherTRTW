@@ -322,6 +322,10 @@ public final class TwProbe {
             String s = String.valueOf(m.obj);
             obj = " " + (s.length() > 24 ? s.substring(0, 24) : s);
         }
+        // Golf 7 trip frames (19 since start, 20 long-term, 21 since refuelling) feed the trip pages.
+        if (m.what == 0x501 && m.obj instanceof byte[] && ObdData.get().decodeFrame(m.arg1, (byte[]) m.obj) && appCtx != null) {
+            ObdData.get().save(appCtx);
+        }
         String payload = m.arg1 + "/" + m.arg2 + obj;
         latest.put(key, new SimpleDateFormat("HH:mm:ss", Locale.US).format(new Date()) + " " + payload);
         recordToLog(key, m.what, payload);

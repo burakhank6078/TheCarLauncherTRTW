@@ -12,6 +12,7 @@ import android.bluetooth.BluetoothManager;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanResult;
+import android.bluetooth.le.ScanSettings;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
@@ -76,6 +77,7 @@ public final class AmbientBle {
     private Runnable listener;
     /** Address of the connection connect() is creating right now; null otherwise. */
     private String pendingAddr;
+    private volatile int adverts;
 
     private AmbientBle(Context c) { app = c.getApplicationContext(); }
 
@@ -154,6 +156,7 @@ public final class AmbientBle {
     private final ScanCallback scan = new ScanCallback() {
         @Override
         public void onScanResult(int type, ScanResult r) {
+            adverts++;
             BluetoothDevice d = r.getDevice();
             String name;
             try {
@@ -200,12 +203,23 @@ public final class AmbientBle {
             set("no Bluetooth LE scanner");
             return;
         }
-        synchronized (this) { found.clear(); }
+        if (scanning) return; // a search is running; Android refuses more than five starts in 30 s
         try {
-            if (scanning) s.stopScan(scan);
-            s.startScan(scan);
+            AppLog.d(app, "BLE", "search start: sdk=" + Build.VERSION.SDK_INT + " permissions=" + hasPermissions(app)
+                    + " location=" + locationOn() + " adapterState=" + a.getState() + " scanMode=" + a.getScanMode()
+                    + " discovering=" + a.isDiscovering() + " bonded=" + a.getBondedDevices().size()
+                    + " leAdvertising=" + a.isMultipleAdvertisementSupported());
+        } catch (Throwable t) {
+            AppLog.d(app, "BLE", "adapter info failed: " + t);
+        }
+        synchronized (this) { found.clear(); }
+        adverts = 0;
+        try {
+            // Low latency: the default low-power mode listens only a fraction of the time, which can
+            // miss an advertising strip within a short search.
+            s.startScan(null, new ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build(), scan);
             scanning = true;
-            set("searching...");
+            set(locationOn() ? "searching..." : "searching... (Location is off; Android may hide results, switch it on)");
         } catch (Throwable t) {
             set("search failed: " + t);
             return;
@@ -230,7 +244,20 @@ public final class AmbientBle {
         scanning = false;
         int n;
         synchronized (this) { n = found.size(); }
-        set(n + " device(s) found");
+        AppLog.d(app, "BLE", "search ended: " + adverts + " advertisements, " + n + " devices, location=" + locationOn());
+        set(n == 0 ? "nothing heard: switch the phone's Bluetooth off (the strip talks to one device) and search again"
+                : n + " device(s) found");
+    }
+
+    /** Android hides Bluetooth LE results while the Location setting is off (before Android 12). */
+    private boolean locationOn() {
+        try {
+            android.location.LocationManager lm = (android.location.LocationManager) app.getSystemService(Context.LOCATION_SERVICE);
+            return lm == null || lm.isProviderEnabled(android.location.LocationManager.GPS_PROVIDER)
+                    || lm.isProviderEnabled(android.location.LocationManager.NETWORK_PROVIDER);
+        } catch (Throwable t) {
+            return true;
+        }
     }
 
     // ---- Connection ---------------------------------------------------------------------------

@@ -72,6 +72,18 @@ public final class CarInfoClient implements ServiceConnection {
             thread = new HandlerThread("carinfo");
             thread.start();
             io = new Handler(thread.getLooper());
+            ObdData.get().load(app);
+            // Listen to the car's data frames (read-only) on this thread; they fill the trip pages.
+            io.post(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        TwProbe.get().autoStart(app);
+                    } catch (Throwable t) {
+                        AppLog.d(app, "OBD", "frame listener failed: " + t);
+                    }
+                }
+            });
             Intent i = new Intent(ACTION).setPackage(PACKAGE);
             try {
                 if (!app.bindService(i, this, Context.BIND_AUTO_CREATE)) AppLog.d(app, "OBD", "car info service not found");
