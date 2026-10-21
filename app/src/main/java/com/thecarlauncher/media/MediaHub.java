@@ -736,6 +736,13 @@ public final class MediaHub {
         }
         if (b == null && notifUsable()) b = notifArt;
         if (b == null && btSelected) b = qf().art();
+        if (b == null && btSelected) {
+            // The unit's Bluetooth app sends text only: look the cover up by artist and title (Setup can switch it off).
+            String t = title(), a = artist();
+            if (t != null && !t.equals("Bluetooth audio")) {
+                b = onlineCover("Music from your phone".equals(a) ? null : a, t);
+            }
+        }
         return b;
     }
 
