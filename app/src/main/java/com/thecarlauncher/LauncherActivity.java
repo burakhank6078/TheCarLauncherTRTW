@@ -121,9 +121,13 @@ public class LauncherActivity extends Activity implements LocationTracker.Listen
         com.thecarlauncher.car.CarInfoClient.get(this).setEnabled(Prefs.bool(this, Prefs.TRIP_OBD, false));
         com.thecarlauncher.util.AmbientBle.get(this).start();
         com.thecarlauncher.media.Tone.get(this).attachGlobal();
-        com.thecarlauncher.media.QfMediaBridge.get(this);
-        com.thecarlauncher.media.GocBluetooth.get(this).start();
-        RadioController.get(this).mcuChannel(); // connects the MCU listener (also feeds the sniffer)
+        // The QF unit's Bluetooth module, broadcasts and MCU tuner. Not started on the TW platform, where
+        // none of them exists (no background polling, no wasted wake-ups).
+        if (com.thecarlauncher.util.FactoryBt.qfUnit(this)) {
+            com.thecarlauncher.media.QfMediaBridge.get(this);
+            com.thecarlauncher.media.GocBluetooth.get(this).start();
+            RadioController.get(this).mcuChannel(); // connects the MCU listener (also feeds the sniffer)
+        }
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
         getWindow().setStatusBarColor(0xFF000000);
         getWindow().setNavigationBarColor(0xFF000000);

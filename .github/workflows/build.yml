@@ -26,6 +26,23 @@ jobs:
           yes | "$SDKM" --licenses > /dev/null || true
           "$SDKM" "platforms;android-34" "build-tools;34.0.0"
 
+      # Plain JVM tests of the frame decoding and the BLE message framing; a failure stops the build.
+      - name: Unit tests
+        run: |
+          chmod +x gradlew
+          ./gradlew testDebugUnitTest --no-daemon --stacktrace
+
+      # Missing Turkish texts only show in English, so this warns instead of failing the build.
+      - name: Check Turkish translations
+        run: |
+          if out=$(pwsh -File tools/check-translations.ps1); then
+            echo "$out"
+          else
+            echo "$out"
+            msg=$(printf '%s' "$out" | sed ':a;N;$!ba;s/\n/%0A/g')
+            echo "::warning title=Turkish translations missing::$msg"
+          fi
+
       - name: Build release APK
         run: |
           chmod +x gradlew

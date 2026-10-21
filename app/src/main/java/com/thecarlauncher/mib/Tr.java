@@ -479,6 +479,7 @@ final class Tr {
         p("connected, reading services", "bağlandı, servisler okunuyor");
         p("this device has no ambient strip service", "bu cihazda ambiyans şeridi servisi yok");
         p("no device chosen", "cihaz seçilmedi");
+        p("no answer from the strip; trying again", "şeritten yanıt yok; yeniden deneniyor");
         p("opens the unit's app", "cihazın uygulamasını açar");
         p("App not found", "Uygulama bulunamadı");
         p("Factory Bluetooth app", "Fabrika Bluetooth uygulaması");

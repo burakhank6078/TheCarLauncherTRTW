@@ -26,6 +26,8 @@ en üstüne eklenir; GitHub sürüm sayfası bu en üst bölümü gösterir.
 - Ambiyans ekranındaki güneş tuşu **%100'den %1'e** parlaklık listesi açar (1, 2, 3, 4, 5, 7, 10, 20 … 100).
   Ekranın kendi parlaklığına dokunulmaz.
 - BLE durum metinleri Türkçe.
+- **Otomatik yeniden bağlanma**: şerit kapalıysa ya da menzil dışındaysa launcher 5 sn, 10 sn ... en çok 1 dk
+  aralıkla yeniden dener; 25 sn içinde yanıt gelmeyen bağlantı bırakılıp tekrar denenir.
 
 **Bluetooth ve medya**
 - TW cihazlarda *Ayarlar → Bluetooth* fabrika Bluetooth uygulamasını açar; yalnızca QF cihazlara ait
@@ -40,6 +42,9 @@ en üstüne eklenir; GitHub sürüm sayfası bu en üst bölümü gösterir.
 
 **Kalite**
 - Üç kod incelemesi turunda bulunan hatalar düzeltildi (çökme, iş parçacığı, bağlantı yarışları).
+- QF cihazlara ait arka plan işleri (Goodocom, QF yayınları, MCU radyo dinleyici) TW cihazda artık
+  başlatılmıyor.
+- Birim testler (çerçeve çözümü, BLE mesaj çerçevesi) ve çeviri denetimi GitHub derlemesinde çalışıyor.
 
 ## 20 Ekim 2026
 - **Bluetooth medya tuşları** (sonraki, önceki, oynat/durdur) artık fabrika Bluetooth uygulamasına gerçekten

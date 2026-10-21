@@ -139,8 +139,41 @@ public final class AmbientBle {
     /** Follows the "control the strip" switch; connects to the saved device when switched on. */
     public void setEnabled(boolean on) {
         Prefs.put(app, ON, on);
+        retryStep = 0;
         if (on) connectSaved();
         else disconnect();
+    }
+
+    // ---- Reconnecting ---------------------------------------------------------------------------
+
+    /** Waits between attempts to reach the saved strip again: it may be off with the ignition, or out of range. */
+    private static final long[] RETRY_MS = {5000, 10000, 20000, 30000, 60000};
+    private volatile int retryStep;
+
+    private final Runnable retry = new Runnable() {
+        @Override
+        public void run() {
+            if (enabled(app) && gatt == null) connectSaved();
+        }
+    };
+
+    /** A connection that never got ready (no answer in 25 s) is dropped and tried again. */
+    private final Runnable connectTimeout = new Runnable() {
+        @Override
+        public void run() {
+            if (isReady() || gatt == null) return;
+            AppLog.d(app, "BLE", "no answer from the strip");
+            disconnect();
+            set("no answer from the strip; trying again");
+            scheduleRetry();
+        }
+    };
+
+    /** Tries the saved strip again later (5 s, 10 s ... up to a minute) while the switch is on. */
+    private void scheduleRetry() {
+        if (!enabled(app) || Prefs.str(app, ADDR, "").isEmpty()) return;
+        main.removeCallbacks(retry);
+        main.postDelayed(retry, RETRY_MS[Math.min(retryStep++, RETRY_MS.length - 1)]);
     }
 
     /** Called when the launcher starts. */
@@ -336,6 +369,7 @@ public final class AmbientBle {
                     if (gatt == g) gatt = null;
                 }
                 set("disconnected (" + st + ")");
+                scheduleRetry(); // the strip may only have been switched off or out of range
             }
         }
 
@@ -389,6 +423,8 @@ public final class AmbientBle {
 
     /** The strip answers the characteristic; from here messages may be sent. */
     private void startSession() {
+        main.removeCallbacks(connectTimeout);
+        retryStep = 0; // reached it: the next loss starts with a short wait again
         synchronized (this) { ready = true; }
         send(pack((byte) 0x81, (byte) 1));
         boolean sync;
@@ -421,6 +457,7 @@ public final class AmbientBle {
         BluetoothAdapter a = adapter();
         if (!supported() || a == null || !a.isEnabled()) {
             set("Bluetooth LE is not available or off");
+            scheduleRetry(); // Bluetooth may come on a little later
             return;
         }
         stopScanQuietly();
@@ -446,6 +483,8 @@ public final class AmbientBle {
                 if (ng != null) ng.close();
                 return;
             }
+            main.removeCallbacks(connectTimeout);
+            main.postDelayed(connectTimeout, 25000);
             set("connecting to " + address);
         } catch (Throwable t) {
             set("connect failed: " + t);
@@ -477,6 +516,8 @@ public final class AmbientBle {
             writing = false;
         }
         main.removeCallbacks(writeTimeout);
+        main.removeCallbacks(retry);
+        main.removeCallbacks(connectTimeout);
         for (BluetoothGatt g : open) {
             try {
                 g.disconnect();

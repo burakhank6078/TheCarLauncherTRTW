@@ -2,8 +2,8 @@
 # missing from mib/Tr.java. Run after every upstream merge:
 #   powershell -ExecutionPolicy Bypass -File tools/check-translations.ps1
 $root = Split-Path $PSScriptRoot -Parent
-$src  = Join-Path $root 'app\src\main\java'
-$tr   = [IO.File]::ReadAllText((Join-Path $src 'com\thecarlauncher\mib\Tr.java'))
+$src  = Join-Path $root 'app/src/main/java'
+$tr   = [IO.File]::ReadAllText((Join-Path $src 'com/thecarlauncher/mib/Tr.java'))
 $lit  = '"(?:[^"\\]|\\.)*"'
 $cat  = "$lit(?:\s*\+\s*$lit)*"
 $re   = "(?s)(?=($cat)\s*,\s*($cat))"

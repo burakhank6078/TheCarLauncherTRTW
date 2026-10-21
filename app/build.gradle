@@ -43,9 +43,15 @@ android {
         abortOnError false
         checkReleaseBuilds false
     }
+
+    testOptions {
+        // Plain JVM tests for the pure logic (frame decoding, BLE framing); Android calls return defaults.
+        unitTests.returnDefaultValues = true
+    }
 }
 
 dependencies {
     // Offline maps (mapsforge, LGPL-3.0) and its SVG helper (Apache-2.0); see NOTICE.
     implementation fileTree(dir: 'libs', include: ['*.jar'])
+    testImplementation 'junit:junit:4.13.2'
 }
