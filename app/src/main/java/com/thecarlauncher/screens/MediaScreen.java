@@ -404,7 +404,8 @@ public class MediaScreen extends Screen implements MediaHub.Listener {
             @Override
             public void run() {
                 // No phone connected: pick one first (the list of remembered phones).
-                if (com.thecarlauncher.media.BtDevices.get(act).knowsState()
+                if (com.thecarlauncher.util.FactoryBt.qfUnit(act)
+                        && com.thecarlauncher.media.BtDevices.get(act).knowsState()
                         && !com.thecarlauncher.media.BtDevices.get(act).isConnected()) {
                     act.show(LauncherActivity.BTDEVICES, true);
                     return;

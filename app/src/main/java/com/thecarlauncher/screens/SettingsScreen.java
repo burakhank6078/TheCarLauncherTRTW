@@ -766,14 +766,27 @@ public class SettingsScreen extends Screen {
     private static String sign(int v) { return v > 0 ? "+" + v : String.valueOf(v); }
 
     private void buildBluetooth() {
-        action(s("Bluetooth uređaji", "Bluetooth devices"), s("poveži / novi uređaj", "connect / new device"), new Runnable() {
-            public void run() { act.show(LauncherActivity.BTDEVICES, true); }
-        });
+        final boolean qf = com.thecarlauncher.util.FactoryBt.qfUnit(act);
+        if (qf) {
+            action(s("Bluetooth uređaji", "Bluetooth devices"), s("poveži / novi uređaj", "connect / new device"), new Runnable() {
+                public void run() { act.show(LauncherActivity.BTDEVICES, true); }
+            });
+        } else {
+            // TW platform: the unit's own Bluetooth app owns the module, phones are paired there.
+            action(s("Fabrička Bluetooth aplikacija", "Factory Bluetooth app"), s("upari / poveži telefone", "pair / connect phones"), new Runnable() {
+                public void run() {
+                    if (!com.thecarlauncher.util.FactoryBt.open(act)) {
+                        Ui.toast(act, s("Aplikacija nije pronađena", "App not found"));
+                    }
+                }
+            });
+        }
         toggle(s("BT audio čim se telefon poveže", "BT audio as soon as the phone connects"),
                 Prefs.BT_AUTO_SELECT, true, false);
         toggle(s("Omot pesme sa interneta", "Cover art from the internet"), Prefs.ONLINE_COVER, true, new Runnable() {
             public void run() { MediaHub.get(act).radioChanged(); }
         });
+        if (!qf) return; // the QF diagnostics read the QF module; the recorder covers the TW platform
         action(s("Dijagnostika (QF / Bluetooth)", "Diagnostics (QF / Bluetooth)"), null, new Runnable() {
             public void run() {
                 push(s("Dijagnostika", "Diagnostics"), new Page() {

@@ -480,6 +480,8 @@ final class Tr {
         p("no device chosen", "cihaz seçilmedi");
         p("opens the unit's app", "cihazın uygulamasını açar");
         p("App not found", "Uygulama bulunamadı");
+        p("Factory Bluetooth app", "Fabrika Bluetooth uygulaması");
+        p("pair / connect phones", "telefon eşle / bağlan");
         p("Tyre pressure", "Lastik basıncı");
         p("Tyre picture (Tyre pressure)", "Lastik resmi (Lastik basıncı)");
         p("Fuel consumption picture (Trip pages, 1024×444 px)", "Yakıt tüketimi resmi (Yolculuk sayfaları, 1024×444 px)");
