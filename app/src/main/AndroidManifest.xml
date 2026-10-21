@@ -61,6 +61,7 @@
     <!-- Android 11+ package visibility: apps we list, launch or hand destinations to. -->
     <queries>
         <package android:name="com.tw.carinfoservice" />
+        <package android:name="com.tw.bt" />
         <intent>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />

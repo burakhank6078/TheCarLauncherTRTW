@@ -698,12 +698,15 @@ public final class MediaHub {
     private Bitmap onlineCover(String artist, String title) {
         if (!Prefs.bool(app, Prefs.ONLINE_COVER, true)) return null;
         CoverArt ca = CoverArt.get(app);
-        ca.setListener(new CoverArt.Listener() {
-            @Override
-            public void onCover() { notifyChanged(); }
-        });
+        ca.setListener(coverListener);
         return ca.find(artist, title);
     }
+
+    /** One listener for all lookups (art() runs on every screen refresh). */
+    private final CoverArt.Listener coverListener = new CoverArt.Listener() {
+        @Override
+        public void onCover() { notifyChanged(); }
+    };
 
     public Bitmap art() {
         if (isRadio()) return null;

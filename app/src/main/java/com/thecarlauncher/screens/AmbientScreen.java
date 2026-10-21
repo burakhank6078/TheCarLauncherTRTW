@@ -29,7 +29,7 @@ import com.thecarlauncher.util.Prefs;
  * slider with < > steps, and a brightness key. The colour becomes the accent of the whole UI.
  */
 public class AmbientScreen extends Screen {
-    private static final int[] LEVELS = {100, 80, 60};
+    private static final int[] LEVELS = {100, 90, 80, 70, 60, 50, 40, 30, 20, 10, 7, 5, 4, 3, 2, 1};
 
     private InteriorView interior;
     private ColorSlider slider;
@@ -171,12 +171,32 @@ public class AmbientScreen extends Screen {
         }
     }
 
+    /** Lists the brightness steps (fine at the dim end for a dark cabin); the screen's own backlight is not touched. */
     private void cycleLevel() {
-        int l = level(), next = LEVELS[0];
-        for (int k = 0; k < LEVELS.length; k++) if (LEVELS[k] == l) next = LEVELS[(k + 1) % LEVELS.length];
-        Prefs.put(act, Prefs.AMBIENT_LEVEL, next);
-        com.thecarlauncher.util.AmbientBle.get(act).syncFromPrefs();
-        act.restartUi();
+        int l = level(), checked = -1;
+        String[] names = new String[LEVELS.length];
+        for (int k = 0; k < LEVELS.length; k++) {
+            names[k] = LEVELS[k] + " %";
+            if (LEVELS[k] == l) checked = k;
+        }
+        // Own list (not Dialogs.choose) so the Cancel button is translated.
+        new android.app.AlertDialog.Builder(act)
+                .setTitle(s("Osvetljenost", "Brightness"))
+                .setSingleChoiceItems(names, checked, new android.content.DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(android.content.DialogInterface d, int i) {
+                        d.dismiss();
+                        int old = level();
+                        if (LEVELS[i] == old) return;
+                        Prefs.put(act, Prefs.AMBIENT_LEVEL, LEVELS[i]);
+                        com.thecarlauncher.util.AmbientBle.get(act).syncFromPrefs();
+                        // The screen's accent stops dimming at 60 %; below that only the strip changes.
+                        if (Math.max(60, old) != Math.max(60, LEVELS[i])) act.restartUi();
+                        else show(index);
+                    }
+                })
+                .setNegativeButton(s("Otkaži", "Cancel"), null)
+                .show();
     }
 
     private void show(int i) {

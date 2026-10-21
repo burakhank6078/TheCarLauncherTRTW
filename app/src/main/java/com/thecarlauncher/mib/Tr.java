@@ -290,6 +290,7 @@ final class Tr {
         p("connect / new device", "bağlan / yeni cihaz");
         p("BT audio as soon as the phone connects", "Telefon bağlanır bağlanmaz BT ses");
         p("Cover art from the internet", "İnternetten albüm kapağı");
+        p("The artist and title of the song are sent to Deezer and iTunes to find the cover.", "Kapağı bulmak için şarkının sanatçısı ve adı Deezer ve iTunes'a gönderilir.");
 
         // ---- Diagnostics ----
         p("Diagnostics (QF / Bluetooth)", "Tanılama (QF / Bluetooth)");

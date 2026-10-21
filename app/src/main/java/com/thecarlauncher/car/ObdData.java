@@ -12,8 +12,14 @@ import java.util.Locale;
  * since refuelling, long-term). {@link TwProbe} fills it from the Golf 7 frames 19 (since start),
  * 20 (long-term) and 21 (since refuelling). A value that is not known stays NaN and the page shows
  * "---" for it, like the factory unit does before it has data. Units are fixed: kilometres,
- * milliseconds, km/h, l/100 km. The last values are kept, so the pages are filled at once after a
- * restart (the car sends a frame about once a minute).
+ * milliseconds, km/h, l/100 km.
+ *
+ * Frames 19 and 20 were matched with the factory screens (0:17 h and 774 km, 21:57 h); frame 21 as
+ * "since refuelling" is inferred, nothing on the factory unit confirmed it yet.
+ *
+ * The last values are kept so the pages are filled at once after a restart (the car sends a frame
+ * about once a minute). Each page remembers when its frame arrived and gives no value once that is
+ * older than {@link #STALE_MS}, so old numbers are never shown as current.
  */
 public final class ObdData {
     /** Page index for {@link #set} / {@link #get}. */
@@ -21,9 +27,11 @@ public final class ObdData {
     /** Field index for {@link #set} / {@link #get}. */
     public static final int DIST = 0, TIME = 1, SPEED = 2, CONS = 3, RANGE = 4;
 
+    private static final long STALE_MS = 15 * 60_000L;
     private static final String KEY = "obd_trip_values";
     private static final ObdData INSTANCE = new ObdData();
     private final double[][] v = new double[3][5];
+    private final long[] at = new long[3]; // when each page's frame last arrived (0 = never)
     private boolean loaded;
 
     private ObdData() {
@@ -32,10 +40,17 @@ public final class ObdData {
 
     public static ObdData get() { return INSTANCE; }
 
-    public synchronized void set(int page, int field, double value) { v[page][field] = value; }
+    public synchronized void set(int page, int field, double value) {
+        v[page][field] = value;
+        at[page] = System.currentTimeMillis();
+    }
 
-    /** The value, or NaN when it is not known. */
-    public synchronized double get(int page, int field) { return v[page][field]; }
+    /** The value, or NaN when it is not known or older than the limit. */
+    public synchronized double get(int page, int field) {
+        long age = System.currentTimeMillis() - at[page];
+        if (age < 0 || age > STALE_MS) return Double.NaN; // a clock that went back makes the age unknown
+        return v[page][field];
+    }
 
     /**
      * Decodes one trip frame (10 bytes): consumption (2 bytes, 0.1 l/100 km), range (2, km), distance
@@ -53,6 +68,7 @@ public final class ObdData {
             v[page][DIST] = dist == 0xFFFF ? Double.NaN : dist / 10.0;
             v[page][TIME] = min == 0xFFFF ? Double.NaN : min * 60000.0;
             v[page][SPEED] = spd == 0xFF ? Double.NaN : spd;
+            at[page] = System.currentTimeMillis();
         }
         return true;
     }
@@ -63,16 +79,14 @@ public final class ObdData {
     public synchronized void load(Context c) {
         if (loaded) return;
         loaded = true;
-        String s = Prefs.str(c, KEY, "");
-        String[] p = s.split(",");
-        if (p.length != 15) return;
+        String[] p = Prefs.str(c, KEY, "").split(",");
+        if (p.length != 18) return; // 15 values + 3 times; anything else is an older format
         try {
-            double[][] t = new double[3][5];
-            for (int i = 0; i < 15; i++) t[i / 5][i % 5] = Double.parseDouble(p[i]);
             for (int i = 0; i < 3; i++) {
-                for (int j = 0; j < 5; j++) {
-                    if (Double.isNaN(v[i][j])) v[i][j] = t[i][j]; // never over a value that just arrived
-                }
+                long t = Long.parseLong(p[15 + i]);
+                if (t <= at[i] || t > System.currentTimeMillis()) continue; // newer frame already here, or time unknown
+                at[i] = t;
+                for (int j = 0; j < 5; j++) v[i][j] = Double.parseDouble(p[i * 5 + j]);
             }
         } catch (NumberFormatException ignored) {
         }
@@ -82,11 +96,9 @@ public final class ObdData {
     public synchronized void save(Context c) {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 5; j++) {
-                if (sb.length() > 0) sb.append(',');
-                sb.append(String.format(Locale.US, "%s", v[i][j]));
-            }
+            for (int j = 0; j < 5; j++) sb.append(String.format(Locale.US, "%s", v[i][j])).append(',');
         }
+        sb.append(at[0]).append(',').append(at[1]).append(',').append(at[2]);
         Prefs.put(c, KEY, sb.toString());
     }
 }

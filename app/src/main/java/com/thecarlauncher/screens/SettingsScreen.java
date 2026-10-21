@@ -786,6 +786,8 @@ public class SettingsScreen extends Screen {
         toggle(s("Omot pesme sa interneta", "Cover art from the internet"), Prefs.ONLINE_COVER, true, new Runnable() {
             public void run() { MediaHub.get(act).radioChanged(); }
         });
+        note(s("Izvođač i naslov pesme se šalju servisima Deezer i iTunes da nađu omot.",
+                "The artist and title of the song are sent to Deezer and iTunes to find the cover."));
         if (!qf) return; // the QF diagnostics read the QF module; the recorder covers the TW platform
         action(s("Dijagnostika (QF / Bluetooth)", "Diagnostics (QF / Bluetooth)"), null, new Runnable() {
             public void run() {

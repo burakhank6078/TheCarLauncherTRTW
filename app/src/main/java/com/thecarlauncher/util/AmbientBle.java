@@ -71,6 +71,8 @@ public final class AmbientBle {
     private final List<Found> found = new ArrayList<>();
     private final LinkedList<byte[]> queue = new LinkedList<>();
     private volatile BluetoothGatt gatt;
+    /** Every connection object made here, so none is left open when a new one starts. */
+    private final List<BluetoothGatt> all = new ArrayList<>();
     private BluetoothGattCharacteristic write;
     private boolean ready, writing, scanning, syncPending;
     private String status = "";
@@ -203,7 +205,10 @@ public final class AmbientBle {
             set("no Bluetooth LE scanner");
             return;
         }
-        if (scanning) return; // a search is running; Android refuses more than five starts in 30 s
+        if (scanning) { // Android refuses more than five starts in 30 s, so one search at a time
+            set("searching...");
+            return;
+        }
         try {
             AppLog.d(app, "BLE", "search start: sdk=" + Build.VERSION.SDK_INT + " permissions=" + hasPermissions(app)
                     + " location=" + locationOn() + " adapterState=" + a.getState() + " scanMode=" + a.getScanMode()
@@ -235,13 +240,18 @@ public final class AmbientBle {
 
     public void stopScan() {
         main.removeCallbacks(scanTimeout);
+        if (!scanning) return;
         BluetoothAdapter a = adapter();
-        if (!scanning || a == null || a.getBluetoothLeScanner() == null) return;
+        BluetoothLeScanner s = a == null ? null : a.getBluetoothLeScanner(); // null while Bluetooth is off
+        scanning = false; // also when the scanner is gone, or a new search would be refused for good
+        if (s == null) {
+            set("Bluetooth is off");
+            return;
+        }
         try {
-            a.getBluetoothLeScanner().stopScan(scan);
+            s.stopScan(scan);
         } catch (Throwable ignored) {
         }
-        scanning = false;
         int n;
         synchronized (this) { n = found.size(); }
         AppLog.d(app, "BLE", "search ended: " + adverts + " advertisements, " + n + " devices, location=" + locationOn());
@@ -251,6 +261,7 @@ public final class AmbientBle {
 
     /** Android hides Bluetooth LE results while the Location setting is off (before Android 12). */
     private boolean locationOn() {
+        if (Build.VERSION.SDK_INT >= 31) return true; // BLUETOOTH_SCAN replaces the Location requirement
         try {
             android.location.LocationManager lm = (android.location.LocationManager) app.getSystemService(Context.LOCATION_SERVICE);
             return lm == null || lm.isProviderEnabled(android.location.LocationManager.GPS_PROVIDER)
@@ -265,16 +276,51 @@ public final class AmbientBle {
     private final BluetoothGattCallback callback = new BluetoothGattCallback() {
         @Override
         public void onConnectionStateChange(BluetoothGatt g, int st, int state) {
+            boolean up = state == android.bluetooth.BluetoothProfile.STATE_CONNECTED;
+            AppLog.d(app, "BLE", "connection state=" + state + " status=" + st + (g == gatt ? " (held)" : " (other object)"));
             if (g != gatt) {
-                // A late callback of a connection that was replaced or closed is ignored. The only
-                // newcomer accepted is the one connect() is just creating: its callback may arrive
-                // before connectGatt() has returned and stored it.
+                // Another connection object than the one we hold. The strip takes one connection, so a
+                // link that actually came up wins: it replaces the one still waiting. A newcomer that
+                // connect() is just creating is also accepted (its callback may come before
+                // connectGatt() has returned). Anything else is a late callback of a closed connection.
+                BluetoothGatt old = null;
+                boolean take = false;
+                String addr = g.getDevice().getAddress();
                 synchronized (AmbientBle.this) {
-                    if (gatt != null || pendingAddr == null || !pendingAddr.equalsIgnoreCase(g.getDevice().getAddress())) return;
-                    gatt = g;
+                    boolean pendingMatch = gatt == null && pendingAddr != null && pendingAddr.equalsIgnoreCase(addr);
+                    // Only while the held connection is not up yet: a working one is never replaced.
+                    boolean wanted = up && !ready && enabled(app) && addr.equalsIgnoreCase(Prefs.str(app, ADDR, ""));
+                    if (pendingMatch || wanted) {
+                        take = true;
+                        old = gatt;
+                        gatt = g;
+                        ready = false;
+                        writing = false;
+                        queue.clear();
+                    }
+                    all.remove(old);
+                }
+                AppLog.d(app, "BLE", (take ? "took over connection " : "ignored callback of another connection ")
+                        + addr + " state=" + state + " status=" + st);
+                if (old != null) {
+                    try {
+                        old.disconnect();
+                        old.close();
+                    } catch (Throwable ignored) {
+                    }
+                }
+                if (!take) {
+                    // A leftover connection, up or down, must not keep the strip's only slot.
+                    synchronized (AmbientBle.this) { all.remove(g); }
+                    try {
+                        if (up) g.disconnect();
+                        g.close();
+                    } catch (Throwable ignored) {
+                    }
+                    return;
                 }
             }
-            if (state == android.bluetooth.BluetoothProfile.STATE_CONNECTED) {
+            if (up) {
                 set("connected, reading services");
                 g.discoverServices();
             } else {
@@ -285,7 +331,10 @@ public final class AmbientBle {
                 }
                 main.removeCallbacks(writeTimeout);
                 g.close();
-                if (gatt == g) gatt = null;
+                synchronized (AmbientBle.this) {
+                    all.remove(g);
+                    if (gatt == g) gatt = null;
+                }
                 set("disconnected (" + st + ")");
             }
         }
@@ -390,7 +439,8 @@ public final class AmbientBle {
             synchronized (this) {
                 stale = pendingAddr == null; // disconnect() was called meanwhile
                 pendingAddr = null;
-                if (!stale) gatt = ng;
+                if (ng != null && !stale && !all.contains(ng)) all.add(ng);
+                if (!stale && gatt == null) gatt = ng; // not when the callback already took it (or a newer one)
             }
             if (stale) {
                 if (ng != null) ng.close();
@@ -415,9 +465,11 @@ public final class AmbientBle {
     }
 
     public void disconnect() {
-        BluetoothGatt g;
+        List<BluetoothGatt> open;
         synchronized (this) {
-            g = gatt;
+            open = new ArrayList<>(all); // every connection made here, also any that lost track
+            all.clear();
+            if (gatt != null && !open.contains(gatt)) open.add(gatt);
             gatt = null;
             pendingAddr = null;
             ready = false;
@@ -425,7 +477,7 @@ public final class AmbientBle {
             writing = false;
         }
         main.removeCallbacks(writeTimeout);
-        if (g != null) {
+        for (BluetoothGatt g : open) {
             try {
                 g.disconnect();
                 g.close();

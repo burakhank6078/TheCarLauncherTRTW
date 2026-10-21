@@ -323,7 +323,10 @@ public final class TwProbe {
             obj = " " + (s.length() > 24 ? s.substring(0, 24) : s);
         }
         // Golf 7 trip frames (19 since start, 20 long-term, 21 since refuelling) feed the trip pages.
-        if (m.what == 0x501 && m.obj instanceof byte[] && ObdData.get().decodeFrame(m.arg1, (byte[]) m.obj) && appCtx != null) {
+        // Only while "Take trip data from OBD" is on; the listener itself also serves the recorder.
+        if (m.what == 0x501 && m.obj instanceof byte[] && appCtx != null
+                && com.thecarlauncher.util.Prefs.bool(appCtx, com.thecarlauncher.util.Prefs.TRIP_OBD, false)
+                && ObdData.get().decodeFrame(m.arg1, (byte[]) m.obj)) {
             ObdData.get().save(appCtx);
         }
         String payload = m.arg1 + "/" + m.arg2 + obj;

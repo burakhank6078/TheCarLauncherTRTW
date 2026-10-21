@@ -51,8 +51,9 @@ public final class Mib {
     };
 
     public static void loadAmbient(Context c) {
+        // The level also dims the strip; the screen's accent colour stops at 60 % so the UI stays readable.
         BLUE = shade(Prefs.integer(c, Prefs.AMBIENT, DEFAULT_AMBIENT),
-                Prefs.integer(c, Prefs.AMBIENT_LEVEL, 100) / 100f, 0xFF);
+                Math.max(60, Prefs.integer(c, Prefs.AMBIENT_LEVEL, 100)) / 100f, 0xFF);
     }
 
     /** The ambient colour darkened (f < 1) or lightened (f > 1), alpha optionally replaced. */

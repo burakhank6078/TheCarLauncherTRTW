@@ -449,14 +449,7 @@ public final class GocBluetooth {
      */
     public boolean enabled() { return com.thecarlauncher.util.Prefs.bool(app, PREF, !factoryApp()); }
 
-    private boolean factoryApp() {
-        try {
-            app.getPackageManager().getPackageInfo("com.qf.bluetooth", 0);
-            return true;
-        } catch (Exception e) {
-            return false;
-        }
-    }
+    private boolean factoryApp() { return com.thecarlauncher.util.FactoryBt.hasQfApp(app); }
 
     public synchronized void stop() {
         running = false;
