@@ -500,6 +500,11 @@ final class Tr {
         p("Saved: ", "Kaydedildi: ");
         p("Export failed", "Aktarma başarısız");
         p("Clear the record", "Kaydı sil");
+        p("Hide the street name in screenshots", "Ekran görüntülerinde sokak adını gizle");
+        p("Screenshot in 10 seconds", "10 saniye sonra ekran görüntüsü");
+        p("Screenshot in 10 seconds: open the screen you want", "10 saniye sonra ekran görüntüsü alınacak: istediğiniz ekranı açın");
+        p("Screenshot saved: ", "Ekran görüntüsü kaydedildi: ");
+        p("Screenshot failed", "Ekran görüntüsü alınamadı");
         p("Records system details, errors, Canbus messages and Bluetooth commands, without positions. Drive as usual, then export the record.", "Sistem bilgilerini, hataları, Canbus mesajlarını ve Bluetooth komutlarını kaydeder, konum kaydetmez. Normal sürün, sonra kaydı aktarın.");
         p("Tyre pressure settings", "Lastik basıncı ayarları");
         p("After adjusting the pressure, press Reset tyre pressure.", "Basıncı ayarladıktan sonra Lastik basıncını sıfırla düğmesine basın.");

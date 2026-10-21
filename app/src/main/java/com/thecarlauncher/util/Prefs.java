@@ -27,6 +27,7 @@ public final class Prefs {
     public static final String LANGUAGE = "language";
     public static final String AMBIENT = "ambient_color";
     public static final String AMBIENT_LEVEL = "ambient_level";
+    public static final String SHOT_HIDE_STREET = "screenshot_hide_street";
     public static final String RADIO_PKG = "radio_pkg";
     public static final String RADIO_INTERNAL = "radio_internal";
     public static final String RADIO_LOC = "radio_loc";

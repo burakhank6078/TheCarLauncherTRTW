@@ -299,6 +299,16 @@ public final class AppLog {
         });
     }
 
+    /** Places a file can be exported to, best first: USB / SD card roots, then the Download folder. */
+    public static java.util.List<File> exportDirs(Context c) {
+        java.util.List<File> targets = new java.util.ArrayList<>();
+        for (File root : Storage.removableRoots(c)) targets.add(root);
+        File[] ext = c.getExternalFilesDirs(null);
+        if (ext != null) for (int i = 1; i < ext.length; i++) if (ext[i] != null) targets.add(ext[i]);
+        targets.add(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS));
+        return targets;
+    }
+
     /**
      * Copies the log to a USB stick / SD card (first place that accepts a file), falling back to the
      * Download folder. Returns the written path, or null when nothing worked.
@@ -306,12 +316,7 @@ public final class AppLog {
     public static String export(Context c) {
         AppLog l = get(c);
         String name = "carlauncher-log-" + new SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(new Date()) + ".txt";
-        java.util.List<File> targets = new java.util.ArrayList<>();
-        for (File root : Storage.removableRoots(c)) targets.add(root);
-        File[] ext = c.getExternalFilesDirs(null);
-        if (ext != null) for (int i = 1; i < ext.length; i++) if (ext[i] != null) targets.add(ext[i]);
-        targets.add(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS));
-        for (File dir : targets) {
+        for (File dir : exportDirs(c)) {
             try {
                 if (!dir.isDirectory() && !dir.mkdirs()) continue;
                 File dest = new File(dir, name);

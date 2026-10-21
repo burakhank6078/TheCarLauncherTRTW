@@ -656,6 +656,24 @@ public class LauncherActivity extends Activity implements LocationTracker.Listen
         streetView.setText(street);
     }
 
+    /**
+     * The whole window as a picture (drawn in software, so video and map surfaces are not in it).
+     * With hideStreet the street name in the status bar is left out, as it shows where the car is.
+     */
+    public android.graphics.Bitmap snapshot(boolean hideStreet) {
+        View root = getWindow().getDecorView();
+        int vis = streetView.getVisibility();
+        if (hideStreet) streetView.setVisibility(View.INVISIBLE);
+        try {
+            android.graphics.Bitmap b = android.graphics.Bitmap.createBitmap(root.getWidth(), root.getHeight(),
+                    android.graphics.Bitmap.Config.ARGB_8888);
+            root.draw(new android.graphics.Canvas(b));
+            return b;
+        } finally {
+            streetView.setVisibility(vis);
+        }
+    }
+
     @Override
     public void onMediaChanged() {
         MediaHub hub = MediaHub.get(this);

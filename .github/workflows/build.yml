@@ -44,6 +44,19 @@ jobs:
           name: TheCarLauncher-apk
           path: TheCarLauncher.apk
 
+      # The release text is the newest dated section of CHANGELOG-TR.md (the one at the top).
+      - name: Release notes
+        if: github.event_name == 'push'
+        run: |
+          awk '/^## [0-9]/{n++} n==1' CHANGELOG-TR.md > release-notes.md
+          {
+            echo
+            echo '---'
+            echo "Otomatik derleme: \`${{ github.ref_name }}\` dalı, ${{ github.sha }}."
+            echo 'Aşağıdaki **TheCarLauncher.apk** dosyasını indirip cihazda açarak kurun (eskisinin üzerine kurulur).'
+            echo 'Tüm sürümler: CHANGELOG-TR.md'
+          } >> release-notes.md
+
       # Every push to a branch also publishes a GitHub release, so the APK can be
       # downloaded straight onto the head unit from the Releases page.
       - name: Publish release
@@ -51,9 +64,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
-          name: Car Launcher build ${{ github.run_number }}
+          name: Car Launcher TR build ${{ github.run_number }}
           target_commitish: ${{ github.sha }}
           files: TheCarLauncher.apk
-          body: |
-            Automatic build of `${{ github.ref_name }}` at ${{ github.sha }}.
-            Download **TheCarLauncher.apk** below and open it on the head unit to install.
+          body_path: release-notes.md

@@ -1182,6 +1182,14 @@ public class SettingsScreen extends Screen {
                 }, "log-export").start();
             }
         });
+        toggle(s("Sakrij naziv ulice na slikama ekrana", "Hide the street name in screenshots"),
+                Prefs.SHOT_HIDE_STREET, true, false);
+        action(s("Slika ekrana za 10 sekundi", "Screenshot in 10 seconds"), s("USB / preuzimanja", "USB / Downloads"), new Runnable() {
+            public void run() {
+                Ui.toast(act, s("Slika ekrana za 10 sekundi: otvorite željeni ekran", "Screenshot in 10 seconds: open the screen you want"));
+                com.thecarlauncher.util.ScreenShot.later(act, 10);
+            }
+        });
         action(s("Obriši zapis", "Clear the record"), null, new Runnable() {
             public void run() {
                 com.thecarlauncher.util.AppLog.clear(act);
