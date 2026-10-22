@@ -64,3 +64,12 @@ E01|ENGINE OFF (tap just before)|MOTORU KAPAT (kapatmadan hemen önce dokun)
 E02|Ignition OFF, wait 60 s|Kontağı kapat, 60 sn bekle
 E03|Driver door open, lock the car|Sürücü kapısını aç, aracı kilitle
 E04|End of test|Test sonu (kaydı USB'ye aktar)
+# Group P|Telefon (ayrı kısa test; kayıt açıkken uygulamayı yeniden başlat, sonra telefonu bağla)
+P01|Phone: open the factory Bluetooth app, phone page|Fabrika Bluetooth uygulamasını aç, telefon sayfasına gel
+P02|Phone book: open it and wait until the contacts are loaded|Rehber: aç ve kişilerin yüklenmesini bekle
+P03|Open one contact (do not call)|Bir kişiyi aç (arama)
+P04|Call log: open it|Arama geçmişi: aç
+P05|Call a number with the keypad, hang up after 10 s|Tuş takımıyla bir numara ara, 10 sn sonra kapat
+P06|Incoming call: answer, talk 10 s, hang up from the car|Gelen arama: cevapla, 10 sn konuş, araçtan kapat
+P07|Incoming call: reject it|Gelen arama: reddet
+P08|Incoming call: let it ring, do not answer|Gelen arama: çalsın, cevaplama

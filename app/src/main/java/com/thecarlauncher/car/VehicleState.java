@@ -4,6 +4,12 @@ import android.content.Context;
 
 import com.thecarlauncher.util.Prefs;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+
 /**
  * Live state of the car for the Vehicle status page: doors, driver seat belt, lights, battery voltage
  * and the chassis number. Everything is read-only and comes from what the unit already receives:
@@ -21,7 +27,9 @@ public final class VehicleState {
     public static final int DOOR_DRIVER = 8, DOOR_PASSENGER = 4, DOOR_REAR_LEFT = 2, DOOR_REAR_RIGHT = 1;
 
     private static final long ALIVE_MS = 10000;
-    private static final String PREF_VIN = "car_vin";
+    private static final String PREF_VIN = "car_vin"; // only read to move an old value
+    private static final String VIN_FILE = "car_vin.txt";
+    private static final String VIN_PATTERN = "[A-HJ-NPR-Z0-9]{17}";
     private static final VehicleState INSTANCE = new VehicleState();
 
     private int doors = -1, belt = -1, lights = -1, rpm = -1;
@@ -50,28 +58,28 @@ public final class VehicleState {
             StringBuilder sb = new StringBuilder();
             for (int i = 0; i < 17; i++) sb.append((char) (b[i] & 0xFF));
             String v = sb.toString();
-            if (v.matches("[A-HJ-NPR-Z0-9]{17}") && !v.equals(vin)) {
+            if (v.matches(VIN_PATTERN) && !v.equals(vin)) {
                 vin = v;
-                if (c != null) Prefs.put(c, PREF_VIN, v);
+                if (c != null) saveVin(c, v);
             }
         }
     }
 
     /** Feeds one answer of the car info service (the text form the poller already has). */
     public synchronized void setAidl(int code, String text) {
+        serviceAt = System.currentTimeMillis();
+        if (code != 4 && code != 5 && code != 12 && code != 19) return; // the rest are arrays, not worth a failed parse
         float v;
         try {
             v = Float.parseFloat(text);
         } catch (RuntimeException e) {
             return;
         }
-        serviceAt = System.currentTimeMillis();
         switch (code) {
             case 4: voltage = v > 0 ? v : Float.NaN; break;
             case 5: lights = v != 0 ? 1 : 0; break;
             case 12: belt = v != 0 ? 1 : 0; break;
-            case 19: rpm = Math.round(v); break;
-            default: break;
+            default: rpm = Math.round(v); break;
         }
     }
 
@@ -101,9 +109,34 @@ public final class VehicleState {
     /** The 17-character chassis number, from the car or the last time it was read; null when never seen. */
     public synchronized String vin(Context c) {
         if (vin == null && c != null) {
-            String saved = Prefs.str(c, PREF_VIN, null);
-            if (saved != null && saved.length() == 17) vin = saved;
+            String saved = loadVin(c);
+            if (saved != null) vin = saved;
         }
         return vin;
+    }
+
+    // The chassis number lives in a file the backup leaves out, not in the preferences (those are backed up).
+    private static File vinFile(Context c) { return new File(c.getApplicationContext().getNoBackupFilesDir(), VIN_FILE); }
+
+    private static void saveVin(Context c, String v) {
+        try (FileWriter w = new FileWriter(vinFile(c))) {
+            w.write(v);
+        } catch (IOException ignored) {
+            // shown from memory this time; the next frame 31 tries again
+        }
+    }
+
+    private static String loadVin(Context c) {
+        String old = Prefs.str(c, PREF_VIN, null);
+        if (old != null) { // moves the value an earlier version kept in the preferences
+            Prefs.of(c).edit().remove(PREF_VIN).apply();
+            if (old.matches(VIN_PATTERN)) saveVin(c, old);
+        }
+        try (BufferedReader r = new BufferedReader(new FileReader(vinFile(c)))) {
+            String s = r.readLine();
+            return s != null && s.matches(VIN_PATTERN) ? s : null;
+        } catch (IOException e) {
+            return null;
+        }
     }
 }

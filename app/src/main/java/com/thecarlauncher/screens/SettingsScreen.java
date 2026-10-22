@@ -1174,6 +1174,11 @@ public class SettingsScreen extends Screen {
             });
         } else {
             info(s("Snimanje", "Recording"), s("uključeno", "on"));
+            // The phone steps (group P) need the Bluetooth ids, which are only opened at start-up with the recorder on.
+            if (!com.thecarlauncher.car.TwProbe.get().phoneListening()) {
+                info(s("Telefonske poruke", "Phone messages"),
+                        s("ne slušaju se - restartujte aplikaciju", "not listened to - restart the app"));
+            }
         }
         java.util.List<String> lines = new java.util.ArrayList<>();
         try {

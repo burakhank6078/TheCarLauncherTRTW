@@ -113,6 +113,23 @@ yoksa tüm adımlara hareket etmeden önce dokun ve sonra eylemi yap. Sürüş s
 | E03 | Sürücü kapısını aç, aracı kilitle |
 | E04 | Test sonu (kaydı USB'ye aktar) |
 
+### P: Telefon (ayrı kısa test)
+
+Bluetooth uygulamasının telefonla nasıl konuştuğunu görmek için. Kayıt **açıkken uygulamayı yeniden başlat**
+(Bluetooth mesajları yalnızca kayıt açıkken dinlenir), telefonu bağla, sonra adımları sırayla yap. Kayda isim ve
+numara **yazılmaz**: metinler yalnızca biçim olarak (`#` rakam, `a` harf, `*` Türkçe karakter) kaydedilir.
+
+| No | Adım |
+| --- | --- |
+| P01 | Fabrika Bluetooth uygulamasını aç, telefon sayfasına gel |
+| P02 | Rehber: aç ve kişilerin yüklenmesini bekle |
+| P03 | Bir kişiyi aç (arama) |
+| P04 | Arama geçmişi: aç |
+| P05 | Tuş takımıyla bir numara ara, 10 sn sonra kapat |
+| P06 | Gelen arama: cevapla, 10 sn konuş, araçtan kapat |
+| P07 | Gelen arama: reddet |
+| P08 | Gelen arama: çalsın, cevaplama |
+
 ## Test sonrası: ben ne yapacağım
 1. Kaydı `MARK` satırlarına göre bölüp her adım için önceki ve sonraki 12 saniyedeki **çerçeve farklarını** çıkaracağım
    (hangi çerçeve, hangi bayt, hangi bit değişti).

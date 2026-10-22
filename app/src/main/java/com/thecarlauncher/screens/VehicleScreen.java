@@ -58,6 +58,9 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
     /** Live lines of the status page (doors, belt, battery, chassis number) and what they currently show. */
     private LinearLayout liveBox;
     private String liveSig;
+    private static final long ASK_EVERY_MS = 30000;
+    private static long lastAsk;
+    private static int vinAsks;
 
     private final Runnable ticker = new Runnable() {
         @Override
@@ -288,9 +291,12 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
         liveBox.setOrientation(LinearLayout.VERTICAL);
         col.addView(liveBox);
         com.thecarlauncher.car.TwProbe probe = com.thecarlauncher.car.TwProbe.get();
-        if (probe.usable(act)) {
-            // Ask once for the chassis number and the current door / belt state (read-only, like the factory app).
-            if (com.thecarlauncher.car.VehicleState.get().vin(act) == null) probe.requestFrameAsync(act, 31);
+        long now = System.currentTimeMillis();
+        if (probe.usable(act) && now - lastAsk > ASK_EVERY_MS) {
+            // Ask for the chassis number (a few times at most, until it answers) and the current door / belt
+            // state (read-only, like the factory app), not on every visit to the page.
+            lastAsk = now;
+            if (com.thecarlauncher.car.VehicleState.get().vin(act) == null && vinAsks++ < 3) probe.requestFrameAsync(act, 31);
             if (Prefs.bool(act, Prefs.TRIP_OBD, false)) {
                 probe.requestFrameAsync(act, 18);
                 probe.requestFrameAsync(act, 26);
@@ -592,14 +598,19 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
                     }
                 }
                 if (!any) lines.add(new Object[]{Mark.OK, s("Sva vrata zatvorena", "Doors closed")});
+            } else {
+                // The car reports doors only when one changes; until then there is nothing true to show.
+                lines.add(new Object[]{-1, s("Stanje vrata se prikazuje pri promeni.", "Door state shows after a change.")});
             }
+            // The service may keep reporting the last rpm after the engine stops, so "running" also needs a
+            // voltage that only a charging engine gives.
+            float v = vs.voltage();
+            boolean running = vs.rpm() > 400 && (Float.isNaN(v) || v >= 12.9f);
             // The belt warning only makes sense with the engine running.
-            if (vs.belt() == 0 && vs.rpm() > 300) {
+            if (vs.belt() == 0 && running) {
                 lines.add(new Object[]{Mark.WARN, s("Pojas vozača nije vezan", "Driver seat belt not fastened")});
             }
-            float v = vs.voltage();
             if (!Float.isNaN(v)) {
-                boolean running = vs.rpm() > 400;
                 int m = Mark.OK;
                 String note = "";
                 if (running && v > 15.0f) { m = Mark.ALERT; note = s("visok", "high"); }

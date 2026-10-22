@@ -21,6 +21,9 @@ en üstüne eklenir; GitHub sürüm sayfası bu en üst bölümü gösterir.
 - Canlı satırlar için Ayarlar → Araç → "Yolculuk verilerini OBD'den al" açık olmalı; şasi numarasını ilk okumada almak için
   "Üniteye komut göndermeye izin ver" de açık olmalı (sonra kaydedilir).
 - Bagaj kapağı ve yolcu kemeri henüz yok; bunların çerçevesi bir sonraki testte aranacak.
+- **Telefon testi hazırlığı**: tanılama kaydı açıkken (uygulama o şekilde başlatılmışsa) fabrika Bluetooth uygulamasının
+  telefon mesajları da dinlenir; kayda isim ve numara yazılmaz, yalnızca biçimleri (`#` rakam, `a` harf). Test senaryosuna
+  P grubu eklendi. Şasi numarası artık yedeğe girmeyen bir dosyada saklanır.
 - Canbus test kaydından çözülen çerçeveler `docs/CANBUS-CERCEVELER.md` dosyasında.
 
 ## 21 Ekim 2026

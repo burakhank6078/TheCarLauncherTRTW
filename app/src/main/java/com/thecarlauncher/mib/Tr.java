@@ -456,6 +456,9 @@ final class Tr {
         p("Oil change service (from the car)", "Yağ bakımı (araçtan)");
         p("Turn on \"Take trip data from OBD\" in Setup → Vehicle for live car data.", "Canlı araç verisi için Ayarlar → Araç'ta \"Yolculuk verilerini OBD'den al\" anahtarını açın.");
         p("Waiting for car data…", "Araç verisi bekleniyor…");
+        p("Door state shows after a change.", "Kapı durumu bir değişiklikte görünür.");
+        p("Phone messages", "Telefon mesajları");
+        p("not listened to - restart the app", "dinlenmiyor - uygulamayı yeniden başlatın");
         p("Doors closed", "Kapılar kapalı");
         p("Driver door open", "Sürücü kapısı açık");
         p("Passenger door open", "Yolcu kapısı açık");

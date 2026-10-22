@@ -37,6 +37,14 @@ public final class TwProbe {
     private static final int LAST = 5;
     /** The ids com.tw.car itself opens. */
     private static final short[] IDS = {266, 267, 513, 514, 1281, 1288, 523, -24804};
+    /** The extra ids com.tw.bt opens (the phone: calls, phone book, call log); only listened to while the recorder is on. */
+    private static final short[] PHONE_IDS = {262, 274, 515, 769, 1296, -25080, -25059};
+    /** Every id com.tw.bt opens, shared ones included: anything on them may carry a name or a number. */
+    private static final short[] PHONE_ALL = {262, 267, 274, 513, 515, 769, 1296, -25080, -25059};
+    private static final int PROTOCOL_STRING = 0x10A;
+    /** Set while the longer id list is being opened; if the app dies there the list is dropped, TWUtil stays usable. */
+    private static final String PHONE_TRY = "twprobe_phone_try";
+    private static final String PHONE_BAD = "twprobe_phone_bad";
 
     private final Map<Long, String> latest = new LinkedHashMap<>();
     private final Map<Long, Integer> counts = new LinkedHashMap<>();
@@ -53,6 +61,11 @@ public final class TwProbe {
 
     public static TwProbe get() { return INSTANCE; }
 
+    /** True when the channel was opened with the phone ids (recorder on at that moment); changing it needs an app restart. */
+    private volatile boolean phoneListening;
+
+    public boolean phoneListening() { return phoneListening; }
+
     public synchronized String status() { return status; }
 
     public synchronized List<String> api() { return new ArrayList<>(api); }
@@ -61,11 +74,7 @@ public final class TwProbe {
     public synchronized List<String> summary() {
         List<String> out = new ArrayList<>();
         for (Long k : new TreeSet<>(latest.keySet())) {
-            int what = (int) (k >> 16);
-            int arg = (int) (k & 0xFFFF);
-            String id = what == 0x501 ? String.format(Locale.US, "0x501/%d", arg)
-                    : String.format(Locale.US, "0x%X", what);
-            out.add(String.format(Locale.US, "%s x%d %s", id, counts.get(k), latest.get(k)));
+            out.add(String.format(Locale.US, "%s x%d %s", label(k), counts.get(k), latest.get(k)));
         }
         return out;
     }
@@ -90,7 +99,10 @@ public final class TwProbe {
     private void run(Context ctx) {
         SharedPreferences sp = ctx.getApplicationContext().getSharedPreferences("launcher", Context.MODE_PRIVATE);
         int busy = sp.getInt(BUSY, 0);
-        if (busy != 0) {
+        if (busy == 3 && sp.getBoolean(PHONE_TRY, false)) {
+            // The app died opening the longer id list: stop using that list, but do not lock TWUtil out.
+            sp.edit().putBoolean(PHONE_BAD, true).putBoolean(PHONE_TRY, false).putInt(BUSY, 0).commit();
+        } else if (busy != 0) {
             // The app died while this step was running.
             sp.edit().putInt(CRASH, busy).putInt(BUSY, 0).commit();
         }
@@ -137,8 +149,32 @@ public final class TwProbe {
             case 3: { // open with the same ids the factory car app uses (0 = ok)
                 Method open = find(cls, "open", short[].class);
                 if (open == null) throw new NoSuchMethodException("open(short[])");
-                Object r = open.invoke(util, (Object) IDS);
-                status = "step 3 ok: open(8 ids) returned " + r;
+                // While the recorder is on, also listen to the phone ids so a test can show how the unit talks
+                // about calls and the phone book; without the recorder nothing changes from before.
+                SharedPreferences sp = appCtx.getSharedPreferences("launcher", Context.MODE_PRIVATE);
+                boolean phone = com.thecarlauncher.util.AppLog.enabled(appCtx) && !sp.getBoolean(PHONE_BAD, false);
+                short[] ids = IDS;
+                if (phone) {
+                    ids = new short[IDS.length + PHONE_IDS.length];
+                    System.arraycopy(IDS, 0, ids, 0, IDS.length);
+                    System.arraycopy(PHONE_IDS, 0, ids, IDS.length, PHONE_IDS.length);
+                }
+                Object r;
+                try {
+                    if (phone) sp.edit().putBoolean(PHONE_TRY, true).commit();
+                    r = open.invoke(util, (Object) ids);
+                } finally {
+                    if (phone) sp.edit().putBoolean(PHONE_TRY, false).commit();
+                }
+                if (phone && !Integer.valueOf(0).equals(r)) {
+                    // The longer list was refused: fall back to the factory car app's own ids on a fresh object.
+                    util = newInstance(cls);
+                    ids = IDS;
+                    r = open.invoke(util, (Object) ids);
+                    phone = false;
+                }
+                phoneListening = phone;
+                status = "step 3 ok: open(" + ids.length + " ids" + (phone ? ", with phone" : "") + ") returned " + r;
                 break;
             }
             case 4: { // start delivery
@@ -326,20 +362,75 @@ public final class TwProbe {
         return sb.toString();
     }
 
+    /**
+     * What goes into the recording for a byte payload. Anything on an id the Bluetooth app listens to (phone book
+     * entries, caller ids) is written as a shape, so the recording holds no name or number; other messages stay
+     * as hex, with the chassis number (0x501 frame 31) cut to its first three characters.
+     */
+    static String describe(int what, int arg1, byte[] b) {
+        if (isPhoneId(what)) return shape(b);
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < b.length && i < 24; i++) {
+            if (what == 0x501 && arg1 == 31 && i >= 3 && i < 17) sb.append("XX");
+            else sb.append(String.format(Locale.US, "%02X", b[i]));
+        }
+        return sb.toString();
+    }
+
+    private static boolean isPhoneId(int what) {
+        for (short id : PHONE_ALL) if ((id & 0xFFFF) == (what & 0xFFFF)) return true;
+        return false;
+    }
+
+    /** Log name of a message kind: the id, plus arg1 for car frames and for the phone ids (where arg1 is the command). */
+    private static String label(long key) {
+        int what = (int) (key >> 16);
+        if (what == 0x501 || isPhoneId(what)) return String.format(Locale.US, "0x%X/%d", what, (int) (key & 0xFFFF));
+        return String.format(Locale.US, "0x%X", what);
+    }
+
+    /** Digits become #, letters a or A, non-ASCII characters *; punctuation that helps reading stays. */
+    static String shape(String s) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < s.length() && i < 64; i++) sb.append(shapeChar(s.charAt(i)));
+        if (s.length() > 64) sb.append('…');
+        return "\"" + sb + "\"";
+    }
+
+    /** Like {@link #shape(String)} for raw bytes: 00 is ~, bytes of 80 and up and control bytes stay as {hex} to show the encoding. */
+    static String shape(byte[] b) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < b.length && i < 64; i++) {
+            int v = b[i] & 0xFF;
+            if (v == 0) sb.append('~');
+            else if (v < 0x20 || v >= 0x80) sb.append(String.format(Locale.US, "{%02X}", v));
+            else sb.append(shapeChar((char) v));
+        }
+        if (b.length > 64) sb.append('…');
+        return "bytes[" + b.length + "] " + sb;
+    }
+
+    private static char shapeChar(char c) {
+        if (c >= '0' && c <= '9') return '#';
+        if (c >= 'a' && c <= 'z') return 'a';
+        if (c >= 'A' && c <= 'Z') return 'A';
+        if (c >= 0x80) return '*';
+        if (" +-.,/()".indexOf(c) >= 0) return c;
+        return '_';
+    }
+
     private synchronized void record(Message m) {
-        // 0x501 frames are told apart by arg1 (the Golf7 frame number); other ids by "what" alone.
-        long key = ((long) m.what << 16) | (m.what == 0x501 ? (m.arg1 & 0xFFFF) : 0);
+        // 0x501 frames are told apart by arg1 (the Golf7 frame number), the phone ids by arg1 too (the command);
+        // other ids by "what" alone.
+        long key = ((long) m.what << 16) | (m.what == 0x501 || isPhoneId(m.what) ? (m.arg1 & 0xFFFF) : 0);
         Integer c = counts.get(key);
         counts.put(key, c == null ? 1 : c + 1);
         String obj = "";
         if (m.obj instanceof byte[]) {
-            byte[] b = (byte[]) m.obj;
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < b.length && i < 24; i++) sb.append(String.format("%02X", b[i]));
-            obj = " " + sb;
+            obj = " " + describe(m.what, m.arg1, (byte[]) m.obj);
         } else if (m.obj != null) {
             String s = String.valueOf(m.obj);
-            obj = " " + (s.length() > 24 ? s.substring(0, 24) : s);
+            obj = " " + (m.what == PROTOCOL_STRING ? (s.length() > 24 ? s.substring(0, 24) : s) : shape(s));
         }
         // Golf 7 trip frames (19 since start, 20 long-term, 21 since refuelling) feed the trip pages.
         // The car's own service reminder (frame 30), when it was asked for (Vehicle > Service).
@@ -354,11 +445,25 @@ public final class TwProbe {
         }
         String payload = m.arg1 + "/" + m.arg2 + obj;
         latest.put(key, new SimpleDateFormat("HH:mm:ss", Locale.US).format(new Date()) + " " + payload);
-        recordToLog(key, m.what, payload);
+        if (isPhoneId(m.what)) logPhone(key, payload);
+        else recordToLog(key, payload);
+    }
+
+    /**
+     * Phone messages are the point of the phone test, so each one is logged (no pause between lines); after the
+     * first 60 of a kind, like the entries of a downloaded phone book, only a changed shape and every 25th message.
+     */
+    private void logPhone(long key, String payload) {
+        if (appCtx == null) return;
+        int n = counts.get(key);
+        long now = System.currentTimeMillis();
+        if (n <= 60) emit(key, payload, now);
+        else if (!payload.equals(lastLogged.get(key))) emit(key, payload + " #" + n, now);
+        else if (n % 25 == 0) emit(key, payload + " #" + n, now);
     }
 
     /** Sends a frame to the diagnostic recorder when it changed (at most twice a second per frame). */
-    private void recordToLog(final long key, final int what, String payload) {
+    private void recordToLog(final long key, String payload) {
         if (appCtx == null) return;
         long now = System.currentTimeMillis();
         String prev = lastLogged.get(key);
@@ -377,7 +482,7 @@ public final class TwProbe {
                     public void run() {
                         synchronized (TwProbe.this) {
                             String p = pending.remove(key);
-                            if (p != null && !p.equals(lastLogged.get(key))) emit(key, what, p, System.currentTimeMillis());
+                            if (p != null && !p.equals(lastLogged.get(key))) emit(key, p, System.currentTimeMillis());
                         }
                     }
                 }, 500 - (now - at));
@@ -385,14 +490,12 @@ public final class TwProbe {
             return;
         }
         pending.remove(key);
-        emit(key, what, payload, now);
+        emit(key, payload, now);
     }
 
-    private void emit(long key, int what, String payload, long now) {
+    private void emit(long key, String payload, long now) {
         lastLogged.put(key, payload);
         lastLoggedAt.put(key, now);
-        String id = what == 0x501 ? String.format(Locale.US, "0x501/%d", (int) (key & 0xFFFF))
-                : String.format(Locale.US, "0x%X", what);
-        com.thecarlauncher.util.AppLog.d(appCtx, "CAN", id + " " + payload);
+        com.thecarlauncher.util.AppLog.d(appCtx, "CAN", label(key) + " " + payload);
     }
 }
