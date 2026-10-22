@@ -13,6 +13,16 @@ en üstüne eklenir; GitHub sürüm sayfası bu en üst bölümü gösterir.
 
 ---
 
+## 22 Ekim 2026
+**Araç durumu sayfası canlandı**
+- Araç → Araç durumu sayfasında aracın o anki hali görünür: **açık kapı uyarıları** (sürücü, yolcu, arka sol, arka sağ),
+  **sürücü emniyet kemeri** (yalnızca motor çalışırken), **anlık akü voltajı** (motor kapalıyken 11,8 V altı, çalışırken
+  13 V altı ya da 15 V üstü uyarı verir), farlar açıksa bilgi satırı ve **şasi numarası**.
+- Canlı satırlar için Ayarlar → Araç → "Yolculuk verilerini OBD'den al" açık olmalı; şasi numarasını ilk okumada almak için
+  "Üniteye komut göndermeye izin ver" de açık olmalı (sonra kaydedilir).
+- Bagaj kapağı ve yolcu kemeri henüz yok; bunların çerçevesi bir sonraki testte aranacak.
+- Canbus test kaydından çözülen çerçeveler `docs/CANBUS-CERCEVELER.md` dosyasında.
+
 ## 21 Ekim 2026
 **Araç verileri**
 - Gezi sayfaları (*Başlangıçtan beri*, *Yakıt aldıktan sonra*, *Uzun süreli*) artık aracın Canbus

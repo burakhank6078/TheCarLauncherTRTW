@@ -55,6 +55,9 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
     /** The page area (behind title and arrows) and the full-page background picture of the trip pages. */
     private FrameLayout pageRoot;
     private ImageView tripBg;
+    /** Live lines of the status page (doors, belt, battery, chassis number) and what they currently show. */
+    private LinearLayout liveBox;
+    private String liveSig;
 
     private final Runnable ticker = new Runnable() {
         @Override
@@ -195,6 +198,8 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
         body.removeAllViews();
         cells = new TextView[6];
         trip = null;
+        liveBox = null;
+        liveSig = null;
         if (tripBg != null) {
             pageRoot.removeView(tripBg);
             tripBg = null;
@@ -278,6 +283,20 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
         } else {
             for (CarData.Notice n : notices) col.addView(statusLine(new Mark(n.urgent ? Mark.ALERT : Mark.WARN), n.text));
         }
+        // What the car says right now; filled and kept up to date by refreshLive().
+        liveBox = new LinearLayout(act);
+        liveBox.setOrientation(LinearLayout.VERTICAL);
+        col.addView(liveBox);
+        com.thecarlauncher.car.TwProbe probe = com.thecarlauncher.car.TwProbe.get();
+        if (probe.usable(act)) {
+            // Ask once for the chassis number and the current door / belt state (read-only, like the factory app).
+            if (com.thecarlauncher.car.VehicleState.get().vin(act) == null) probe.requestFrameAsync(act, 31);
+            if (Prefs.bool(act, Prefs.TRIP_OBD, false)) {
+                probe.requestFrameAsync(act, 18);
+                probe.requestFrameAsync(act, 26);
+            }
+        }
+        refreshLive();
         FrameLayout.LayoutParams ll = new FrameLayout.LayoutParams(Mib.px(act, 470),
                 ViewGroup.LayoutParams.WRAP_CONTENT);
         body.addView(col, ll);
@@ -527,6 +546,78 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
                                 });
                     }
                 });
+    }
+
+    /** One live line: a mark (Mark.OK / WARN / ALERT, or -1 for none) and a text. */
+    private View liveLine(int mark, String text) {
+        LinearLayout row = new LinearLayout(act);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(0, Mib.px(act, 3), 0, Mib.px(act, 3));
+        if (mark >= 0) {
+            ImageView iv = new ImageView(act);
+            iv.setImageDrawable(new Mark(mark));
+            row.addView(iv, new LinearLayout.LayoutParams(Mib.px(act, 28), Mib.px(act, 28)));
+        }
+        TextView t = Mib.text(act, text, mark >= 0 ? 27 : 22, Mib.regular(act), mark >= 0 ? Mib.WHITE : Mib.GREY);
+        t.setSingleLine(false);
+        t.setPadding(Mib.px(act, mark >= 0 ? 20 : 0), 0, 0, 0);
+        row.addView(t);
+        return row;
+    }
+
+    private static final int[] DOOR_BITS = {com.thecarlauncher.car.VehicleState.DOOR_DRIVER,
+            com.thecarlauncher.car.VehicleState.DOOR_PASSENGER, com.thecarlauncher.car.VehicleState.DOOR_REAR_LEFT,
+            com.thecarlauncher.car.VehicleState.DOOR_REAR_RIGHT};
+
+    /** Rebuilds the live lines of the status page when something they show has changed. */
+    private void refreshLive() {
+        if (liveBox == null) return;
+        com.thecarlauncher.car.VehicleState vs = com.thecarlauncher.car.VehicleState.get();
+        java.util.ArrayList<Object[]> lines = new java.util.ArrayList<>();
+        if (!Prefs.bool(act, Prefs.TRIP_OBD, false)) {
+            lines.add(new Object[]{-1, s("Uključite \"Podaci putnog računara iz OBD-a\" u Podešavanja → Vozilo za podatke uživo.",
+                    "Turn on \"Take trip data from OBD\" in Setup → Vehicle for live car data.")});
+        } else if (!vs.alive()) {
+            lines.add(new Object[]{-1, s("Čekam podatke iz vozila…", "Waiting for car data…")});
+        } else {
+            int doors = vs.doors();
+            if (doors >= 0) {
+                String[] names = {s("Vrata vozača otvorena", "Driver door open"), s("Vrata suvozača otvorena", "Passenger door open"),
+                        s("Zadnja leva vrata otvorena", "Rear left door open"), s("Zadnja desna vrata otvorena", "Rear right door open")};
+                boolean any = false;
+                for (int i = 0; i < DOOR_BITS.length; i++) {
+                    if ((doors & DOOR_BITS[i]) != 0) {
+                        lines.add(new Object[]{Mark.WARN, names[i]});
+                        any = true;
+                    }
+                }
+                if (!any) lines.add(new Object[]{Mark.OK, s("Sva vrata zatvorena", "Doors closed")});
+            }
+            // The belt warning only makes sense with the engine running.
+            if (vs.belt() == 0 && vs.rpm() > 300) {
+                lines.add(new Object[]{Mark.WARN, s("Pojas vozača nije vezan", "Driver seat belt not fastened")});
+            }
+            float v = vs.voltage();
+            if (!Float.isNaN(v)) {
+                boolean running = vs.rpm() > 400;
+                int m = Mark.OK;
+                String note = "";
+                if (running && v > 15.0f) { m = Mark.ALERT; note = s("visok", "high"); }
+                else if (v < 11.0f) { m = Mark.ALERT; note = s("nizak", "low"); }
+                else if (v < (running ? 13.0f : 11.8f)) { m = Mark.WARN; note = s("nizak", "low"); }
+                lines.add(new Object[]{m, s("Akumulator", "Battery") + String.format(Locale.US, " %.1f V", v)
+                        + (note.isEmpty() ? "" : " – " + note)});
+            }
+            if (vs.lights() == 1) lines.add(new Object[]{Mark.OK, s("Svetla uključena", "Lights on")});
+        }
+        String vin = vs.vin(act);
+        if (vin != null) lines.add(new Object[]{-1, "VIN: " + vin});
+        StringBuilder sig = new StringBuilder();
+        for (Object[] l : lines) sig.append(l[0]).append(l[1]).append('\n');
+        if (sig.toString().equals(liveSig)) return;
+        liveSig = sig.toString();
+        liveBox.removeAllViews();
+        for (Object[] l : lines) liveBox.addView(liveLine((Integer) l[0], (String) l[1]));
     }
 
     private View statusLine(Drawable mark, String text) {
@@ -900,6 +991,10 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
     }
 
     private void update() {
+        if (page == STATUS) {
+            refreshLive();
+            return;
+        }
         if (trip != null) {
             updateTrip();
             return;

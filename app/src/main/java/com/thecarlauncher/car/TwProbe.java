@@ -344,6 +344,8 @@ public final class TwProbe {
         // Golf 7 trip frames (19 since start, 20 long-term, 21 since refuelling) feed the trip pages.
         // The car's own service reminder (frame 30), when it was asked for (Vehicle > Service).
         if (m.what == 0x501 && m.arg1 == 30 && m.obj instanceof byte[]) ServiceData.get().decodeFrame((byte[]) m.obj);
+        // Doors, belt and the chassis number for the Vehicle status page.
+        if (m.what == 0x501 && m.obj instanceof byte[]) VehicleState.get().decodeFrame(appCtx, m.arg1, (byte[]) m.obj);
         // Only while "Take trip data from OBD" is on; the listener itself also serves the recorder.
         if (m.what == 0x501 && m.obj instanceof byte[] && appCtx != null
                 && com.thecarlauncher.util.Prefs.bool(appCtx, com.thecarlauncher.util.Prefs.TRIP_OBD, false)

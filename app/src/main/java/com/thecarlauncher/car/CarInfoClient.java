@@ -132,6 +132,7 @@ public final class CarInfoClient implements ServiceConnection {
             int code = CODES[i];
             String v = read(b, code, TYPES.charAt(i));
             if (v == null) continue;
+            VehicleState.get().setAidl(code, v);
             String prev = last.get(code);
             if (!v.equals(prev)) {
                 last.put(code, v);

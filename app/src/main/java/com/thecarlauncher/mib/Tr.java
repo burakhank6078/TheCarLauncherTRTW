@@ -454,6 +454,18 @@ final class Tr {
         p("Tap a step, then do the action. At the end export the recording to USB (Diagnostic recording).", "Bir adıma dokunun, sonra eylemi yapın. Bitince kaydı USB'ye aktarın (Tanılama kaydı).");
         p("Service (from the car)", "Bakım (araçtan)");
         p("Oil change service (from the car)", "Yağ bakımı (araçtan)");
+        p("Turn on \"Take trip data from OBD\" in Setup → Vehicle for live car data.", "Canlı araç verisi için Ayarlar → Araç'ta \"Yolculuk verilerini OBD'den al\" anahtarını açın.");
+        p("Waiting for car data…", "Araç verisi bekleniyor…");
+        p("Doors closed", "Kapılar kapalı");
+        p("Driver door open", "Sürücü kapısı açık");
+        p("Passenger door open", "Yolcu kapısı açık");
+        p("Rear left door open", "Arka sol kapı açık");
+        p("Rear right door open", "Arka sağ kapı açık");
+        p("Driver seat belt not fastened", "Sürücü emniyet kemeri takılı değil");
+        p("Battery", "Akü");
+        p("low", "düşük");
+        p("high", "yüksek");
+        p("Lights on", "Işıklar açık");
         p("days", "gün");
         p("overdue ", "gecikti: ");
         p("To read these from the car, switch on \"Allow sending commands to the unit\" in Setup → Vehicle.", "Bunları araçtan okumak için Ayarlar → Araç'ta \"Üniteye komut göndermeye izin ver\" anahtarını açın.");
