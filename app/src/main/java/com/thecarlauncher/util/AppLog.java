@@ -237,6 +237,16 @@ public final class AppLog {
         } catch (Throwable ignored) {
         }
         write("SYS", sb.toString());
+        // Which sound chip the factory EQ app drives (it reads these to pick its screen).
+        String[] audio = {"persist.sys.tw.dsp", "persist.sys.eqtype.2313", "persist.sys.eqtype.3702",
+                "persist.sys.eqtype.rohm", "sys.tw.audioSession.btmusicid"};
+        StringBuilder ab = new StringBuilder("audio ");
+        for (String k : audio) ab.append(k).append('=').append(prop(k)).append(' ');
+        try {
+            ab.append("Settings.EQ_SETTINGS=").append(Settings.System.getString(app.getContentResolver(), "EQ_SETTINGS"));
+        } catch (Throwable ignored) {
+        }
+        write("SYS", ab.toString());
         try {
             List<PackageInfo> all = app.getPackageManager().getInstalledPackages(0);
             StringBuilder p = new StringBuilder();
