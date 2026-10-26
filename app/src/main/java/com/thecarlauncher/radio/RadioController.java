@@ -21,7 +21,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * FM radio inside the launcher: tuner state, presets, station list and audio routing.
  * Drives the K706/QuickFish tuner through {@link K706Tuner}.
  */
-public final class RadioController implements K706Tuner.Listener {
+public final class RadioController implements K706Tuner.Listener, TwRadio.Listener {
     public interface Listener { void onRadioChanged(); }
 
     /** A stored or discovered station: FM frequency in MCU units (9220 = 92.2 MHz) plus RDS name. */
@@ -80,8 +80,18 @@ public final class RadioController implements K706Tuner.Listener {
         return sInstance;
     }
 
+    /**
+     * On a unit without the QF tuner (a TW unit) the launcher does not drive a tuner of its own: the factory radio
+     * app plays, and this controller mirrors and remote controls it through {@link TwRadio}.
+     */
+    private final boolean twMode;
+    private final TwRadio tw;
+    private static final Station UNIT_PRESET = new Station(0, "");
+
     private RadioController(Context c) {
         app = c;
+        twMode = !com.thecarlauncher.util.FactoryBt.qfUnit(c);
+        tw = TwRadio.get(c);
         tuner = new K706Tuner(c);
         audio = (AudioManager) c.getSystemService(Context.AUDIO_SERVICE);
         freq = Prefs.integer(c, P_FREQ, FM_MIN);
@@ -106,21 +116,27 @@ public final class RadioController implements K706Tuner.Listener {
     /** True when this head unit's FM tuner can be driven from the launcher. */
     public boolean available() {
         if (!Prefs.bool(app, Prefs.RADIO_INTERNAL, true)) return false;
+        if (twMode) return tw.available();
         return tuner.connect(this);
     }
 
-    public String error() { return tuner.error(); }
+    public String error() { return twMode ? tw.error() : tuner.error(); }
+
+    /** The TW tuner told us something (frequency, band, name, preset or source). */
+    @Override
+    public void onTwRadioChanged() { changed(); }
 
     // ---- MCU audio switch (shared with Bluetooth music) ----------------------------------------
 
     /** Current MCU audio channel (2 = FM, 4 = Android media, others = e.g. Bluetooth), -1 unknown. */
     public int mcuChannel() {
+        if (twMode) return -1;
         return tuner.connect(this) ? tuner.channel() : -1;
     }
 
     /** Switches the MCU audio channel (used to put the Bluetooth module on the speakers). */
     public boolean routeChannel(int ch) {
-        if (!tuner.connect(this)) return false;
+        if (twMode || !tuner.connect(this)) return false;
         if (active && ch != K706Tuner.CHANNEL_FM) stop();
         tuner.mute(true);
         tuner.route((byte) ch);
@@ -147,11 +163,49 @@ public final class RadioController implements K706Tuner.Listener {
         return Prefs.integer(app, Prefs.BT_CHANNEL_LEARNED, 0);
     }
 
-    public boolean isActive() { return active; }
+    /**
+     * True when the launcher itself plays the radio (the media bar and keys then follow it). Never on a TW unit,
+     * where the factory radio app owns the audio; see {@link #shown()} for what the radio screen displays.
+     */
+    public boolean isActive() { return !twMode && active; }
+
+    /** True when the radio screen should show live tuner data: the launcher's own tuner, or the unit's active source on a TW unit. */
+    public boolean shown() { return twMode ? tw.isRadioSource() : active; }
+
+    /** True on a TW unit, where the radio screen mirrors the factory radio app. */
+    public boolean unitTuner() { return twMode; }
+
+    /** The unit's band: 0 and 1 FM, 2 AM, -1 unknown (or not a TW unit). */
+    public int band() { return twMode ? tw.band() : -1; }
+
+    /** True when a preset tile can be recalled now (on a TW unit only the tiles of the unit's current band page). */
+    public boolean canRecall(int tile) { return !twMode || tw.canRecall(tile); }
+
+    /** True when the buttons will do something: always for the launcher's own tuner, with the commands switch on for a TW unit. */
+    public boolean canControl() { return !twMode || tw.controllable(); }
+
+    /** True when the station is on AM (kHz instead of MHz). */
+    public boolean isAm() { return twMode && tw.isAm(); }
+
+    /** The frequency as shown: MHz with one decimal on FM, whole kHz on AM; "--" on a TW unit until the tuner has said one. */
+    public String freqText() {
+        if (twMode && tw.freq() <= 0) return "--";
+        return isAm() ? String.valueOf(tw.freq()) : format(freq());
+    }
+
+    /** False on a TW unit until it has said which source is active. */
+    public boolean sourceKnown() { return !twMode || tw.sourceKnown(); }
 
     /** Makes FM the audio source (like pressing Radio on the factory unit) and tunes the last station. */
     public boolean start() {
         if (!available()) return false;
+        if (twMode) {
+            tw.addListener(this);
+            boolean ok = tw.listen();
+            if (tw.isOpen()) tw.requestState(); // what the unit only says when it changes: the source and the band
+            changed();
+            return ok;
+        }
         if (active) return true;
         MediaHub.get(app).onRadioStarting();
         tuner.mute(true);
@@ -178,6 +232,7 @@ public final class RadioController implements K706Tuner.Listener {
 
     /** Hands audio back to Android (another source was chosen). */
     public void stop() {
+        if (twMode) return; // the factory radio app owns the audio; the launcher never switches the source
         stopScan();
         if (!active) return;
         active = false;
@@ -221,6 +276,7 @@ public final class RadioController implements K706Tuner.Listener {
     // ---- Tuning ------------------------------------------------------------------------------
 
     public void tune(int f) {
+        if (twMode) return; // the unit's tuner has no "go to this frequency" command that we know of yet
         f = Math.max(FM_MIN, Math.min(FM_MAX, f));
         if (!active) start();
         setFreq(f);
@@ -228,28 +284,46 @@ public final class RadioController implements K706Tuner.Listener {
     }
 
     public void seekUp() {
+        if (twMode) {
+            tw.seek(true);
+            return;
+        }
         if (!active) start();
         tuner.cmd(K706Tuner.SUB_SEEK_UP, 1, 0);
     }
 
     public void seekDown() {
+        if (twMode) {
+            tw.seek(false);
+            return;
+        }
         if (!active) start();
         tuner.cmd(K706Tuner.SUB_SEEK_DOWN, 2, 0);
     }
 
     public void stepUp() {
+        if (twMode) {
+            tw.step(true);
+            return;
+        }
         tune(freq + 10 > FM_MAX ? FM_MIN : freq + 10);
     }
 
     public void stepDown() {
+        if (twMode) {
+            tw.step(false);
+            return;
+        }
         tune(freq - 10 < FM_MIN ? FM_MAX : freq - 10);
     }
 
     public void setLocal(boolean local) {
+        if (twMode) return;
         tuner.cmd(K706Tuner.SUB_LOC, local ? 1 : 0, 0);
     }
 
     public void setRds(boolean on) {
+        if (twMode) return;
         tuner.send(K706Tuner.CMD_RDS, new byte[]{(byte) (on ? 1 : 0)});
     }
 
@@ -264,10 +338,10 @@ public final class RadioController implements K706Tuner.Listener {
 
     // ---- State -------------------------------------------------------------------------------
 
-    public int freq() { return freq; }
-    public String ps() { return ps; }
-    public String rt() { return rt; }
-    public boolean stereo() { return stereo; }
+    public int freq() { return twMode ? tw.freq() : freq; }
+    public String ps() { return twMode ? tw.name() : ps; }
+    public String rt() { return twMode ? tw.text() : rt; }
+    public boolean stereo() { return !twMode && stereo; }
     public boolean scanning() { return scanning; }
 
     public static String format(int f) {
@@ -276,19 +350,26 @@ public final class RadioController implements K706Tuner.Listener {
 
     /** Station name if RDS gave one, else the frequency. */
     public String label() {
+        if (twMode) return ps().length() > 0 ? ps() : (isAm() ? "AM " + freqText() + " kHz" : "FM " + freqText() + " MHz");
         return ps.length() > 0 ? ps : "FM " + format(freq) + " MHz";
     }
 
     // ---- Presets / station list ---------------------------------------------------------------
 
-    public Station preset(int i) { return presets[i]; }
+    /** On a TW unit every tile stands for a slot of the unit's own presets (names are not known yet): an empty placeholder. */
+    public Station preset(int i) { return twMode ? UNIT_PRESET : presets[i]; }
 
     public int presetIndexOfCurrent() {
+        if (twMode) return tw.currentTile();
         for (int i = 0; i < PRESETS; i++) if (presets[i] != null && presets[i].freq == freq) return i;
         return -1;
     }
 
+    /** True for the placeholder tile of a TW unit: the slot exists but its station is not known. */
+    public static boolean isUnitPreset(Station s) { return s == UNIT_PRESET; }
+
     public void savePreset(int i) {
+        if (twMode) return; // storing on the unit's own presets is not wired
         presets[i] = new Station(freq, ps);
         Prefs.put(app, P_PRESETS, serialize(java.util.Arrays.asList(presets)));
         changed();
@@ -301,6 +382,10 @@ public final class RadioController implements K706Tuner.Listener {
     }
 
     public void recallPreset(int i) {
+        if (twMode) {
+            tw.recall(i);
+            return;
+        }
         if (presets[i] != null) tune(presets[i].freq);
     }
 
@@ -308,6 +393,7 @@ public final class RadioController implements K706Tuner.Listener {
 
     /** Software scan: seek upward through the band and list every station that stops the seek. */
     public void startScan() {
+        if (twMode) return; // the unit has its own station list; not wired yet
         if (!active) start();
         stations.clear();
         scanning = true;

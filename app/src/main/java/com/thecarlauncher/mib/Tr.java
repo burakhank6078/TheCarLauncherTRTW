@@ -464,6 +464,10 @@ final class Tr {
         p("Phone and radio messages", "Telefon ve radyo mesajları");
         p("not listened to - restart the app", "dinlenmiyor - uygulamayı yeniden başlatın");
         p("not available on this unit", "bu ünitede kullanılamıyor");
+        p("Radio is not the active source (open the radio app)", "Radyo etkin kaynak değil (radyo uygulamasını açın)");
+        p("Change the band in the radio app first", "Önce radyo uygulamasında bandı değiştirin");
+        p("Waiting for the radio…", "Radyo bekleniyor…");
+        p("Control: allow commands in Setup → Vehicle", "Kumanda için Ayarlar → Araç'ta komutlara izin verin");
         p("only partly (see the recording)", "kısmen (kayda bakın)");
         p("radio only (phone channel is off)", "yalnızca radyo (telefon kanalı kapalı)");
         p("Listen to the phone channel (may disturb the Bluetooth app)", "Telefon kanalını dinle (Bluetooth uygulamasını etkileyebilir)");

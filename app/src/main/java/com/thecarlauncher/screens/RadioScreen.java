@@ -42,6 +42,8 @@ public class RadioScreen extends Screen implements RadioController.Listener, com
     private final Preset[] presets = new Preset[RadioController.PRESETS];
     private final StationAdapter adapter = new StationAdapter();
     private boolean manual;
+    private int lastBand = -2;
+    private Boolean lastAvail;
 
     public RadioScreen(LauncherActivity act) {
         super(act);
@@ -280,9 +282,27 @@ public class RadioScreen extends Screen implements RadioController.Listener, com
 
     @Override
     public void onShow() {
-        if (radio.available()) {
+        lastAvail = null;
+        checkTuner();
+        if (radio.available()) radio.start();
+        radio.addListener(this);
+        com.thecarlauncher.radio.RadioLogos.get(act).addListener(this);
+        onRadioChanged();
+    }
+
+    /**
+     * Shows either the radio or the "tuner not available" page, from what the controller says now. On a TW unit the
+     * channel opens in the background and may fail after the page is already up, so this also runs on every update.
+     */
+    private void checkTuner() {
+        boolean ok = radio.available();
+        if (lastAvail != null && lastAvail == ok) return;
+        lastAvail = ok;
+        if (ok) {
             message.setVisibility(View.GONE);
-            radio.start();
+            // On a TW unit the factory radio app plays; the list and the manual dial of the launcher's own tuner do not apply.
+            listKey.setVisibility(radio.unitTuner() ? View.INVISIBLE : View.VISIBLE);
+            manualKey.setVisibility(radio.unitTuner() ? View.INVISIBLE : View.VISIBLE);
         } else {
             message.setVisibility(View.VISIBLE);
             String app = LauncherActivity.radioPackage(act);
@@ -294,9 +314,6 @@ public class RadioScreen extends Screen implements RadioController.Listener, com
                     "FM tuner bu cihazda kullanılamıyor.\n(" + why + ")\n\n"
                             + (app != null ? "Radyo uygulamasını açmak için dokunun." : "Radyo uygulaması bulunamadı.")));
         }
-        radio.addListener(this);
-        com.thecarlauncher.radio.RadioLogos.get(act).addListener(this);
-        onRadioChanged();
     }
 
     @Override
@@ -324,16 +341,35 @@ public class RadioScreen extends Screen implements RadioController.Listener, com
     @Override
     public void onRadioChanged() {
         if (freq == null) return;
-        scale.setFreq(radio.freq());
+        if (radio.unitTuner()) checkTuner();
+        if (!radio.unitTuner()) scale.setFreq(radio.freq());
+        else if (radio.band() >= 0 && radio.band() != lastBand) {
+            // The pages are the unit's bands: follow the band the unit is on.
+            lastBand = radio.band();
+            if (lastBand < pager.getChildCount() && pager.page() != lastBand) pager.setPage(lastBand);
+        }
         String ps = radio.ps().trim(), rt = radio.rt();
+        String mhz = radio.isAm() ? " kHz" : " MHz";
         // The station's own name (RDS) replaces the frequency at the top when it is sent.
-        boolean named = radio.isActive() && ps.length() > 0 && !manual;
-        freq.setText(named ? ps : RadioController.format(radio.freq()));
+        boolean named = radio.shown() && ps.length() > 0 && !manual;
+        freq.setText(named ? ps : radio.freqText());
+        unit.setText(mhz);
         unit.setVisibility(named ? View.GONE : View.VISIBLE);
-        StringBuilder sb = new StringBuilder(named ? RadioController.format(radio.freq()) + " MHz" : "");
+        StringBuilder sb = new StringBuilder(named ? radio.freqText() + mhz : "");
         if (rt.length() > 0) sb.append(sb.length() > 0 ? "  ·  " : "").append(rt);
         if (radio.stereo()) sb.append(sb.length() > 0 ? "   " : "").append("ST");
-        if (!radio.isActive()) sb.setLength(0);
+        if (!radio.shown()) sb.setLength(0);
+        if (radio.unitTuner() && radio.shown() && !radio.canControl()) {
+            sb.append(sb.length() > 0 ? "   " : "")
+                    .append(s("Upravljanje: uključite komande u Podešavanja → Vozilo", "Control: allow commands in Setup → Vehicle"));
+        }
+        if (radio.unitTuner() && !radio.shown()) {
+            // The factory radio app owns the audio: say so instead of showing an old frequency as if it were playing, and
+            // do not claim "not active" before the unit has said which source is.
+            if (radio.sourceKnown()) sb.append(s("Radio nije aktivan izvor (otvorite radio aplikaciju)", "Radio is not the active source (open the radio app)"));
+            else if (!radio.canControl()) sb.append(s("Upravljanje: uključite komande u Podešavanja → Vozilo", "Control: allow commands in Setup → Vehicle"));
+            else sb.append(s("Čekam radio…", "Waiting for the radio…"));
+        }
         info.setText(sb.toString());
         int cur = radio.presetIndexOfCurrent();
         for (int i = 0; i < presets.length; i++) presets[i].bind(radio.preset(i), i == cur);
@@ -386,6 +422,11 @@ public class RadioScreen extends Screen implements RadioController.Listener, com
             face.setOnClickListener(new OnClickListener() {
                 @Override
                 public void onClick(View v) {
+                    if (radio.unitTuner() && !radio.canRecall(index)) {
+                        // The unit recalls a slot of the band it is on; the page of another band cannot be reached from here.
+                        Ui.toast(act, s("Prvo promenite opseg u radio aplikaciji", "Change the band in the radio app first"));
+                        return;
+                    }
                     if (radio.preset(index) == null) save();
                     else radio.recallPreset(index);
                 }
@@ -400,12 +441,14 @@ public class RadioScreen extends Screen implements RadioController.Listener, com
         }
 
         void save() {
+            if (radio.unitTuner()) return; // the unit's own presets cannot be stored from here yet
             radio.savePreset(index);
             Ui.toast(act, Mib.t(act, "Sačuvano na " + (index % PER_PAGE + 1), "Stored on " + (index % PER_PAGE + 1), (index % PER_PAGE + 1) + " numaraya kaydedildi"));
         }
 
         void bind(RadioController.Station st, boolean current) {
             if (st == null) name.setText(s("Prazno", "Empty"));
+            else if (RadioController.isUnitPreset(st)) name.setText(""); // a slot of the unit's own presets: the name is not known
             else name.setText(st.name.length() > 0 ? st.name : RadioController.format(st.freq));
             android.graphics.Bitmap b = st != null && st.name.length() > 0
                     ? com.thecarlauncher.radio.RadioLogos.get(act).logo(st.name) : null;

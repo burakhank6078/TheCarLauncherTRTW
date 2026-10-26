@@ -24,6 +24,13 @@ en üstüne eklenir; GitHub sürüm sayfası bu en üst bölümü gösterir.
 - Motorun çalıştığı artık yalnızca devirden değil, şarj voltajından da anlaşılır (motor kapalıyken eski devir değeri
   kalsa bile yanlış kemer ya da akü uyarısı çıkmaz).
 - Tanılama kaydı ses yongası özelliklerini de yazar.
+- **Radyo ekranı fabrika tunerine bağlandı (ilk sürüm, araçta denenmedi):** TW ünitelerde Radyo ekranı artık fabrika radyo
+  uygulamasının tunerini aynalar ve uzaktan kumanda eder: frekans (FM MHz, AM kHz), RDS istasyon adı ve metni, hafıza
+  sırası; oklarla sonraki/önceki istasyon, hafıza karelerine dokununca o hafızaya geçiş (üç sayfa = FM1, FM2, AM).
+  Ses fabrika radyo uygulamasından çalmaya devam eder; launcher kaynağı değiştirmez, bu yüzden radyo etkin kaynak
+  değilse ekran "Radyo etkin kaynak değil (radyo uygulamasını açın)" der. Kumanda için "Üniteye komut göndermeye izin ver"
+  açık olmalı. Doğrudan frekans girme, istasyon listesi/tarama ve hafızaya kaydetme henüz yok. Alanların doğruluğu
+  R grubu kaydıyla kesinleşecek.
 - **Radyo ve telefon testi hazırlığı:** kayıt açıkken (uygulama o şekilde başlatılmışsa) fabrika radyo uygulaması gibi
   tuner (modül 1) ayrı bir kanalla dinlenir; frekans, band, istasyon adı ve hafıza kayda düşer. Test senaryosuna P ve R
   grupları eklendi; fabrikanın radyo protokolü `docs/RADIO-PROTOKOL.md` dosyasında.

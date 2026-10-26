@@ -40,6 +40,13 @@ Radyoya özgü olanlar: `265, 1025, 1026, 1028, 1029, 1030, -25088, -25087`.
 | `write(0x404, 0/1/3, 0/1)` | AF / TA / REG aç-kapat | düşük |
 | `write(0x404, 255)` | Durumu iste | orta |
 
+## Launcher'daki ilk sürüm (`radio/TwRadio.java`)
+Fabrika uygulaması gibi kendi kanalını (`TWUtil(1)` + yukarıdaki kimlikler) açar, mesajları çözer ve `RadioController`
+üzerinden Radyo ekranına verir. Komutlar yalnızca "Üniteye komut göndermeye izin ver" açıkken gider: arama `(0x401,1,0/1)`,
+ince ayar `(0x401,2,0/1)`, band `(0x401,5,band)`, hafıza `(0x402,sıra,band)`, durum isteği `(0x404,255)`. Hafıza kareleri üç
+sayfadır (sayfa = band, kare = 6'lı hafıza). Eşleme bu tablodaki "orta/düşük" güvenli alanlara dayanır; R kaydından sonra
+düzeltilir.
+
 ## Kullanım planı
 1. R grubu kaydıyla yukarıdaki tabloyu doğrula (özellikle frekans birimi, band numaraları, hafıza listesi biçimi).
 2. Doğrulanan alanları `RadioState` olarak çöz, Radyo ekranında göstergeye bağla (yalnızca okuma).

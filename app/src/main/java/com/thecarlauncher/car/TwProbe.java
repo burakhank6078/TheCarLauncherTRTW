@@ -46,9 +46,6 @@ public final class TwProbe {
     /** The ids only the Bluetooth app uses (the others are shared with the car app or the radio). */
     private static final short[] PHONE_OWN = {262, 1296, -25080, -25059};
     private static final int BT_MODULE = 8, BT_BAUD = 115200;
-    /** The factory radio app reaches the tuner with its own TWUtil object (module 1) and these ids. */
-    private static final short[] RADIO_OPEN = {265, 266, 274, 513, 515, 769, 1025, 1026, 1028, 1029, 1030, -25088, -25087};
-    private static final int RADIO_MODULE = 1;
     /** The ids only the radio uses (frequency, band, presets, RDS). */
     private static final short[] RADIO_IDS = {265, 1025, 1026, 1028, 1029, 1030, -25088, -25087};
     /** The radio ids known to carry only tuner data and station text, which are logged as they are; the rest are masked like the phone ids. */
@@ -57,6 +54,8 @@ public final class TwProbe {
     /** Set while the longer id list is being opened; if the app dies there the list is dropped, TWUtil stays usable. */
     private static final String PHONE_TRY = "twprobe_phone_try";
     private static final String PHONE_BAD = "twprobe_phone_bad";
+    /** Set while TwRadio opens the radio channel from here, so a crash there is blamed on the radio and not on the phone channel. */
+    private static final String RADIO_TRY = "twprobe_radio_try";
 
     private final Map<Long, String> latest = new LinkedHashMap<>();
     private final Map<Long, Integer> counts = new LinkedHashMap<>();
@@ -125,7 +124,12 @@ public final class TwProbe {
     private void run(Context ctx) {
         SharedPreferences sp = ctx.getApplicationContext().getSharedPreferences("launcher", Context.MODE_PRIVATE);
         int busy = sp.getInt(BUSY, 0);
-        if ((busy == 3 || busy == 5) && sp.getBoolean(PHONE_TRY, false)) {
+        if ((busy == 3 || busy == 5) && sp.getBoolean(RADIO_TRY, false)) {
+            // The app died while the radio channel was opened from here: that is one strike against the radio channel,
+            // not against the phone channel and not against this step.
+            sp.edit().putBoolean(RADIO_TRY, false).putInt(BUSY, 0).commit();
+            com.thecarlauncher.radio.TwRadio.addSuspect(ctx.getApplicationContext());
+        } else if ((busy == 3 || busy == 5) && sp.getBoolean(PHONE_TRY, false)) {
             // The app died opening the phone or radio channel: stop using those, but do not lock TWUtil out.
             sp.edit().putBoolean(PHONE_BAD, true).putBoolean(PHONE_TRY, false).putInt(BUSY, 0).commit();
         } else if (busy != 0) {
@@ -221,19 +225,25 @@ public final class TwProbe {
             return;
         }
         SharedPreferences sp = appCtx.getSharedPreferences("launcher", Context.MODE_PRIVATE);
-        if (sp.getBoolean(PHONE_BAD, false)) {
-            extra = EXTRA_UNAVAILABLE;
-            return;
-        }
-        boolean wantBt = com.thecarlauncher.util.Prefs.bool(appCtx, com.thecarlauncher.util.Prefs.REC_PHONE, false);
-        int wanted = wantBt ? 2 : 1;
+        // The radio channel belongs to TwRadio (the radio screen uses it too, and the unit should see one opener); its
+        // messages come back here through radioTap(). The phone channel only opens when its switch is on and it has not
+        // stopped the app before; each open has its own marker so a crash is blamed on the right channel.
+        boolean wantPhone = com.thecarlauncher.util.Prefs.bool(appCtx, com.thecarlauncher.util.Prefs.REC_PHONE, false);
+        int wanted = wantPhone ? 2 : 1;
         int opened = 0;
+        sp.edit().putBoolean(RADIO_TRY, true).commit();
         try {
-            sp.edit().putBoolean(PHONE_TRY, true).commit();
-            opened += openChannel(RADIO_MODULE, RADIO_OPEN, 0, extraHandler(false));
-            if (wantBt) opened += openChannel(BT_MODULE, PHONE_ALL, BT_BAUD, extraHandler(true));
+            if (com.thecarlauncher.radio.TwRadio.get(appCtx).openNow()) opened++;
         } finally {
-            sp.edit().putBoolean(PHONE_TRY, false).commit();
+            sp.edit().putBoolean(RADIO_TRY, false).commit();
+        }
+        if (wantPhone && !sp.getBoolean(PHONE_BAD, false)) {
+            sp.edit().putBoolean(PHONE_TRY, true).commit();
+            try {
+                opened += openChannel(BT_MODULE, PHONE_ALL, BT_BAUD, extraHandler());
+            } finally {
+                sp.edit().putBoolean(PHONE_TRY, false).commit();
+            }
         }
         extra = opened == 0 ? EXTRA_UNAVAILABLE : opened < wanted ? EXTRA_PARTIAL : EXTRA_ON;
         if (opened > 0) {
@@ -250,12 +260,12 @@ public final class TwProbe {
         }
     }
 
-    /** One handler per extra channel: skips what another channel delivers already and counts what is the channel's own. */
-    private Handler extraHandler(final boolean bluetooth) {
+    /** The handler of the phone channel: skips what the car and radio channels deliver already and counts what is its own. */
+    private Handler extraHandler() {
         return new Handler(handler.getLooper()) {
             @Override
             public void handleMessage(Message m) {
-                if (inList(IDS, m.what) || (bluetooth && inList(RADIO_OPEN, m.what))) return; // delivered elsewhere
+                if (inList(IDS, m.what) || com.thecarlauncher.radio.TwRadio.listensTo(m.what)) return; // delivered elsewhere
                 if ((m.what > 0 && m.what < 0x100) || isRadioId(m.what) || inList(PHONE_OWN, m.what)) extraSeen++;
                 try {
                     record(m);
@@ -264,6 +274,17 @@ public final class TwProbe {
                 }
             }
         };
+    }
+
+    /** The radio channel (opened by TwRadio) hands its messages here; they are recorded while the recorder is on. */
+    public void radioTap(Message m) {
+        if (appCtx == null || !com.thecarlauncher.util.AppLog.enabled(appCtx) || inList(IDS, m.what)) return; // car ids come over the main channel
+        if ((m.what > 0 && m.what < 0x100) || isRadioId(m.what) || inList(PHONE_OWN, m.what)) extraSeen++;
+        try {
+            record(m);
+        } catch (Throwable ignored) {
+            // an odd message must never kill the radio thread
+        }
     }
 
     private static boolean inList(short[] list, int what) {
