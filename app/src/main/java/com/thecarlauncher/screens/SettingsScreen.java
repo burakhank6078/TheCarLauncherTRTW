@@ -266,6 +266,7 @@ public class SettingsScreen extends Screen {
         sub(s("Vozilo", "Vehicle"), new Page() { public void build() { buildVehicle(); } });
         sub("Wi-Fi", new Page() { public void build() { buildWifi(); } });
         sub(s("Hotspot", "Hotspot"), new Page() { public void build() { buildHotspot(); } });
+        sub(s("Rezervna kopija podešavanja", "Settings backup"), new Page() { public void build() { buildBackup(); } });
         sub(s("Android sistem", "Android system"), new Page() { public void build() { buildAndroid(); } });
         sub(s("Informacije o sistemu", "System information"), new Page() { public void build() { buildAbout(); } });
     }
@@ -609,6 +610,16 @@ public class SettingsScreen extends Screen {
                         });
             }
         });
+        toggle(s("Automatska noćna mapa (po farovima)", "Automatic night map (by the headlights)"), Prefs.AUTO_NIGHT, false, new Runnable() {
+            public void run() { act.restartUi(); }
+        });
+        note(s("Mapa prelazi na noćni izgled kada se upale farovi, a vraća se na dnevni kada se ugase. Radi uz \"Podaci putnog računara iz OBD-a\". Svetlina ekrana se ne menja.",
+                "The map switches to its night style when the headlights come on and back to day when they go off. Needs \"Take trip data from OBD\". Screen brightness is not touched."));
+        if (Prefs.bool(act, Prefs.AUTO_NIGHT, false) && !Prefs.bool(act, Prefs.TRIP_OBD, false)) {
+            // Without the car's data the lights are never known, so the map would stay on the day style.
+            info(s("Automatska noćna mapa", "Automatic night map"),
+                    s("ne radi: uključite \"Podaci putnog računara iz OBD-a\" u Vozilo", "not working: switch on \"Take trip data from OBD\" under Vehicle"));
+        }
         final String[] names = {s("Dan", "Day"), s("Noć", "Night"), s("OpenStreetMap (zatamnjena)", "OpenStreetMap (dimmed)"),
                 s("Isključena (bez interneta)", "Off (no internet)")};
         final String[] keys = {Prefs.TILES_DAY, Prefs.TILES_DARK, Prefs.TILES_OSM, Prefs.TILES_OFF};
@@ -1306,6 +1317,11 @@ public class SettingsScreen extends Screen {
         });
         note(s("Uključeno: putni računar kao originalni MIB 2 sa podacima iz vozila. Isključeno: dosadašnji prikaz.",
                 "On: the trip pages look like the original MIB 2 and show data from the car. Off: the current view."));
+        toggle(s("Istorija vožnji (GPS u pozadini)", "Trip history (GPS in the background)"), Prefs.TRIP_HISTORY, true, new Runnable() {
+            public void run() { com.thecarlauncher.car.TripGps.get(act).sync(); }
+        });
+        note(s("Beleži vožnje (put, vreme, potrošnja) iz GPS brzine, i dok je druga aplikacija ispred. Radi samo ako jedinica daje GPS aplikacijama u pozadini. Prikaz: Vozilo → Istorija vožnji.",
+                "Records trips (distance, time, consumption) from the GPS speed, also while another app is in front. Only works if the unit gives the GPS to background apps. See Vehicle → Trip history."));
         toggle(s("Upozorenje za vrata i pojas u vožnji", "Door and belt warning while driving"), Prefs.CAR_WARNING, true, null);
         action(s("Isprobaj upozorenje", "Try the warning"), s("dodirnite", "tap here"), new Runnable() {
             public void run() { act.previewCarWarning(); }
@@ -1533,6 +1549,84 @@ public class SettingsScreen extends Screen {
                 });
             }
         }, "picture-save").start();
+    }
+
+    private java.io.File backupFound;
+    private long backupCheckedAt;
+
+    /** Saves the settings to a file on the USB stick and puts them back after a reinstall. All USB work runs off the UI thread. */
+    private void buildBackup() {
+        if (System.currentTimeMillis() - backupCheckedAt > 5000) {
+            // Looking for the file touches the USB stick, so it is done in the background and the page refreshed.
+            backupCheckedAt = System.currentTimeMillis();
+            new Thread(new Runnable() {
+                public void run() {
+                    final java.io.File f = com.thecarlauncher.util.SettingsBackup.find(act);
+                    ui.post(new Runnable() {
+                        public void run() {
+                            backupFound = f;
+                            refreshKeep();
+                        }
+                    });
+                }
+            }, "backup-find").start();
+        }
+        final java.io.File found = backupFound;
+        info(s("Fajl", "File"), com.thecarlauncher.util.SettingsBackup.FILE);
+        info(s("Pronađena kopija", "Backup found"), found == null ? s("nema", "none") : found.getParent());
+        action(s("Sačuvaj podešavanja na USB", "Save the settings to USB"), s("USB / preuzimanja", "USB / Downloads"), new Runnable() {
+            public void run() {
+                new Thread(new Runnable() {
+                    public void run() {
+                        final String path = com.thecarlauncher.util.SettingsBackup.export(act);
+                        act.runOnUiThread(new Runnable() {
+                            public void run() {
+                                Ui.toast(act, path != null ? s("Sačuvano: ", "Saved: ") + path : s("Nije uspelo", "Could not save"));
+                                backupCheckedAt = 0; // look again: the file is there now
+                                refreshKeep();
+                            }
+                        });
+                    }
+                }, "backup-save").start();
+            }
+        });
+        action(s("Vrati podešavanja sa USB-a", "Restore the settings from USB"), found == null ? s("nema kopije", "no backup") : "", new Runnable() {
+            public void run() {
+                if (backupFound == null) {
+                    Ui.toast(act, s("Nema kopije na USB-u", "No backup found on the USB stick"));
+                    return;
+                }
+                // Own dialog so the buttons are translated.
+                new android.app.AlertDialog.Builder(act)
+                        .setTitle(s("Vrati podešavanja", "Restore the settings"))
+                        .setMessage(s("Trenutna podešavanja će biti zamenjena sačuvanim. Nastaviti?",
+                                "The current settings will be replaced by the saved ones. Continue?"))
+                        .setPositiveButton(s("Vrati", "Restore"), new android.content.DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(android.content.DialogInterface d, int w) {
+                                new Thread(new Runnable() {
+                                    public void run() {
+                                        final int n = com.thecarlauncher.util.SettingsBackup.restore(act);
+                                        act.runOnUiThread(new Runnable() {
+                                            public void run() {
+                                                if (n < 0) {
+                                                    Ui.toast(act, s("Kopija se ne može pročitati", "The backup could not be read"));
+                                                } else {
+                                                    Ui.toast(act, n + s(" podešavanja vraćeno", " settings restored"));
+                                                    act.restartUi();
+                                                }
+                                            }
+                                        });
+                                    }
+                                }, "backup-restore").start();
+                            }
+                        })
+                        .setNegativeButton(s("Otkaži", "Cancel"), null)
+                        .show();
+            }
+        });
+        note(s("Čuva podešavanja (jezik, izgled, vozilo, preferencije). Ne uključuje slike, offline mape, istoriju vožnji, podatke o vozilu, dozvolu za slanje komandi ni ključ za mapu (njih ponovo podesite ručno).",
+                "Saves the settings (language, look, vehicle, preferences). Not included: pictures, offline maps, trip history, the car's own data, the permission to send commands and the map key (set those again by hand)."));
     }
 
     private void buildAndroid() {

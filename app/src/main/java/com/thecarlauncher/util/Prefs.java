@@ -52,6 +52,10 @@ public final class Prefs {
     public static final String TW_COMMANDS = "allow_car_commands";
     /** Banner for an open door or an unfastened driver belt while the car moves (default on). */
     public static final String CAR_WARNING = "car_warning";
+    /** The map follows the headlights: night style while they are on, day style while they are off (default off). */
+    public static final String AUTO_NIGHT = "auto_night_map";
+    /** Record trips (distance, time, consumption) from the GPS speed, also while another app is in front (default on). */
+    public static final String TRIP_HISTORY = "trip_history";
     /** The recorder also listens to the Bluetooth module's own channel (may disturb the factory Bluetooth app); default off. */
     public static final String REC_PHONE = "rec_phone_channel";
     public static final String PROJECTION_PKG = "projection_pkg";
@@ -122,6 +126,8 @@ public final class Prefs {
 
     public static String tiles(Context c) {
         String t = str(c, MAP_TILES, TILES_DAY);
+        // "Automatic night map": the headlights choose between the day and the night style (a map switched off stays off).
+        if (bool(c, AUTO_NIGHT, false) && !TILES_OFF.equals(t)) t = DayNight.get(c).night() ? TILES_DARK : TILES_DAY;
         // The night style needs a CARTO key; without one, use the dimmed OpenStreetMap map.
         String k = str(c, CARTO_KEY, null);
         if (TILES_DARK.equals(t) && (k == null || k.trim().isEmpty())) return TILES_OSM;

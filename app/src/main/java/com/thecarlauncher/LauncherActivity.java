@@ -121,6 +121,8 @@ public class LauncherActivity extends Activity implements LocationTracker.Listen
         com.thecarlauncher.util.AppLog.start(this);
         com.thecarlauncher.car.CarInfoClient.get(this).setEnabled(Prefs.bool(this, Prefs.TRIP_OBD, false));
         com.thecarlauncher.util.AmbientBle.get(this).start();
+        // The trip history listens to the GPS on its own, whatever app is in front.
+        com.thecarlauncher.car.TripGps.get(this).sync();
         com.thecarlauncher.media.Tone.get(this).attachGlobal();
         // The QF unit's Bluetooth module, broadcasts and MCU tuner. Not started on the TW platform, where
         // none of them exists (no background polling, no wasted wake-ups).
@@ -319,6 +321,7 @@ public class LauncherActivity extends Activity implements LocationTracker.Listen
         LocationTracker t = LocationTracker.get(this);
         t.start();
         t.addListener(this);
+        com.thecarlauncher.car.TripGps.get(this).sync(); // the location permission may have been granted meanwhile
         MediaHub.get(this).addListener(this);
         PhoneStatus.get(this).addListener(this);
         StreetName.get(this).addListener(this);
@@ -641,6 +644,7 @@ public class LauncherActivity extends Activity implements LocationTracker.Listen
     // ---- Status bar -------------------------------------------------------------------------
 
     private void updateClock() {
+        com.thecarlauncher.util.DayNight.get(this).tick(); // once a second: the headlights decide day or night for the map
         String pattern = Prefs.use24h(this) ? "HH:mm" : "h:mm";
         timeView.setText(new SimpleDateFormat(pattern, Locale.getDefault()).format(new Date()));
     }

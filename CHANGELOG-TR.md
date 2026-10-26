@@ -14,6 +14,22 @@ en üstüne eklenir; GitHub sürüm sayfası bu en üst bölümü gösterir.
 ---
 
 ## 26 Ekim 2026
+**Günlük kullanım**
+- **Otomatik gece haritası:** Ayarlar → Navigasyon → "Otomatik gece haritası (farlara göre)". Farlar yanınca (4 sn kararlı)
+  harita gece görünümüne, sönünce gündüz görünümüne geçer; kısa far yakıp söndürmeler haritayı oynatmaz. "Yolculuk
+  verilerini OBD'den al" açık olmalı. Ekran parlaklığına dokunulmaz.
+- **Ayar yedeği:** Ayarlar → Ayar yedeği: ayarlar USB'ye (yoksa İndirilenler'e) tek dosya (`TheCarLauncher-ayarlar.txt`)
+  olarak kaydedilir ve yeniden kurulumdan sonra geri yüklenir. Resimler, çevrimdışı haritalar, yolculuk geçmişi, araç
+  verileri, **komut gönderme izni ve harita anahtarı dahil değildir** (güvenlik için bunlar her ünitede elle açılır).
+  USB işlemleri arka planda yapılır.
+- **Yolculuk geçmişi:** Araç → yeni sayfa "Yolculuk geçmişi". Hız 5 km/s'i (GPS) geçince yolculuk başlar, 5 dakika durunca
+  biter (kısa park manevraları sayılmaz). Bu ay ve geçen ayın toplamı (sayı, km, süre, tüketim, girilen yakıt fiyatına göre
+  maliyet) ve son 10 yolculuk listelenir; tüketim, aracın "başlangıçtan beri" değeri mesafeyle uyuşuyorsa eklenir. Son 400
+  yolculuk saklanır, sayfadan silinebilir. Kayıt kendi GPS dinleyicisiyle yapılır (başka uygulama öndeyken de), ancak
+  yalnızca ünite GPS'i arka plandaki uygulamalara veriyorsa çalışır; Ayarlar → Araç → "Yolculuk geçmişi" ile kapatılabilir.
+  Süre ölçümü ünitenin saat sıçramalarından etkilenmez.
+- Otomatik gece haritası açıkken OBD verisi kapalıysa ayarlar sayfası bunu söyler.
+
 **Sürüş uyarısı**
 - **Kapı ve kemer uyarısı:** araç giderken (GPS hızı 5 km/s üstü) bir kapı açıksa ya da (10 km/s üstü, motor çalışırken)
   sürücü kemeri takılı değilse üst çubuğun altında yazılı bir uyarı çıkar (ör. "Sürücü kapısı açık"). 8 sn sonra kendiliğinden

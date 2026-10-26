@@ -41,7 +41,7 @@ import java.util.Locale;
  * Everything comes from GPS and what the driver enters (no diagnostic adapter).
  */
 public class VehicleScreen extends Screen implements LocationTracker.Listener {
-    private static final int STATUS = 0, TYRES = 1, START = 2, LONG = 3, REFUEL = 4, FUEL = 5, SERVICE = 6, PAGES = 7;
+    private static final int STATUS = 0, TYRES = 1, START = 2, LONG = 3, REFUEL = 4, FUEL = 5, SERVICE = 6, HISTORY = 7, PAGES = 8;
 
     private final Handler main = new Handler(Looper.getMainLooper());
     private TextView title;
@@ -88,6 +88,7 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
             case REFUEL: return s("Od dopune", "Since refuelling");
             case FUEL: return s("Gorivo", "Fuel");
             case TYRES: return s("Pritisak u gumama", "Tyre pressure");
+            case HISTORY: return s("Istorija vožnji", "Trip history");
             default: return s("Servis", "Service");
         }
     }
@@ -176,7 +177,7 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
     private void showPages(View key) {
         MibPopup p = new MibPopup(act).columns(1);
         int[] icons = {R.drawable.ui_ic_car_s, R.drawable.ui_ic_car_s, R.drawable.ui_ic_clock, R.drawable.ui_ic_route,
-                R.drawable.ui_ic_speedo, R.drawable.ui_ic_speedo, R.drawable.ui_ic_eq};
+                R.drawable.ui_ic_speedo, R.drawable.ui_ic_speedo, R.drawable.ui_ic_eq, R.drawable.ui_ic_route};
         for (int i = 0; i < PAGES; i++) {
             final int idx = i;
             p.add(pageTitle(i), icons[i], i == page, new Runnable() {
@@ -234,6 +235,7 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
                 break;
             case FUEL: buildFuel(); break;
             case TYRES: buildTyres(); break;
+            case HISTORY: buildHistory(); break;
             default: buildService(); break;
         }
         boolean action = p == FUEL || (!obd && (p == START || p == LONG || p == REFUEL));
@@ -778,6 +780,65 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
         LinearLayout row = (LinearLayout) v.getParent();
         ImageView box = Mib.icon(act, on ? R.drawable.ui_ic_check_on : R.drawable.ui_ic_check_off, Mib.WHITE);
         row.addView(box, new LinearLayout.LayoutParams(Mib.px(act, 42), Mib.px(act, 42)));
+    }
+
+    /** Trip history: this and last month added up, then the latest trips. Text only. */
+    private void buildHistory() {
+        final com.thecarlauncher.car.TripLog log = com.thecarlauncher.car.TripLog.get(act);
+        LinearLayout col = list();
+        List<com.thecarlauncher.car.TripCore.Trip> trips = log.trips();
+        if (!Prefs.bool(act, Prefs.TRIP_HISTORY, true)) {
+            row(col, 0, s("Istorija vožnji je isključena", "Trip history is switched off"), s("Podešavanja → Vozilo", "Setup → Vehicle"), null);
+        }
+        if (log.driving()) {
+            row(col, R.drawable.ui_ic_route, s("Vožnja u toku", "Trip in progress"), String.format(Locale.US, "%.1f km", log.currentKm()), null);
+        }
+        if (trips.isEmpty()) {
+            row(col, 0, s("Još nema zabeleženih vožnji", "No trips recorded yet"), null, null);
+            TextView hint = Mib.text(act, s("Vožnja se beleži kada brzina pređe 5 km/h (GPS) i završava posle 5 minuta mirovanja.",
+                    "A trip is recorded once the speed passes 5 km/h (GPS) and ends after 5 minutes standing still."), 22, Mib.regular(act), Mib.GREY);
+            hint.setSingleLine(false);
+            hint.setPadding(Mib.px(act, 10), Mib.px(act, 6), Mib.px(act, 10), Mib.px(act, 6));
+            col.addView(hint);
+            return;
+        }
+        double price = CarData.get(act).averagePrice();
+        List<com.thecarlauncher.car.TripLog.Month> months = com.thecarlauncher.car.TripLog.months(trips, price);
+        for (int i = 0; i < Math.min(2, months.size()); i++) {
+            com.thecarlauncher.car.TripLog.Month m = months.get(i);
+            row(col, R.drawable.ui_ic_clock, m.label() + "  ·  " + m.count + " " + s("vožnji", "trips"),
+                    String.format(Locale.US, "%.0f km  ·  %s", m.km, hm(m.durationMs)), null);
+            if (m.consumption >= 0) {
+                row(col, 0, s("Prosečna potrošnja", "Average consumption"), String.format(Locale.US, "%.1f l/100 km", m.consumption), null);
+            }
+            if (m.cost >= 0) {
+                // The price is the one entered under Fuel, in whatever currency it was typed; no unit is invented here.
+                row(col, 0, s("Trošak goriva (po unetoj ceni)", "Fuel cost (at your entered price)"), String.format(Locale.US, "%.0f", m.cost), null);
+            }
+        }
+        java.text.SimpleDateFormat fmt = new java.text.SimpleDateFormat("dd.MM  HH:mm", Locale.US);
+        for (int i = 0; i < Math.min(10, trips.size()); i++) {
+            com.thecarlauncher.car.TripCore.Trip t = trips.get(i);
+            String value = String.format(Locale.US, "%.1f km", t.km);
+            if (t.consumption >= 0) value += String.format(Locale.US, "  ·  %.1f l/100", t.consumption);
+            row(col, R.drawable.ui_ic_route, fmt.format(new java.util.Date(t.start)) + "  ·  " + hm(t.durationMs()), value, null);
+        }
+        row(col, R.drawable.ui_ic_refresh, s("Obriši istoriju vožnji", "Delete the trip history"), null, new Runnable() {
+            public void run() {
+                new android.app.AlertDialog.Builder(act)
+                        .setTitle(s("Obriši istoriju vožnji", "Delete the trip history"))
+                        .setMessage(s("Sve zabeležene vožnje biće obrisane.", "All recorded trips will be deleted."))
+                        .setPositiveButton(s("Obriši", "Delete"), new android.content.DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(android.content.DialogInterface d, int w) {
+                                log.clear();
+                                setPage(HISTORY);
+                            }
+                        })
+                        .setNegativeButton(s("Otkaži", "Cancel"), null)
+                        .show();
+            }
+        });
     }
 
     private String km(double v) {

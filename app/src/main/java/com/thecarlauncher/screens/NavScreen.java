@@ -734,8 +734,18 @@ public class NavScreen extends Screen implements LocationTracker.Listener, Guida
         }
     }
 
+    /** Automatic night map: the headlights flip the map between its night and day style. */
+    private final com.thecarlauncher.util.DayNight.Listener dayNight = new com.thecarlauncher.util.DayNight.Listener() {
+        @Override
+        public void onDayNightChanged() {
+            map.setSource(Prefs.tiles(act));
+        }
+    };
+
     @Override
     public void onShow() {
+        map.setSource(Prefs.tiles(act)); // the lights may have changed while another screen was in front
+        com.thecarlauncher.util.DayNight.get(act).addListener(dayNight);
         map.setHeadingUp(Prefs.bool(act, Prefs.NAV_HEADING_UP, false));
         updateCompass();
         MediaHub.get(act).addListener(mediaListener);
@@ -750,6 +760,7 @@ public class NavScreen extends Screen implements LocationTracker.Listener, Guida
 
     @Override
     public void onHide() {
+        com.thecarlauncher.util.DayNight.get(act).removeListener(dayNight);
         MediaHub.get(act).removeListener(mediaListener);
         ui.removeCallbacks(mediaTick);
         if (miniPanel != null) {
