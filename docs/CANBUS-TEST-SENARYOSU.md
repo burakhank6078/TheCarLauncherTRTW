@@ -115,8 +115,10 @@ yoksa tüm adımlara hareket etmeden önce dokun ve sonra eylemi yap. Sürüş s
 
 ### P: Telefon (ayrı kısa test)
 
-Bluetooth uygulamasının telefonla nasıl konuştuğunu görmek için. Kayıt **açıkken uygulamayı yeniden başlat**
-(Bluetooth mesajları yalnızca kayıt açıkken dinlenir), telefonu bağla, sonra adımları sırayla yap. Kayda isim ve
+Bluetooth uygulamasının telefonla nasıl konuştuğunu görmek için. **Dikkat:** bu test Bluetooth modülünün kanalını fabrika
+Bluetooth uygulamasıyla paylaşır ve Bluetooth'u bozabilir; o sırada arama beklemeyin, Bluetooth çalışmazsa üniteyi yeniden
+başlatın. Önce Canbus test sayfasındaki **"Telefon kanalını dinle"** anahtarını aç, kayıt **açıkken uygulamayı yeniden
+başlat**, telefonu bağla, sonra adımları sırayla yap. Kayda isim ve
 numara **yazılmaz**: metinler yalnızca biçim olarak (`#` rakam, `a` harf, `*` Türkçe karakter) kaydedilir.
 
 | No | Adım |

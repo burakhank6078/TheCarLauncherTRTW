@@ -52,6 +52,8 @@ public final class Prefs {
     public static final String TW_COMMANDS = "allow_car_commands";
     /** Banner for an open door or an unfastened driver belt while the car moves (default on). */
     public static final String CAR_WARNING = "car_warning";
+    /** The recorder also listens to the Bluetooth module's own channel (may disturb the factory Bluetooth app); default off. */
+    public static final String REC_PHONE = "rec_phone_channel";
     public static final String PROJECTION_PKG = "projection_pkg";
     public static final String SHUFFLE = "shuffle";
     public static final String REPEAT = "repeat";

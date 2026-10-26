@@ -38,11 +38,18 @@ public final class TwProbe {
     private static final int LAST = 5;
     /** The ids com.tw.car itself opens. */
     private static final short[] IDS = {266, 267, 513, 514, 1281, 1288, 523, -24804};
-    /** The extra ids com.tw.bt opens (the phone: calls, phone book, call log); only listened to while the recorder is on. */
-    private static final short[] PHONE_IDS = {262, 274, 515, 769, 1296, -25080, -25059};
-    /** Every id com.tw.bt opens, the ones shared with the car app (267, 513) included: anything on them may carry a name or a number. */
-    private static final short[] PHONE_ALL = concat(PHONE_IDS, new short[]{267, 513});
-    /** The ids com.tw.radio opens besides the shared ones (frequency, band, presets, RDS). */
+    /**
+     * The factory Bluetooth app reaches the phone module with its own TWUtil object (module 8, 115200 baud) and these ids; the
+     * module's own messages come with small command numbers (3..173) as "what". Anything on these ids may carry a name or a number.
+     */
+    private static final short[] PHONE_ALL = {262, 267, 274, 513, 515, 769, 1296, -25080, -25059};
+    /** The ids only the Bluetooth app uses (the others are shared with the car app or the radio). */
+    private static final short[] PHONE_OWN = {262, 1296, -25080, -25059};
+    private static final int BT_MODULE = 8, BT_BAUD = 115200;
+    /** The factory radio app reaches the tuner with its own TWUtil object (module 1) and these ids. */
+    private static final short[] RADIO_OPEN = {265, 266, 274, 513, 515, 769, 1025, 1026, 1028, 1029, 1030, -25088, -25087};
+    private static final int RADIO_MODULE = 1;
+    /** The ids only the radio uses (frequency, band, presets, RDS). */
     private static final short[] RADIO_IDS = {265, 1025, 1026, 1028, 1029, 1030, -25088, -25087};
     /** The radio ids known to carry only tuner data and station text, which are logged as they are; the rest are masked like the phone ids. */
     private static final short[] RADIO_TEXT = {1025, 1026, 1028, 1029, 1030};
@@ -56,6 +63,8 @@ public final class TwProbe {
     private String status = "not started";
     private final List<String> api = new ArrayList<>();
     private Object util;
+    /** The radio and Bluetooth channels opened by openExtras(); kept so they are not collected while listening. */
+    private final List<Object> extraUtils = new ArrayList<>();
     private Class<?> cls;
     private Handler handler;
     private int stage;
@@ -68,10 +77,12 @@ public final class TwProbe {
 
     /** The phone and radio ids are not listened to: the recorder was off when the channel was opened (a restart fixes it). */
     public static final int EXTRA_OFF = 0;
-    /** The channel was opened with the phone and radio ids. */
+    /** Every channel asked for (radio, and the phone channel when switched on) is open. */
     public static final int EXTRA_ON = 1;
-    /** The longer list cannot be used on this unit (refused, or the app stopped while opening it); a restart does not help. */
+    /** None could be opened on this unit (refused, or the app stopped while opening them); a restart does not help. */
     public static final int EXTRA_UNAVAILABLE = 2;
+    /** Some but not all of the channels asked for are open (the recording's CAN lines say which). */
+    public static final int EXTRA_PARTIAL = 3;
     private volatile int extra = EXTRA_OFF;
     private volatile int extraSeen;
 
@@ -80,17 +91,6 @@ public final class TwProbe {
 
     public boolean phoneListening() { return extra == EXTRA_ON; }
 
-    private static short[] concat(short[]... parts) {
-        int n = 0;
-        for (short[] p : parts) n += p.length;
-        short[] out = new short[n];
-        int at = 0;
-        for (short[] p : parts) {
-            System.arraycopy(p, 0, out, at, p.length);
-            at += p.length;
-        }
-        return out;
-    }
 
     public synchronized String status() { return status; }
 
@@ -125,8 +125,8 @@ public final class TwProbe {
     private void run(Context ctx) {
         SharedPreferences sp = ctx.getApplicationContext().getSharedPreferences("launcher", Context.MODE_PRIVATE);
         int busy = sp.getInt(BUSY, 0);
-        if (busy == 3 && sp.getBoolean(PHONE_TRY, false)) {
-            // The app died opening the longer id list: stop using that list, but do not lock TWUtil out.
+        if ((busy == 3 || busy == 5) && sp.getBoolean(PHONE_TRY, false)) {
+            // The app died opening the phone or radio channel: stop using those, but do not lock TWUtil out.
             sp.edit().putBoolean(PHONE_BAD, true).putBoolean(PHONE_TRY, false).putInt(BUSY, 0).commit();
         } else if (busy != 0) {
             // The app died while this step was running.
@@ -175,29 +175,8 @@ public final class TwProbe {
             case 3: { // open with the same ids the factory car app uses (0 = ok)
                 Method open = find(cls, "open", short[].class);
                 if (open == null) throw new NoSuchMethodException("open(short[])");
-                // While the recorder is on, also listen to the phone and radio ids so a test can show how the unit
-                // talks about calls, the phone book and the tuner; without the recorder nothing changes from before.
-                SharedPreferences sp = appCtx.getSharedPreferences("launcher", Context.MODE_PRIVATE);
-                boolean bad = sp.getBoolean(PHONE_BAD, false);
-                boolean phone = com.thecarlauncher.util.AppLog.enabled(appCtx) && !bad;
-                short[] ids = phone ? concat(IDS, PHONE_IDS, RADIO_IDS) : IDS;
-                Object r;
-                try {
-                    if (phone) sp.edit().putBoolean(PHONE_TRY, true).commit();
-                    r = open.invoke(util, (Object) ids);
-                } finally {
-                    if (phone) sp.edit().putBoolean(PHONE_TRY, false).commit();
-                }
-                if (phone && !Integer.valueOf(0).equals(r)) {
-                    // The longer list was refused: fall back to the factory car app's own ids on a fresh object.
-                    util = newInstance(cls);
-                    ids = IDS;
-                    r = open.invoke(util, (Object) ids);
-                    phone = false;
-                    bad = true;
-                }
-                extra = phone ? EXTRA_ON : bad ? EXTRA_UNAVAILABLE : EXTRA_OFF;
-                status = "step 3 ok: open(" + ids.length + " ids" + (phone ? ", with phone and radio" : "") + ") returned " + r;
+                Object r = open.invoke(util, (Object) IDS);
+                status = "step 3 ok: open(" + IDS.length + " ids) returned " + r;
                 break;
             }
             case 4: { // start delivery
@@ -223,21 +202,132 @@ public final class TwProbe {
                 };
                 add.invoke(util, "carlauncher-probe", handler);
                 status = "step 5 ok: handler attached - listening";
-                if (extra == EXTRA_ON && appCtx != null) {
-                    // A list longer than any factory app opens may be cut without an error; this line tells a test whether
-                    // anything from the phone or radio ids ever arrived.
-                    handler.postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-                            if (extraSeen == 0) {
-                                com.thecarlauncher.util.AppLog.d(appCtx, "CAN", "no phone or radio message in 15 s "
-                                        + "(expected if neither was used; if the radio or the phone was in use, the id list may have been cut)");
-                            }
-                        }
-                    }, 15000);
-                }
+                openExtras();
                 break;
             }
+        }
+    }
+
+    /**
+     * While the recorder is on at start-up, also listens to the radio tuner (module 1) the way the factory radio app opens
+     * it, and, only when "Listen to the phone channel" is on, the Bluetooth module (module 8, 115200 baud) like the factory
+     * Bluetooth app, so a test can show how the unit talks about the tuner, calls and the phone book. Messages the main
+     * channel already delivers are skipped, so nothing is logged twice. A crash while opening them drops them for good.
+     */
+    private void openExtras() {
+        if (appCtx == null) return;
+        if (!com.thecarlauncher.util.AppLog.enabled(appCtx)) {
+            extra = EXTRA_OFF;
+            return;
+        }
+        SharedPreferences sp = appCtx.getSharedPreferences("launcher", Context.MODE_PRIVATE);
+        if (sp.getBoolean(PHONE_BAD, false)) {
+            extra = EXTRA_UNAVAILABLE;
+            return;
+        }
+        boolean wantBt = com.thecarlauncher.util.Prefs.bool(appCtx, com.thecarlauncher.util.Prefs.REC_PHONE, false);
+        int wanted = wantBt ? 2 : 1;
+        int opened = 0;
+        try {
+            sp.edit().putBoolean(PHONE_TRY, true).commit();
+            opened += openChannel(RADIO_MODULE, RADIO_OPEN, 0, extraHandler(false));
+            if (wantBt) opened += openChannel(BT_MODULE, PHONE_ALL, BT_BAUD, extraHandler(true));
+        } finally {
+            sp.edit().putBoolean(PHONE_TRY, false).commit();
+        }
+        extra = opened == 0 ? EXTRA_UNAVAILABLE : opened < wanted ? EXTRA_PARTIAL : EXTRA_ON;
+        if (opened > 0) {
+            // Tells a test whether anything of its own ever arrived on the extra channels.
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    if (extraSeen == 0 && extra != EXTRA_OFF) {
+                        com.thecarlauncher.util.AppLog.d(appCtx, "CAN", "no radio or phone message of its own in 15 s "
+                                + "(expected if neither was used; if the radio or the phone was in use, the channel does not deliver to us)");
+                    }
+                }
+            }, 15000);
+        }
+    }
+
+    /** One handler per extra channel: skips what another channel delivers already and counts what is the channel's own. */
+    private Handler extraHandler(final boolean bluetooth) {
+        return new Handler(handler.getLooper()) {
+            @Override
+            public void handleMessage(Message m) {
+                if (inList(IDS, m.what) || (bluetooth && inList(RADIO_OPEN, m.what))) return; // delivered elsewhere
+                if ((m.what > 0 && m.what < 0x100) || isRadioId(m.what) || inList(PHONE_OWN, m.what)) extraSeen++;
+                try {
+                    record(m);
+                } catch (Throwable ignored) {
+                    // an odd message must never kill the thread
+                }
+            }
+        };
+    }
+
+    private static boolean inList(short[] list, int what) {
+        for (short id : list) if ((id & 0xFFFF) == (what & 0xFFFF)) return true;
+        return false;
+    }
+
+    /** Stops listening on the radio and phone channels (the recorder was switched off); a restart with the recorder on opens them again. */
+    public void closeExtras() {
+        Handler h = handler;
+        if (h == null) {
+            extra = EXTRA_OFF;
+            return;
+        }
+        h.post(new Runnable() {
+            @Override
+            public void run() {
+                synchronized (extraUtils) {
+                    for (Object u : extraUtils) {
+                        try {
+                            Method stop = find(cls, "stop");
+                            if (stop != null) stop.invoke(u);
+                            Method close = find(cls, "close");
+                            if (close != null) close.invoke(u);
+                        } catch (Throwable ignored) {
+                            // already gone
+                        }
+                    }
+                    extraUtils.clear();
+                }
+                extra = EXTRA_OFF;
+            }
+        });
+    }
+
+    /** Opens one factory-style channel (TWUtil(module), ids, optional baud) and attaches the handler; 1 when it works. */
+    private int openChannel(int module, short[] ids, int baud, Handler eh) {
+        String name = (module == BT_MODULE ? "bluetooth" : "radio") + " module " + module;
+        try {
+            Object u = cls.getConstructor(int.class).newInstance(module);
+            Method open = baud > 0 ? find(cls, "open", short[].class, int.class) : find(cls, "open", short[].class);
+            if (open == null) {
+                com.thecarlauncher.util.AppLog.d(appCtx, "CAN", "extra " + name + ": no matching open()");
+                return 0;
+            }
+            Object r = baud > 0 ? open.invoke(u, ids, baud) : open.invoke(u, (Object) ids);
+            if (!Integer.valueOf(0).equals(r)) {
+                com.thecarlauncher.util.AppLog.d(appCtx, "CAN", "extra " + name + ": open refused (" + r + ")");
+                return 0;
+            }
+            Method go = find(cls, "start");
+            if (go != null) go.invoke(u);
+            Method add = find(cls, "addHandler", String.class, Handler.class);
+            if (add == null) return 0;
+            add.invoke(u, "carlauncher-probe-" + module, eh);
+            synchronized (extraUtils) {
+                extraUtils.add(u);
+            }
+            com.thecarlauncher.util.AppLog.d(appCtx, "CAN", "extra " + name + ": open(" + ids.length + " ids"
+                    + (baud > 0 ? ", " + baud + " baud" : "") + ") ok, listening");
+            return 1;
+        } catch (Throwable t) {
+            com.thecarlauncher.util.AppLog.d(appCtx, "CAN", "extra " + name + " failed: " + (t.getCause() != null ? t.getCause() : t));
+            return 0;
         }
     }
 
@@ -413,7 +503,9 @@ public final class TwProbe {
         return sb.toString();
     }
 
+    /** The phone ids, and the Bluetooth module's own command numbers (what 1..255) that arrive on its channel. */
     private static boolean isPhoneId(int what) {
+        if (what > 0 && what < 0x100) return true;
         for (short id : PHONE_ALL) if ((id & 0xFFFF) == (what & 0xFFFF)) return true;
         return false;
     }
@@ -429,12 +521,6 @@ public final class TwProbe {
         if (!isRadioId(what)) return false;
         for (short id : RADIO_TEXT) if ((id & 0xFFFF) == (what & 0xFFFF)) return false;
         return true;
-    }
-
-    /** True for an id that only the phone or radio listening adds (not one the car app opens as well). */
-    private static boolean isExtraId(int what) {
-        for (short id : PHONE_IDS) if ((id & 0xFFFF) == (what & 0xFFFF)) return true;
-        return isRadioId(what);
     }
 
     /** Log name of a message kind: the id, plus arg1 for car frames and for the phone and radio ids (where arg1 is the command). */
@@ -504,7 +590,6 @@ public final class TwProbe {
         }
         String payload = m.arg1 + "/" + m.arg2 + obj;
         latest.put(key, new SimpleDateFormat("HH:mm:ss", Locale.US).format(new Date()) + " " + payload);
-        if (isExtraId(m.what)) extraSeen++;
         // Phone traffic is sparse and wanted in full; the tuner's status changes many times a second, so it
         // goes through the normal change check and pause (two lines a second at most per kind).
         if (isPhoneId(m.what)) logPhone(key, payload);

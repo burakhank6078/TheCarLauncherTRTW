@@ -464,6 +464,10 @@ final class Tr {
         p("Phone and radio messages", "Telefon ve radyo mesajları");
         p("not listened to - restart the app", "dinlenmiyor - uygulamayı yeniden başlatın");
         p("not available on this unit", "bu ünitede kullanılamıyor");
+        p("only partly (see the recording)", "kısmen (kayda bakın)");
+        p("radio only (phone channel is off)", "yalnızca radyo (telefon kanalı kapalı)");
+        p("Listen to the phone channel (may disturb the Bluetooth app)", "Telefon kanalını dinle (Bluetooth uygulamasını etkileyebilir)");
+        p("Only for the phone test (group P): switch on, restart the app and do not expect a call meanwhile. If Bluetooth stops working, restart the unit.", "Yalnızca telefon testi (P grubu) için: açın, uygulamayı yeniden başlatın ve o sırada arama beklemeyin. Bluetooth çalışmazsa üniteyi yeniden başlatın.");
         p("Doors closed", "Kapılar kapalı");
         p("Driver door open", "Sürücü kapısı açık");
         p("Passenger door open", "Yolcu kapısı açık");

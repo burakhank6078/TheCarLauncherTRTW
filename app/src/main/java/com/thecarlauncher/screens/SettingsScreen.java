@@ -1182,8 +1182,18 @@ public class SettingsScreen extends Screen {
             } else if (extra == com.thecarlauncher.car.TwProbe.EXTRA_UNAVAILABLE) {
                 info(s("Telefonske i radio poruke", "Phone and radio messages"),
                         s("nisu dostupne na ovoj jedinici", "not available on this unit"));
+            } else if (extra == com.thecarlauncher.car.TwProbe.EXTRA_PARTIAL) {
+                info(s("Telefonske i radio poruke", "Phone and radio messages"),
+                        s("samo delimično (pogledajte zapis)", "only partly (see the recording)"));
+            } else if (!Prefs.bool(act, Prefs.REC_PHONE, false)) {
+                info(s("Telefonske i radio poruke", "Phone and radio messages"),
+                        s("samo radio (telefonski kanal je isključen)", "radio only (phone channel is off)"));
             }
         }
+        toggle(s("Slušaj telefonski kanal (može smetati Bluetooth aplikaciji)", "Listen to the phone channel (may disturb the Bluetooth app)"),
+                Prefs.REC_PHONE, false, null);
+        note(s("Samo za test telefona (grupa P): uključite, restartujte aplikaciju i ne očekujte poziv u međuvremenu. Ako Bluetooth prestane da radi, restartujte jedinicu.",
+                "Only for the phone test (group P): switch on, restart the app and do not expect a call meanwhile. If Bluetooth stops working, restart the unit."));
         java.util.List<String> lines = new java.util.ArrayList<>();
         try {
             java.io.BufferedReader r = new java.io.BufferedReader(new java.io.InputStreamReader(

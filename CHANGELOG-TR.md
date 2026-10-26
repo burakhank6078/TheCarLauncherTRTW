@@ -24,8 +24,14 @@ en üstüne eklenir; GitHub sürüm sayfası bu en üst bölümü gösterir.
 - Motorun çalıştığı artık yalnızca devirden değil, şarj voltajından da anlaşılır (motor kapalıyken eski devir değeri
   kalsa bile yanlış kemer ya da akü uyarısı çıkmaz).
 - Tanılama kaydı ses yongası özelliklerini de yazar.
-- **Radyo testi hazırlığı:** kayıt açıkken fabrika radyo uygulamasının mesajları (frekans, band, istasyon adı, hafıza) da
-  kaydedilir. Test senaryosuna R grubu eklendi; fabrikanın radyo protokolü `docs/RADIO-PROTOKOL.md` dosyasında.
+- **Radyo ve telefon testi hazırlığı:** kayıt açıkken (uygulama o şekilde başlatılmışsa) fabrika radyo uygulaması gibi
+  tuner (modül 1) ayrı bir kanalla dinlenir; frekans, band, istasyon adı ve hafıza kayda düşer. Test senaryosuna P ve R
+  grupları eklendi; fabrikanın radyo protokolü `docs/RADIO-PROTOKOL.md` dosyasında.
+  **Telefon kanalı** (Bluetooth modülü, modül 8) yalnızca Ayarlar → Tanılama kaydı → Canbus test senaryosu sayfasındaki
+  "Telefon kanalını dinle" anahtarı açıksa dinlenir; isim ve numaralar kayda yalnızca biçim olarak yazılır. **Dikkat:** bu
+  kanal fabrikanın Bluetooth uygulamasıyla aynı bağlantıyı kullanır ve Bluetooth'u bozabilir; yalnızca telefon testi için
+  açın, o sırada arama beklemeyin, Bluetooth çalışmazsa üniteyi yeniden başlatın. Kanallar kayıt kapanınca kapatılır;
+  açılırken uygulama çökerse bir daha açılmaz.
 
 ## 22 Ekim 2026
 **Araç durumu sayfası canlandı**

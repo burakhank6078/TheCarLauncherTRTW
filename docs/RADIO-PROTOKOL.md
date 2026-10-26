@@ -4,6 +4,11 @@ Kaynak: fabrika `com.tw.radio` uygulamasının çözülmüş kodu (kod okuma; **
 Bluetooth gibi TWUtil kanalıyla konuşur. Aşağıdaki "güven" sütunu koddan çıkan kesinliği gösterir; kayıt (R grubu)
 sonrası güncellenecek.
 
+**Kanal:** fabrika radyo uygulaması tuner'a kendi TWUtil nesnesiyle (`new TWUtil(1)`, modül 1) bağlanır; araç uygulaması
+`new TWUtil()` ile (Canbus) ve Bluetooth uygulaması `new TWUtil(8)` + 115200 baud ile (modül 8). Bizim ana dinleyicimiz
+araç uygulamasıyla aynı (modül 0). Radyo ve telefon mesajlarını almak için kayıt açıkken ayrıca modül 1 ve modül 8 açılır
+(`TwProbe.openExtras`); Bluetooth modülünün kendi mesajlarında `what` 3–173 arası komut numarasıdır.
+
 Radyonun açtığı mesaj kimlikleri: `265, 266, 274, 513, 515, 769, 1025, 1026, 1028, 1029, 1030, 0x9E00 (-25088), 0x9E01 (-25087)`.
 Radyoya özgü olanlar: `265, 1025, 1026, 1028, 1029, 1030, -25088, -25087`.
 

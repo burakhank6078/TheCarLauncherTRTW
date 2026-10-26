@@ -106,6 +106,7 @@ public final class AppLog {
         if (!running) return;
         write("LOG", "---- recording stopped ----");
         running = false;
+        com.thecarlauncher.car.TwProbe.get().closeExtras(); // the radio and phone channels are only for recording
         generation++; // ends the logcat reader
         if (logcat != null) {
             logcat.destroy();

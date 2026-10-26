@@ -49,6 +49,15 @@ public class TwProbeTest {
     }
 
     @Test
+    public void bluetoothModuleCommandNumbersAreMasked() {
+        // The phone module's messages come with "what" = command number (11 call, 24 phone book data, 47 ring...).
+        assertEquals("bytes[3] Aa#", TwProbe.describe(24, 0, new byte[]{0x41, 0x68, 0x35}));
+        assertEquals("bytes[1] A", TwProbe.describe(0xFF, 0, new byte[]{0x41}));
+        // From 0x100 up the car's own ids stay as hex.
+        assertEquals("41", TwProbe.describe(0x10C, 0, new byte[]{0x41}));
+    }
+
+    @Test
     public void radioIdsOfUnknownMeaningAreMasked() {
         // 265 and 0x9E00 are opened by the radio app but not understood: they are written as a shape.
         assertEquals("bytes[2] Aa", TwProbe.describe(265, 0, new byte[]{0x41, 0x68}));
