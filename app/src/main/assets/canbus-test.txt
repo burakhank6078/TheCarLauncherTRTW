@@ -63,7 +63,7 @@ D13|Units: temperature C to F and back to C|Birimler: sıcaklık C'den F'ye, son
 E01|ENGINE OFF (tap just before)|MOTORU KAPAT (kapatmadan hemen önce dokun)
 E02|Ignition OFF, wait 60 s|Kontağı kapat, 60 sn bekle
 E03|Driver door open, lock the car|Sürücü kapısını aç, aracı kilitle
-E04|End of test|Test sonu (kaydı USB'ye aktar)
+E04|End of the Canbus test (phone and radio groups are separate tests)|Canbus testi sonu (kaydı USB'ye aktar; telefon ve radyo grupları ayrı testtir)
 # Group P|Telefon (ayrı kısa test; kayıt açıkken uygulamayı yeniden başlat, sonra telefonu bağla)
 P01|Phone: open the factory Bluetooth app, phone page|Fabrika Bluetooth uygulamasını aç, telefon sayfasına gel
 P02|Phone book: open it and wait until the contacts are loaded|Rehber: aç ve kişilerin yüklenmesini bekle
@@ -73,3 +73,13 @@ P05|Call a number with the keypad, hang up after 10 s|Tuş takımıyla bir numar
 P06|Incoming call: answer, talk 10 s, hang up from the car|Gelen arama: cevapla, 10 sn konuş, araçtan kapat
 P07|Incoming call: reject it|Gelen arama: reddet
 P08|Incoming call: let it ring, do not answer|Gelen arama: çalsın, cevaplama
+# Group R|Radyo (ayrı kısa test; kayıt açıkken uygulamayı yeniden başlat, sonra fabrika radyo uygulamasını aç)
+R01|Radio: open the factory radio app on FM|Radyo: fabrika radyo uygulamasını FM'de aç
+R02|Stay on one station 15 s (note frequency and name)|Bir istasyonda 15 sn kal (frekansı ve adı not et)
+R03|Seek to the next station with the screen button|Ekran tuşuyla sonraki istasyona geç
+R04|Seek to the previous station with the screen button|Ekran tuşuyla önceki istasyona geç
+R05|Tap preset 1, then preset 2|Hafızadaki 1. istasyona, sonra 2. istasyona dokun
+R06|One fine step up, one fine step down|Bir ince ayar adımı yukarı, bir adım aşağı
+R07|Change band: FM1, FM2, AM and back to FM1|Bandı değiştir: FM1, FM2, AM, sonra tekrar FM1
+R08|Switch AF on and off once (set it back)|AF'yi bir kez aç-kapat (eski haline getir)
+R09|Steering wheel: next, then previous (radio playing)|Direksiyon: sonraki, sonra önceki (radyo çalarken)

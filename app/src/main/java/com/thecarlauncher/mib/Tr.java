@@ -461,8 +461,9 @@ final class Tr {
         p("Door and belt warning while driving", "Sürüş sırasında kapı ve kemer uyarısı");
         p("Try the warning", "Uyarıyı dene");
         p("A banner under the top bar when a door is open or the driver belt is off while the car moves. Needs the OBD data and the GPS speed, and only shows while the launcher is on screen.", "Araç giderken kapı açıksa ya da sürücü kemeri takılı değilse üst çubuğun altında bir uyarı çıkar. OBD verisi ve GPS hızı gerekir; yalnızca launcher ekrandayken görünür.");
-        p("Phone messages", "Telefon mesajları");
+        p("Phone and radio messages", "Telefon ve radyo mesajları");
         p("not listened to - restart the app", "dinlenmiyor - uygulamayı yeniden başlatın");
+        p("not available on this unit", "bu ünitede kullanılamıyor");
         p("Doors closed", "Kapılar kapalı");
         p("Driver door open", "Sürücü kapısı açık");
         p("Passenger door open", "Yolcu kapısı açık");

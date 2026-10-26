@@ -111,7 +111,7 @@ yoksa tüm adımlara hareket etmeden önce dokun ve sonra eylemi yap. Sürüş s
 | E01 | MOTORU KAPAT (kapatmadan hemen önce dokun) |
 | E02 | Kontağı kapat, 60 sn bekle |
 | E03 | Sürücü kapısını aç, aracı kilitle |
-| E04 | Test sonu (kaydı USB'ye aktar) |
+| E04 | Canbus testi sonu (kaydı USB'ye aktar; telefon ve radyo grupları ayrı testtir) |
 
 ### P: Telefon (ayrı kısa test)
 
@@ -129,6 +129,24 @@ numara **yazılmaz**: metinler yalnızca biçim olarak (`#` rakam, `a` harf, `*`
 | P06 | Gelen arama: cevapla, 10 sn konuş, araçtan kapat |
 | P07 | Gelen arama: reddet |
 | P08 | Gelen arama: çalsın, cevaplama |
+
+### R: Radyo (ayrı kısa test)
+
+Fabrika radyo uygulamasının ünite ile nasıl konuştuğunu (frekans, band, istasyon adı, hafıza) görmek için. Telefon
+testi gibi: kayıt **açıkken uygulamayı yeniden başlat**, sonra fabrika radyo uygulamasını aç. Radyo yazıları (istasyon adı)
+kayda olduğu gibi yazılır. R09 direksiyon tuşlarının hangi kodla geldiğini de gösterir.
+
+| No | Adım |
+| --- | --- |
+| R01 | Fabrika radyo uygulamasını FM'de aç |
+| R02 | Bir istasyonda 15 sn kal (frekansı ve adı not et) |
+| R03 | Ekran tuşuyla sonraki istasyona geç |
+| R04 | Ekran tuşuyla önceki istasyona geç |
+| R05 | Hafızadaki 1. istasyona, sonra 2. istasyona dokun |
+| R06 | Bir ince ayar adımı yukarı, bir adım aşağı |
+| R07 | Bandı değiştir: FM1, FM2, AM, sonra tekrar FM1 |
+| R08 | AF'yi bir kez aç-kapat (eski haline getir) |
+| R09 | Direksiyon: sonraki, sonra önceki (radyo çalarken) |
 
 ## Test sonrası: ben ne yapacağım
 1. Kaydı `MARK` satırlarına göre bölüp her adım için önceki ve sonraki 12 saniyedeki **çerçeve farklarını** çıkaracağım

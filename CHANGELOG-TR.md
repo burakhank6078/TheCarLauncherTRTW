@@ -24,6 +24,8 @@ en üstüne eklenir; GitHub sürüm sayfası bu en üst bölümü gösterir.
 - Motorun çalıştığı artık yalnızca devirden değil, şarj voltajından da anlaşılır (motor kapalıyken eski devir değeri
   kalsa bile yanlış kemer ya da akü uyarısı çıkmaz).
 - Tanılama kaydı ses yongası özelliklerini de yazar.
+- **Radyo testi hazırlığı:** kayıt açıkken fabrika radyo uygulamasının mesajları (frekans, band, istasyon adı, hafıza) da
+  kaydedilir. Test senaryosuna R grubu eklendi; fabrikanın radyo protokolü `docs/RADIO-PROTOKOL.md` dosyasında.
 
 ## 22 Ekim 2026
 **Araç durumu sayfası canlandı**

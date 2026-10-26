@@ -19,9 +19,10 @@ import java.util.Map;
 import java.util.TreeSet;
 
 /**
- * Read-only listener on the TW platform's {@code android.tw.john.TWUtil}, the channel the factory
- * car app (com.tw.car) uses to talk to the Canbus decoder. It opens the same message ids as the
- * factory app and only listens: nothing is ever written, so the car is not affected.
+ * Listener on the TW platform's {@code android.tw.john.TWUtil}, the channel the factory car app (com.tw.car)
+ * uses to talk to the Canbus decoder. It opens the same message ids as the factory car app (and, while the
+ * diagnostic recorder is on, the ones the Bluetooth and radio apps use) and listens. Writes happen only through
+ * {@link #write} and {@link #writeAsync}, which need the "Allow sending commands" switch.
  *
  * Message layout seen in the factory app: id 0x501 carries data frames (arg1 = frame number,
  * obj = byte[] payload); 0x10A carries the protocol string; 0x20B and 0x9F1C are events.
@@ -39,8 +40,12 @@ public final class TwProbe {
     private static final short[] IDS = {266, 267, 513, 514, 1281, 1288, 523, -24804};
     /** The extra ids com.tw.bt opens (the phone: calls, phone book, call log); only listened to while the recorder is on. */
     private static final short[] PHONE_IDS = {262, 274, 515, 769, 1296, -25080, -25059};
-    /** Every id com.tw.bt opens, shared ones included: anything on them may carry a name or a number. */
-    private static final short[] PHONE_ALL = {262, 267, 274, 513, 515, 769, 1296, -25080, -25059};
+    /** Every id com.tw.bt opens, the ones shared with the car app (267, 513) included: anything on them may carry a name or a number. */
+    private static final short[] PHONE_ALL = concat(PHONE_IDS, new short[]{267, 513});
+    /** The ids com.tw.radio opens besides the shared ones (frequency, band, presets, RDS). */
+    private static final short[] RADIO_IDS = {265, 1025, 1026, 1028, 1029, 1030, -25088, -25087};
+    /** The radio ids known to carry only tuner data and station text, which are logged as they are; the rest are masked like the phone ids. */
+    private static final short[] RADIO_TEXT = {1025, 1026, 1028, 1029, 1030};
     private static final int PROTOCOL_STRING = 0x10A;
     /** Set while the longer id list is being opened; if the app dies there the list is dropped, TWUtil stays usable. */
     private static final String PHONE_TRY = "twprobe_phone_try";
@@ -61,10 +66,31 @@ public final class TwProbe {
 
     public static TwProbe get() { return INSTANCE; }
 
-    /** True when the channel was opened with the phone ids (recorder on at that moment); changing it needs an app restart. */
-    private volatile boolean phoneListening;
+    /** The phone and radio ids are not listened to: the recorder was off when the channel was opened (a restart fixes it). */
+    public static final int EXTRA_OFF = 0;
+    /** The channel was opened with the phone and radio ids. */
+    public static final int EXTRA_ON = 1;
+    /** The longer list cannot be used on this unit (refused, or the app stopped while opening it); a restart does not help. */
+    public static final int EXTRA_UNAVAILABLE = 2;
+    private volatile int extra = EXTRA_OFF;
+    private volatile int extraSeen;
 
-    public boolean phoneListening() { return phoneListening; }
+    /** One of the EXTRA_ constants. */
+    public int extraState() { return extra; }
+
+    public boolean phoneListening() { return extra == EXTRA_ON; }
+
+    private static short[] concat(short[]... parts) {
+        int n = 0;
+        for (short[] p : parts) n += p.length;
+        short[] out = new short[n];
+        int at = 0;
+        for (short[] p : parts) {
+            System.arraycopy(p, 0, out, at, p.length);
+            at += p.length;
+        }
+        return out;
+    }
 
     public synchronized String status() { return status; }
 
@@ -149,16 +175,12 @@ public final class TwProbe {
             case 3: { // open with the same ids the factory car app uses (0 = ok)
                 Method open = find(cls, "open", short[].class);
                 if (open == null) throw new NoSuchMethodException("open(short[])");
-                // While the recorder is on, also listen to the phone ids so a test can show how the unit talks
-                // about calls and the phone book; without the recorder nothing changes from before.
+                // While the recorder is on, also listen to the phone and radio ids so a test can show how the unit
+                // talks about calls, the phone book and the tuner; without the recorder nothing changes from before.
                 SharedPreferences sp = appCtx.getSharedPreferences("launcher", Context.MODE_PRIVATE);
-                boolean phone = com.thecarlauncher.util.AppLog.enabled(appCtx) && !sp.getBoolean(PHONE_BAD, false);
-                short[] ids = IDS;
-                if (phone) {
-                    ids = new short[IDS.length + PHONE_IDS.length];
-                    System.arraycopy(IDS, 0, ids, 0, IDS.length);
-                    System.arraycopy(PHONE_IDS, 0, ids, IDS.length, PHONE_IDS.length);
-                }
+                boolean bad = sp.getBoolean(PHONE_BAD, false);
+                boolean phone = com.thecarlauncher.util.AppLog.enabled(appCtx) && !bad;
+                short[] ids = phone ? concat(IDS, PHONE_IDS, RADIO_IDS) : IDS;
                 Object r;
                 try {
                     if (phone) sp.edit().putBoolean(PHONE_TRY, true).commit();
@@ -172,9 +194,10 @@ public final class TwProbe {
                     ids = IDS;
                     r = open.invoke(util, (Object) ids);
                     phone = false;
+                    bad = true;
                 }
-                phoneListening = phone;
-                status = "step 3 ok: open(" + ids.length + " ids" + (phone ? ", with phone" : "") + ") returned " + r;
+                extra = phone ? EXTRA_ON : bad ? EXTRA_UNAVAILABLE : EXTRA_OFF;
+                status = "step 3 ok: open(" + ids.length + " ids" + (phone ? ", with phone and radio" : "") + ") returned " + r;
                 break;
             }
             case 4: { // start delivery
@@ -200,6 +223,19 @@ public final class TwProbe {
                 };
                 add.invoke(util, "carlauncher-probe", handler);
                 status = "step 5 ok: handler attached - listening";
+                if (extra == EXTRA_ON && appCtx != null) {
+                    // A list longer than any factory app opens may be cut without an error; this line tells a test whether
+                    // anything from the phone or radio ids ever arrived.
+                    handler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (extraSeen == 0) {
+                                com.thecarlauncher.util.AppLog.d(appCtx, "CAN", "no phone or radio message in 15 s "
+                                        + "(expected if neither was used; if the radio or the phone was in use, the id list may have been cut)");
+                            }
+                        }
+                    }, 15000);
+                }
                 break;
             }
         }
@@ -368,7 +404,7 @@ public final class TwProbe {
      * as hex, with the chassis number (0x501 frame 31) cut to its first three characters.
      */
     static String describe(int what, int arg1, byte[] b) {
-        if (isPhoneId(what)) return shape(b);
+        if (isMasked(what)) return shape(b);
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < b.length && i < 24; i++) {
             if (what == 0x501 && arg1 == 31 && i >= 3 && i < 17) sb.append("XX");
@@ -382,10 +418,29 @@ public final class TwProbe {
         return false;
     }
 
-    /** Log name of a message kind: the id, plus arg1 for car frames and for the phone ids (where arg1 is the command). */
+    private static boolean isRadioId(int what) {
+        for (short id : RADIO_IDS) if ((id & 0xFFFF) == (what & 0xFFFF)) return true;
+        return false;
+    }
+
+    /** True for the ids whose payloads are written as a shape: the phone ids and the radio ids not known to be tuner data. */
+    private static boolean isMasked(int what) {
+        if (isPhoneId(what)) return true;
+        if (!isRadioId(what)) return false;
+        for (short id : RADIO_TEXT) if ((id & 0xFFFF) == (what & 0xFFFF)) return false;
+        return true;
+    }
+
+    /** True for an id that only the phone or radio listening adds (not one the car app opens as well). */
+    private static boolean isExtraId(int what) {
+        for (short id : PHONE_IDS) if ((id & 0xFFFF) == (what & 0xFFFF)) return true;
+        return isRadioId(what);
+    }
+
+    /** Log name of a message kind: the id, plus arg1 for car frames and for the phone and radio ids (where arg1 is the command). */
     private static String label(long key) {
         int what = (int) (key >> 16);
-        if (what == 0x501 || isPhoneId(what)) return String.format(Locale.US, "0x%X/%d", what, (int) (key & 0xFFFF));
+        if (what == 0x501 || isPhoneId(what) || isRadioId(what)) return String.format(Locale.US, "0x%X/%d", what, (int) (key & 0xFFFF));
         return String.format(Locale.US, "0x%X", what);
     }
 
@@ -422,7 +477,8 @@ public final class TwProbe {
     private synchronized void record(Message m) {
         // 0x501 frames are told apart by arg1 (the Golf7 frame number), the phone ids by arg1 too (the command);
         // other ids by "what" alone.
-        long key = ((long) m.what << 16) | (m.what == 0x501 || isPhoneId(m.what) ? (m.arg1 & 0xFFFF) : 0);
+        long key = ((long) m.what << 16)
+                | (m.what == 0x501 || isPhoneId(m.what) || isRadioId(m.what) ? (m.arg1 & 0xFFFF) : 0);
         Integer c = counts.get(key);
         counts.put(key, c == null ? 1 : c + 1);
         String obj = "";
@@ -430,7 +486,10 @@ public final class TwProbe {
             obj = " " + describe(m.what, m.arg1, (byte[]) m.obj);
         } else if (m.obj != null) {
             String s = String.valueOf(m.obj);
-            obj = " " + (m.what == PROTOCOL_STRING ? (s.length() > 24 ? s.substring(0, 24) : s) : shape(s));
+            // Radio text (station names, RDS) is not personal and is wanted as it is; everything else is masked.
+            boolean plain = m.what == PROTOCOL_STRING || (isRadioId(m.what) && !isMasked(m.what));
+            int cut = isRadioId(m.what) ? 64 : 24;
+            obj = " " + (plain ? (s.length() > cut ? s.substring(0, cut) : s) : shape(s));
         }
         // Golf 7 trip frames (19 since start, 20 long-term, 21 since refuelling) feed the trip pages.
         // The car's own service reminder (frame 30), when it was asked for (Vehicle > Service).
@@ -445,6 +504,9 @@ public final class TwProbe {
         }
         String payload = m.arg1 + "/" + m.arg2 + obj;
         latest.put(key, new SimpleDateFormat("HH:mm:ss", Locale.US).format(new Date()) + " " + payload);
+        if (isExtraId(m.what)) extraSeen++;
+        // Phone traffic is sparse and wanted in full; the tuner's status changes many times a second, so it
+        // goes through the normal change check and pause (two lines a second at most per kind).
         if (isPhoneId(m.what)) logPhone(key, payload);
         else recordToLog(key, payload);
     }

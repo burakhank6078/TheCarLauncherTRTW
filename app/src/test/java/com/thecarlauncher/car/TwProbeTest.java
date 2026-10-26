@@ -49,6 +49,20 @@ public class TwProbeTest {
     }
 
     @Test
+    public void radioIdsOfUnknownMeaningAreMasked() {
+        // 265 and 0x9E00 are opened by the radio app but not understood: they are written as a shape.
+        assertEquals("bytes[2] Aa", TwProbe.describe(265, 0, new byte[]{0x41, 0x68}));
+        assertEquals("bytes[2] Aa", TwProbe.describe(0x9E00, 0, new byte[]{0x41, 0x68}));
+    }
+
+    @Test
+    public void radioMessagesStayReadable() {
+        // 0x401 / 0x404 are the tuner's ids: bytes stay hex, nothing is masked.
+        assertEquals("27F6", TwProbe.describe(0x401, 2, new byte[]{0x27, (byte) 0xF6}));
+        assertEquals("41", TwProbe.describe(0x404, 0, new byte[]{0x41}));
+    }
+
+    @Test
     public void longTextIsCut() {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < 100; i++) sb.append('x');
