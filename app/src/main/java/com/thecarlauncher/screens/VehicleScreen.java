@@ -23,6 +23,7 @@ import com.thecarlauncher.LauncherActivity;
 import com.thecarlauncher.R;
 import com.thecarlauncher.car.CarData;
 import com.thecarlauncher.car.ObdData;
+import com.thecarlauncher.mib.CarTexts;
 import com.thecarlauncher.mib.Mib;
 import com.thecarlauncher.mib.MibBar;
 import com.thecarlauncher.mib.MibPopup;
@@ -571,10 +572,6 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
         return row;
     }
 
-    private static final int[] DOOR_BITS = {com.thecarlauncher.car.VehicleState.DOOR_DRIVER,
-            com.thecarlauncher.car.VehicleState.DOOR_PASSENGER, com.thecarlauncher.car.VehicleState.DOOR_REAR_LEFT,
-            com.thecarlauncher.car.VehicleState.DOOR_REAR_RIGHT};
-
     /** Rebuilds the live lines of the status page when something they show has changed. */
     private void refreshLive() {
         if (liveBox == null) return;
@@ -586,14 +583,16 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
         } else if (!vs.alive()) {
             lines.add(new Object[]{-1, s("Čekam podatke iz vozila…", "Waiting for car data…")});
         } else {
+            // The belt warning only makes sense with the engine running (VehicleState checks the voltage too).
+            float v = vs.voltage();
+            boolean running = vs.engineRunning();
+            boolean beltOff = vs.belt() == 0 && running;
             int doors = vs.doors();
             if (doors >= 0) {
-                String[] names = {s("Vrata vozača otvorena", "Driver door open"), s("Vrata suvozača otvorena", "Passenger door open"),
-                        s("Zadnja leva vrata otvorena", "Rear left door open"), s("Zadnja desna vrata otvorena", "Rear right door open")};
                 boolean any = false;
-                for (int i = 0; i < DOOR_BITS.length; i++) {
-                    if ((doors & DOOR_BITS[i]) != 0) {
-                        lines.add(new Object[]{Mark.WARN, names[i]});
+                for (int i = 0; i < com.thecarlauncher.car.VehicleState.DOOR_ORDER.length; i++) {
+                    if ((doors & com.thecarlauncher.car.VehicleState.DOOR_ORDER[i]) != 0) {
+                        lines.add(new Object[]{Mark.WARN, CarTexts.doorName(act, i)});
                         any = true;
                     }
                 }
@@ -602,14 +601,7 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
                 // The car reports doors only when one changes; until then there is nothing true to show.
                 lines.add(new Object[]{-1, s("Stanje vrata se prikazuje pri promeni.", "Door state shows after a change.")});
             }
-            // The service may keep reporting the last rpm after the engine stops, so "running" also needs a
-            // voltage that only a charging engine gives.
-            float v = vs.voltage();
-            boolean running = vs.rpm() > 400 && (Float.isNaN(v) || v >= 12.9f);
-            // The belt warning only makes sense with the engine running.
-            if (vs.belt() == 0 && running) {
-                lines.add(new Object[]{Mark.WARN, s("Pojas vozača nije vezan", "Driver seat belt not fastened")});
-            }
+            if (beltOff) lines.add(new Object[]{Mark.WARN, CarTexts.beltText(act)});
             if (!Float.isNaN(v)) {
                 int m = Mark.OK;
                 String note = "";
@@ -624,7 +616,10 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
         String vin = vs.vin(act);
         if (vin != null) lines.add(new Object[]{-1, "VIN: " + vin});
         StringBuilder sig = new StringBuilder();
-        for (Object[] l : lines) sig.append(l[0]).append(l[1]).append('\n');
+        for (Object[] l : lines) {
+            for (Object o : l) sig.append(o).append('|');
+            sig.append('\n');
+        }
         if (sig.toString().equals(liveSig)) return;
         liveSig = sig.toString();
         liveBox.removeAllViews();

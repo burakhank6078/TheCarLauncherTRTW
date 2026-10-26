@@ -25,6 +25,8 @@ import java.io.IOException;
 public final class VehicleState {
     /** Door bits as in frames 26 and 18 (the rear right one is by order of the test: not checked on its own). */
     public static final int DOOR_DRIVER = 8, DOOR_PASSENGER = 4, DOOR_REAR_LEFT = 2, DOOR_REAR_RIGHT = 1;
+    /** The doors in the order screens list them: driver, passenger, rear left, rear right. */
+    public static final int[] DOOR_ORDER = {DOOR_DRIVER, DOOR_PASSENGER, DOOR_REAR_LEFT, DOOR_REAR_RIGHT};
 
     private static final long ALIVE_MS = 10000;
     private static final String PREF_VIN = "car_vin"; // only read to move an old value
@@ -34,7 +36,7 @@ public final class VehicleState {
 
     private int doors = -1, belt = -1, lights = -1, rpm = -1;
     private float voltage = Float.NaN;
-    private long beatAt, serviceAt;
+    private long beatAt, serviceAt, doorsAt;
     private String vin;
 
     private VehicleState() {}
@@ -49,9 +51,11 @@ public final class VehicleState {
             beatAt = now;
         } else if (frame == 26 && b.length >= 3) {
             doors = (b[1] >> 4) & 0xF;
+            doorsAt = now;
             beatAt = now;
         } else if (frame == 18 && b.length >= 7) {
             doors = (b[2] >> 4) & 0xF;
+            doorsAt = now;
             belt = (b[6] & 0x20) != 0 ? 0 : 1;
             beatAt = now;
         } else if (frame == 31 && b.length >= 17) {
@@ -96,15 +100,28 @@ public final class VehicleState {
     public synchronized int belt() { return alive() ? belt : -1; }
 
     /** 1 = lights on, 0 = off, -1 = not known. */
-    public synchronized int lights() { return alive() ? lights : -1; }
+    public synchronized int lights() { return serviceFresh() ? lights : -1; }
 
-    /** Engine speed from the car info service, or -1. */
-    public synchronized int rpm() { return alive() ? rpm : -1; }
+    /** Engine speed from the car info service, or -1 when the service has gone quiet. */
+    public synchronized int rpm() { return serviceFresh() ? rpm : -1; }
+
+    /**
+     * True when the engine is running. The service may keep reporting the last rpm after the engine stops,
+     * so a charging voltage is required as well (when a voltage is known).
+     */
+    public synchronized boolean engineRunning() {
+        if (!serviceFresh() || rpm <= 400) return false;
+        return Float.isNaN(voltage) || voltage >= 12.9f;
+    }
 
     /** Battery voltage, NaN when not known. */
-    public synchronized float voltage() {
-        return System.currentTimeMillis() - serviceAt < ALIVE_MS ? voltage : Float.NaN;
-    }
+    public synchronized float voltage() { return serviceFresh() ? voltage : Float.NaN; }
+
+    /** True while the car info service keeps answering (its values are only as old as the last poll). */
+    private boolean serviceFresh() { return System.currentTimeMillis() - serviceAt < ALIVE_MS; }
+
+    /** How long ago a door frame (18 or 26) last arrived, or Long.MAX_VALUE if none did. */
+    public synchronized long doorsAgeMs() { return doorsAt == 0 ? Long.MAX_VALUE : System.currentTimeMillis() - doorsAt; }
 
     /** The 17-character chassis number, from the car or the last time it was read; null when never seen. */
     public synchronized String vin(Context c) {

@@ -50,6 +50,8 @@ public final class Prefs {
     public static final String TRIP_OBD = "trip_from_obd";
     /** Lets the launcher send commands to the unit over TWUtil (tyre pressure reset, Bluetooth keys). */
     public static final String TW_COMMANDS = "allow_car_commands";
+    /** Banner for an open door or an unfastened driver belt while the car moves (default on). */
+    public static final String CAR_WARNING = "car_warning";
     public static final String PROJECTION_PKG = "projection_pkg";
     public static final String SHUFFLE = "shuffle";
     public static final String REPEAT = "repeat";

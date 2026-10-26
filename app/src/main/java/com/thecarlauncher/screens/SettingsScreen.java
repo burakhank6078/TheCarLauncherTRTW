@@ -1292,6 +1292,12 @@ public class SettingsScreen extends Screen {
         });
         note(s("Uključeno: putni računar kao originalni MIB 2 sa podacima iz vozila. Isključeno: dosadašnji prikaz.",
                 "On: the trip pages look like the original MIB 2 and show data from the car. Off: the current view."));
+        toggle(s("Upozorenje za vrata i pojas u vožnji", "Door and belt warning while driving"), Prefs.CAR_WARNING, true, null);
+        action(s("Isprobaj upozorenje", "Try the warning"), s("dodirnite", "tap here"), new Runnable() {
+            public void run() { act.previewCarWarning(); }
+        });
+        note(s("Traka ispod gornje linije kada su vrata otvorena ili pojas vozača nije vezan dok vozilo ide. Radi uz podatke iz OBD-a i GPS brzinu, i samo dok je launcher na ekranu.",
+                "A banner under the top bar when a door is open or the driver belt is off while the car moves. Needs the OBD data and the GPS speed, and only shows while the launcher is on screen."));
         toggle(s("Dozvoli slanje komandi jedinici (reset guma, Bluetooth tasteri)", "Allow sending commands to the unit (tyre reset, Bluetooth keys)"),
                 Prefs.TW_COMMANDS, false, new Runnable() {
                     public void run() {

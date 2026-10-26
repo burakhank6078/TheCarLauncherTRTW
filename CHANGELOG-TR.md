@@ -13,6 +13,18 @@ en üstüne eklenir; GitHub sürüm sayfası bu en üst bölümü gösterir.
 
 ---
 
+## 26 Ekim 2026
+**Sürüş uyarısı**
+- **Kapı ve kemer uyarısı:** araç giderken (GPS hızı 5 km/s üstü) bir kapı açıksa ya da (10 km/s üstü, motor çalışırken)
+  sürücü kemeri takılı değilse üst çubuğun altında yazılı bir uyarı çıkar (ör. "Sürücü kapısı açık"). 8 sn sonra kendiliğinden
+  kapanır, dokununca kapanır, sorun sürerse dakikada bir tekrar eder, durum değişirse hemen yeniden çıkar. Üst çubuk
+  (geri oku, saat) uyarı sırasında da kullanılabilir. Ayarlar → Araç'ta açılıp kapatılır ve "Uyarıyı dene" ile örnek gösterilir.
+  Çalışması için "Yolculuk verilerini OBD'den al" açık olmalı. Uyarı yalnızca launcher ekrandayken görünür (başka bir
+  uygulamanın üstüne çıkmaz). Kapı bilgisi eskiyse (2 dakikadan eski) giderken güvenilmez; komut izni açıksa araca yeniden sorulur.
+- Motorun çalıştığı artık yalnızca devirden değil, şarj voltajından da anlaşılır (motor kapalıyken eski devir değeri
+  kalsa bile yanlış kemer ya da akü uyarısı çıkmaz).
+- Tanılama kaydı ses yongası özelliklerini de yazar.
+
 ## 22 Ekim 2026
 **Araç durumu sayfası canlandı**
 - Araç → Araç durumu sayfasında aracın o anki hali görünür: **açık kapı uyarıları** (sürücü, yolcu, arka sol, arka sağ),

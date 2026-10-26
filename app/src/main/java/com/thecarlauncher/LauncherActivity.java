@@ -77,6 +77,7 @@ public class LauncherActivity extends Activity implements LocationTracker.Listen
     private int current = -1;
 
     private FrameLayout content;
+    private com.thecarlauncher.mib.CarWarning carWarning;
     private TextView timeView, tagView, rightView, streetView;
     private View statusBar, statusRule;
     private ImageView backArrow;
@@ -153,6 +154,12 @@ public class LauncherActivity extends Activity implements LocationTracker.Listen
         root.addView(banner, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, LoadingBanner.height(this),
                 Gravity.TOP));
         LoadingBanner.attach(banner);
+        // Just under the status bar, so the top bar (back arrow, clock) stays usable while it is up.
+        carWarning = new com.thecarlauncher.mib.CarWarning(this);
+        FrameLayout.LayoutParams wl = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                com.thecarlauncher.mib.CarWarning.height(this), Gravity.TOP);
+        wl.topMargin = Mib.px(this, 54);
+        root.addView(carWarning, wl);
         setContentView(root);
         rootView = root;
         applyDisplay();
@@ -571,6 +578,11 @@ public class LauncherActivity extends Activity implements LocationTracker.Listen
             content.removeView(v);
             screens[i] = i == VEHICLE ? new VehicleScreen(this) : new AmbientScreen(this);
         }
+    }
+
+    /** Shows a sample of the door / belt warning for a few seconds (Setup &gt; Vehicle). */
+    public void previewCarWarning() {
+        if (carWarning != null) carWarning.preview();
     }
 
     public void restartUi() {

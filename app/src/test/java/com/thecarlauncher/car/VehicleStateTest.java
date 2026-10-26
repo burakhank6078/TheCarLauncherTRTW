@@ -1,6 +1,7 @@
 package com.thecarlauncher.car;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
@@ -49,6 +50,26 @@ public class VehicleStateTest {
         assertEquals(789, v.rpm());
         v.setAidl(4, "0.0");
         assertTrue(Float.isNaN(v.voltage()));
+    }
+
+    @Test
+    public void doorFramesAreTimedSoAnOldStateCanBeDistrusted() {
+        VehicleState v = VehicleState.get();
+        v.decodeFrame(null, 26, hex("7F8100000004000800000000"));
+        assertTrue(v.doorsAgeMs() < 2000);
+    }
+
+    @Test
+    public void engineRunningNeedsRpmAndAChargingVoltage() {
+        VehicleState v = VehicleState.get();
+        v.setAidl(19, "800");
+        v.setAidl(4, "14.1");
+        assertTrue(v.engineRunning());
+        v.setAidl(4, "12.1"); // the service kept the old rpm, the battery is not charging
+        assertFalse(v.engineRunning());
+        v.setAidl(19, "0");
+        v.setAidl(4, "14.1");
+        assertFalse(v.engineRunning());
     }
 
     @Test

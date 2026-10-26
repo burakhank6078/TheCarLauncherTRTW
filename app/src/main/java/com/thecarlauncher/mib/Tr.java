@@ -457,6 +457,10 @@ final class Tr {
         p("Turn on \"Take trip data from OBD\" in Setup → Vehicle for live car data.", "Canlı araç verisi için Ayarlar → Araç'ta \"Yolculuk verilerini OBD'den al\" anahtarını açın.");
         p("Waiting for car data…", "Araç verisi bekleniyor…");
         p("Door state shows after a change.", "Kapı durumu bir değişiklikte görünür.");
+        p("Several doors open", "Birden fazla kapı açık");
+        p("Door and belt warning while driving", "Sürüş sırasında kapı ve kemer uyarısı");
+        p("Try the warning", "Uyarıyı dene");
+        p("A banner under the top bar when a door is open or the driver belt is off while the car moves. Needs the OBD data and the GPS speed, and only shows while the launcher is on screen.", "Araç giderken kapı açıksa ya da sürücü kemeri takılı değilse üst çubuğun altında bir uyarı çıkar. OBD verisi ve GPS hızı gerekir; yalnızca launcher ekrandayken görünür.");
         p("Phone messages", "Telefon mesajları");
         p("not listened to - restart the app", "dinlenmiyor - uygulamayı yeniden başlatın");
         p("Doors closed", "Kapılar kapalı");
