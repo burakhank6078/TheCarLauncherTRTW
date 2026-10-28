@@ -60,28 +60,35 @@ public class VehicleStateTest {
     }
 
     @Test
-    public void engineRunningNeedsRpmAndAChargingVoltage() {
+    public void engineRunningFromRpmWithAChargingVoltageOrFromTheVoltageAlone() {
         VehicleState v = VehicleState.get();
         v.setAidl(19, "800");
         v.setAidl(4, "14.1");
         assertTrue(v.engineRunning());
         v.setAidl(4, "12.1"); // the service kept the old rpm, the battery is not charging
         assertFalse(v.engineRunning());
+        // The idling Golf sent no rpm at all while the battery sat at 13.1-13.2 V (28 Oct 2026 recording).
         v.setAidl(19, "0");
-        v.setAidl(4, "14.1");
+        v.setAidl(4, "13.2");
+        assertTrue(v.engineRunning());
+        v.setAidl(4, "12.5"); // after the engine stopped
         assertFalse(v.engineRunning());
     }
 
     @Test
-    public void chassisNumberAsAscii() {
+    public void trunkAndVoltageFromTheRecordedFrames() {
         VehicleState v = VehicleState.get();
-        byte[] f = new byte[20];
-        byte[] vin = "WVWZZZ00ZEW000000".getBytes();
-        System.arraycopy(vin, 0, f, 0, 17);
-        v.decodeFrame(null, 31, f);
-        assertEquals("WVWZZZ00ZEW000000", v.vin(null));
-        // Something that is not a chassis number leaves it alone.
-        v.decodeFrame(null, 31, new byte[20]);
-        assertEquals("WVWZZZ00ZEW000000", v.vin(null));
+        v.setAidl(4, "0.0");
+        // driver door open and the trunk opened too (frames 26 and 18 of the A06 step)
+        v.decodeFrame(null, 26, hex("7F8900000004FFFA00000000"));
+        assertEquals(VehicleState.DOOR_DRIVER | VehicleState.DOOR_TRUNK, v.doors());
+        v.decodeFrame(null, 18, hex("000088630980202B0D02"));
+        assertEquals(VehicleState.DOOR_DRIVER | VehicleState.DOOR_TRUNK, v.doors());
+        assertEquals(13.2f, v.voltage(), 0.001f); // bytes 8 and 9: 0D 02
+        v.decodeFrame(null, 18, hex("000080630980202B0C08"));
+        assertEquals(VehicleState.DOOR_DRIVER, v.doors()); // trunk shut again
+        assertEquals(12.8f, v.voltage(), 0.001f);
+        v.decodeFrame(null, 18, hex("000000630980202B0000")); // nonsense voltage bytes are left alone
+        assertEquals(12.8f, v.voltage(), 0.001f);
     }
 }

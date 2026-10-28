@@ -13,6 +13,25 @@ en üstüne eklenir; GitHub sürüm sayfası bu en üst bölümü gösterir.
 
 ---
 
+## 28 Ekim 2026
+**Radyo (araç kaydına göre düzeltmeler)**
+- **Arama yönü düzeltildi:** ekrandaki "sonraki" oku artık bir sonraki istasyona gider (öncekinde ters çalışıyordu).
+- **Açılışta frekans görünür:** ünite, frekansı yalnızca değişince bildiriyordu; radyo ekranı açılınca artık tuner
+  durumu da istenir.
+- **Hafıza kareleri gerçek listeden gelir:** ünite bantta 18 hafıza tutar (6'lı üç sayfa). Kareler ünitenin o anki
+  bandındaki slotlara bağlandı; ad ve frekanslar ünitenin kendi listesinden okunur. Sayfa, seçili hafızanın sayfasını izler.
+- **İstasyon adı titremesi giderildi:** RDS adı ("A HABER") ara sıra bozuk harfle geliyordu ("A HABEa"); ad artık iki kez
+  üst üste görülmeden değişmez.
+
+**Araç durumu**
+- **Şasi numarası (VIN) araç durumu sayfasından kaldırıldı.** Araçtan artık istenmez; önceki sürümlerin ünitede bıraktığı kopya
+  uygulama açılınca silinir.
+- **Bagaj açık** uyarısı: kapı satırlarına ve sürüş uyarısına eklendi (tek denemeyle bulundu).
+- **Akü voltajı** artık doğrudan araç çerçevesinden de okunur; motorun çalıştığı, rölantide devir gelmese de 13 V ve üzeri
+  şarj voltajından anlaşılır (kemer uyarısı bu yüzden rölantide de çalışır).
+
+---
+
 ## 26 Ekim 2026
 **Günlük kullanım**
 - **Otomatik gece haritası:** Ayarlar → Navigasyon → "Otomatik gece haritası (farlara göre)". Farlar yanınca (4 sn kararlı)

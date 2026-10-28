@@ -15,18 +15,20 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * The tuner of a TW head unit, seen the way the factory radio app (com.tw.radio) sees it: its own TWUtil object
- * for module 1, the same message ids, and the messages it understands (read from that app's code, not yet proven
- * on the car): 0x401 with arg1 1 = band, 2 = frequency (and the station name as text), 3 = signal, 4 = preset
- * slot; 0x404 and 0x405 = RDS name and text; 0x301 = the unit's active source (radio when (arg1 &amp; 143) == 1).
- * Frequencies are in 10 kHz on FM (10230 = 102.30 MHz) and in kHz on AM. The launcher only mirrors and remote
- * controls it: the factory radio app keeps playing and owns the audio. Commands go out only with the "Allow
- * sending commands" switch on.
+ * for module 1, the same message ids, and the messages it understands (read from that app's code, checked against
+ * the 28 Oct 2026 recording): 0x401 with arg1 0 = flags (arg2 64 while a seek runs), 1 or 5 = band, 2 = frequency
+ * (and the station name as text), 3 = signal, 4 = preset slot; 0x402 = one entry of the preset list (arg1 = slot |
+ * band &lt;&lt; 8 | PI &lt;&lt; 16, arg2 = frequency, text = name); 0x404 and 0x405 = RDS name and text; 0x301 =
+ * the unit's active source (radio when arg1 == 1). Frequencies are in 10 kHz on FM (10230 = 102.30 MHz) and in kHz
+ * on AM. The launcher only mirrors and remote controls it: the factory radio app keeps playing and owns the audio.
+ * Commands go out only with the "Allow sending commands" switch on.
  */
 public final class TwRadio {
     public interface Listener { void onTwRadioChanged(); }
 
-    /** Presets per band on the unit (the factory app shows six). */
-    public static final int SLOTS = 6;
+    /** Presets per band on the unit: 18 slots, shown as three pages of six. The slots belong to the band the unit is on. */
+    public static final int SLOTS = 18;
+    public static final int PAGE = 6;
     public static final int BANDS = 3; // FM1, FM2, AM
 
     private static final int MODULE = 1;
@@ -54,6 +56,29 @@ public final class TwRadio {
     static final class State {
         int band = -1, freq, signal, preset = -1, source = -1;
         String name = "", text = "";
+        /** A name that differs from the shown one, waiting to be seen a second time (RDS often arrives with a bad letter). */
+        private String pendingName = "";
+        /** The preset list the unit sent, per band and slot; a frequency of 0 = nothing stored (or not sent yet). */
+        final int[][] presetFreq = new int[BANDS][SLOTS];
+        final String[][] presetName = new String[BANDS][SLOTS];
+
+        /**
+         * A station name is taken when nothing is shown yet or when it arrives twice in a row: the RDS name flickers
+         * ("A HABER", "A HABEa", "A HABER@") and the screen should not follow every bad read.
+         */
+        private boolean takeName(String s) {
+            if (s.equals(name)) {
+                pendingName = "";
+                return false;
+            }
+            if (name.isEmpty() || s.equals(pendingName)) {
+                name = s;
+                pendingName = "";
+                return true;
+            }
+            pendingName = s;
+            return false;
+        }
 
         /** Applies one message; true when something shown changed. */
         boolean apply(int what, int arg1, int arg2, Object obj) {
@@ -63,6 +88,7 @@ public final class TwRadio {
                 case 1025:
                     switch (arg1) {
                         case 1:
+                        case 5: // the unit reports the band with arg1 5 (seen on the car); the factory app reads arg1 1
                             if (arg2 >= 0 && arg2 < BANDS && band != arg2) {
                                 band = arg2;
                                 changed = true;
@@ -72,13 +98,11 @@ public final class TwRadio {
                             if (plausible(band, arg2) && freq != arg2) {
                                 freq = arg2;
                                 name = "";
+                                pendingName = "";
                                 text = "";
                                 changed = true;
                             }
-                            if (str != null && !str.equals(name)) {
-                                name = str;
-                                changed = true;
-                            }
+                            if (str != null && str.length() > 0 && takeName(str)) changed = true;
                             break;
                         case 3:
                             signal = arg2; // kept, but never shown: it changes constantly and must not redraw the screen
@@ -94,11 +118,22 @@ public final class TwRadio {
                             break;
                     }
                     break;
-                case 1028:
-                    if (str != null && !str.equals(name)) {
-                        name = str;
-                        changed = true;
+                case 1026: {
+                    // One entry of the preset list, for the band the unit is on (else the band in the message).
+                    int slot = arg1 & 0xFF, b = band >= 0 ? band : (arg1 >> 8) & 0xFF;
+                    if (slot < SLOTS && b >= 0 && b < BANDS) {
+                        int f = plausible(b, arg2) ? arg2 : 0;
+                        String n = str == null ? "" : str;
+                        if (presetName[b][slot] == null || presetFreq[b][slot] != f || !n.equals(presetName[b][slot])) {
+                            presetFreq[b][slot] = f;
+                            presetName[b][slot] = n;
+                            changed = true;
+                        }
                     }
+                    break;
+                }
+                case 1028:
+                    if (str != null && str.length() > 0 && takeName(str)) changed = true;
                     break;
                 case 1029:
                     if (str != null && !str.equals(text)) {
@@ -130,13 +165,12 @@ public final class TwRadio {
         }
     }
 
-    /** Which band a preset tile belongs to: the tiles are three pages of six, one page per band. */
-    public static int bandOfTile(int tile) { return Math.max(0, Math.min(BANDS - 1, tile / SLOTS)); }
-
-    public static int slotOfTile(int tile) { return Math.max(0, tile) % SLOTS; }
-
+    /**
+     * The tiles are the unit's 18 preset slots of the band it is on, three pages of six (the factory app keeps one list
+     * of 18 and asks for it again when the band changes); the tile of a slot is the slot itself.
+     */
     public static int tileOf(int band, int slot) {
-        return band < 0 || band >= BANDS || slot < 0 || slot >= SLOTS ? -1 : band * SLOTS + slot;
+        return band < 0 || band >= BANDS || slot < 0 || slot >= SLOTS ? -1 : slot;
     }
 
     private final Context app;
@@ -148,6 +182,7 @@ public final class TwRadio {
     private volatile Object util;
     private volatile Handler io;
     private volatile boolean opened, failed;
+    private volatile int listedBand = -1;
     private boolean opening;
     private volatile int attempts;
     private volatile long nextTryAt;
@@ -257,10 +292,17 @@ public final class TwRadio {
                 public void handleMessage(Message m) {
                     try {
                         boolean ch;
+                        int b;
                         synchronized (state) {
                             ch = state.apply(m.what, m.arg1, m.arg2, m.obj);
+                            b = state.band;
                         }
                         if (ch) changed();
+                        // The preset list is per band: ask for it once the band is known, and again when the band changes.
+                        if (b >= 0 && b != listedBand && canSend()) {
+                            listedBand = b;
+                            send(1026, 255, b);
+                        }
                         com.thecarlauncher.car.TwProbe.get().radioTap(m); // the recorder sees the same messages
                     } catch (Throwable ignored) {
                         // an odd message must never kill the thread
@@ -341,19 +383,22 @@ public final class TwRadio {
     }
 
     /**
-     * Asks the unit for what it only says when it changes, like the factory apps do when their screen opens: the tuner
-     * status (0x404, 255) and the active source (0x301, 255). Two-argument writes.
+     * Asks the unit for what it only says when it changes, like the factory radio app does when it starts: the
+     * active source (0x301, 255), the tuner state with band, frequency and preset (0x401, 255) and the RDS status
+     * (0x404, 255). Two-argument writes. The preset list is asked for when the band arrives.
      */
     public void requestState() {
         if (!canSend()) return;
+        listedBand = -1;
         io.post(new Runnable() {
             @Override
             public void run() {
                 try {
                     Method w = cls.getMethod("write", int.class, int.class);
-                    w.invoke(util, 1028, 255);
                     w.invoke(util, 769, 255);
-                    AppLog.d(app, "RADIO", "write 0x404 255, 0x301 255");
+                    w.invoke(util, 1025, 255);
+                    w.invoke(util, 1028, 255);
+                    AppLog.d(app, "RADIO", "write 0x301 255, 0x401 255, 0x404 255");
                 } catch (Throwable t) {
                     AppLog.d(app, "RADIO", "write failed: " + (t.getCause() != null ? t.getCause() : t));
                 }
@@ -364,19 +409,47 @@ public final class TwRadio {
     /** True once the unit has said which source is active (so "not the radio" can be told from "not known yet"). */
     public boolean sourceKnown() { synchronized (state) { return state.source >= 0; } }
 
-    public void seek(boolean up) { send(1025, 1, up ? 1 : 0); }
-
-    public void step(boolean up) { send(1025, 2, up ? 1 : 0); }
-
     /**
-     * The slot to recall for a tile, or -1: only the tiles of the page that matches the unit's current band can be
-     * recalled (the factory app recalls a slot of the band it is on; no band switch is sent from here).
+     * The direction argument of a seek or step: 0 = up (next), 1 = down (previous), as the factory radio app sends them.
+     * The first version had it the other way round and the frequency ran down on "next" (28 Oct 2026 recording).
      */
+    static int directionArg(boolean up) { return up ? 0 : 1; }
+
+    /** Seek to the next (up) or previous station. */
+    public void seek(boolean up) { send(1025, 1, directionArg(up)); }
+
+    /** One fine step up or down. */
+    public void step(boolean up) { send(1025, 2, directionArg(up)); }
+
+    /** The slot to recall for a tile, or -1 while the band is not known (the slot is recalled on the band the unit is on). */
     public static int recallSlot(int tile, int currentBand) {
-        return currentBand >= 0 && bandOfTile(tile) == currentBand ? slotOfTile(tile) : -1;
+        return currentBand >= 0 && tile >= 0 && tile < SLOTS ? tile : -1;
     }
 
-    /** Goes to the preset of a tile on the current band's page; false when the tile is on another page. */
+    /** The preset list entry of a tile on the current band: its frequency (0 = empty or not sent yet) and name. */
+    public int presetFreq(int tile) {
+        synchronized (state) {
+            return state.band < 0 || tile < 0 || tile >= SLOTS ? 0 : state.presetFreq[state.band][tile];
+        }
+    }
+
+    public String presetName(int tile) {
+        synchronized (state) {
+            String n = state.band < 0 || tile < 0 || tile >= SLOTS ? null : state.presetName[state.band][tile];
+            return n == null ? "" : n;
+        }
+    }
+
+    /** True once the unit has sent at least one entry of the current band's preset list. */
+    public boolean presetsKnown() {
+        synchronized (state) {
+            if (state.band < 0) return false;
+            for (int i = 0; i < SLOTS; i++) if (state.presetName[state.band][i] != null) return true;
+            return false;
+        }
+    }
+
+    /** Goes to the preset of a tile on the current band; false while the band is not known. */
     public boolean recall(int tile) {
         int band = band();
         int slot = recallSlot(tile, band);

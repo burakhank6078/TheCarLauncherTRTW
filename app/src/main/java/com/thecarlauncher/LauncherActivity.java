@@ -123,6 +123,7 @@ public class LauncherActivity extends Activity implements LocationTracker.Listen
         com.thecarlauncher.util.AmbientBle.get(this).start();
         // The trip history listens to the GPS on its own, whatever app is in front.
         com.thecarlauncher.car.TripGps.get(this).sync();
+        com.thecarlauncher.car.VehicleState.forgetChassisNumber(this);
         com.thecarlauncher.media.Tone.get(this).attachGlobal();
         // The QF unit's Bluetooth module, broadcasts and MCU tuner. Not started on the TW platform, where
         // none of them exists (no background polling, no wasted wake-ups).

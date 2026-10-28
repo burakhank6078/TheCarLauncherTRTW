@@ -2,42 +2,33 @@ package com.thecarlauncher.car;
 
 import android.content.Context;
 
-import com.thecarlauncher.util.Prefs;
-
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-
 /**
- * Live state of the car for the Vehicle status page: doors, driver seat belt, lights, battery voltage
- * and the chassis number. Everything is read-only and comes from what the unit already receives:
+ * Live state of the car for the Vehicle status page: doors, driver seat belt, lights and battery voltage.
+ * Everything is read-only and comes from what the unit already receives:
  * <ul>
  * <li>Golf 7 frame 26 (byte 1 high nibble = doors, byte 2 low bits = indicators) and frame 18 (byte 2 doors,
- * byte 6 bit 0x20 = driver belt not fastened), found with the 22 Oct 2026 test recording;</li>
- * <li>frame 31 = the chassis number as ASCII;</li>
+ * byte 6 bit 0x20 = driver belt not fastened, bytes 8-9 battery voltage), found with the test recordings;</li>
  * <li>the car info service: #4 battery voltage, #5 lights, #12 driver belt (1 = fastened), #19 rpm.</li>
  * </ul>
  * The car sends the frames when something changes, so a value is only shown while the unit is
  * talking to the box (the heartbeat frame 255 or a service answer arrived in the last few seconds).
  */
 public final class VehicleState {
-    /** Door bits as in frames 26 and 18 (the rear right one is by order of the test: not checked on its own). */
-    public static final int DOOR_DRIVER = 8, DOOR_PASSENGER = 4, DOOR_REAR_LEFT = 2, DOOR_REAR_RIGHT = 1;
-    /** The doors in the order screens list them: driver, passenger, rear left, rear right. */
-    public static final int[] DOOR_ORDER = {DOOR_DRIVER, DOOR_PASSENGER, DOOR_REAR_LEFT, DOOR_REAR_RIGHT};
+    /**
+     * Door bits as in frames 26 and 18 (the rear right one is by order of the test: not checked on its own). The trunk is
+     * the 0x08 bit of the byte under the doors' nibble (frame 26 byte 1, frame 18 byte 2), seen once, 28 Oct 2026.
+     */
+    public static final int DOOR_DRIVER = 8, DOOR_PASSENGER = 4, DOOR_REAR_LEFT = 2, DOOR_REAR_RIGHT = 1, DOOR_TRUNK = 16;
+    /** The doors in the order screens list them: driver, passenger, rear left, rear right, trunk. */
+    public static final int[] DOOR_ORDER = {DOOR_DRIVER, DOOR_PASSENGER, DOOR_REAR_LEFT, DOOR_REAR_RIGHT, DOOR_TRUNK};
 
     private static final long ALIVE_MS = 10000;
-    private static final String PREF_VIN = "car_vin"; // only read to move an old value
-    private static final String VIN_FILE = "car_vin.txt";
-    private static final String VIN_PATTERN = "[A-HJ-NPR-Z0-9]{17}";
+    private static final float CHARGING_V = 13.0f;
     private static final VehicleState INSTANCE = new VehicleState();
 
     private int doors = -1, belt = -1, lights = -1, rpm = -1;
     private float voltage = Float.NaN;
     private long beatAt, serviceAt, doorsAt;
-    private String vin;
 
     private VehicleState() {}
 
@@ -50,21 +41,18 @@ public final class VehicleState {
         if (frame == 255) {
             beatAt = now;
         } else if (frame == 26 && b.length >= 3) {
-            doors = (b[1] >> 4) & 0xF;
+            doors = ((b[1] >> 4) & 0xF) | ((b[1] & 0x08) != 0 ? DOOR_TRUNK : 0);
             doorsAt = now;
             beatAt = now;
         } else if (frame == 18 && b.length >= 7) {
-            doors = (b[2] >> 4) & 0xF;
+            doors = ((b[2] >> 4) & 0xF) | ((b[2] & 0x08) != 0 ? DOOR_TRUNK : 0);
             doorsAt = now;
             belt = (b[6] & 0x20) != 0 ? 0 : 1;
             beatAt = now;
-        } else if (frame == 31 && b.length >= 17) {
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < 17; i++) sb.append((char) (b[i] & 0xFF));
-            String v = sb.toString();
-            if (v.matches(VIN_PATTERN) && !v.equals(vin)) {
-                vin = v;
-                if (c != null) saveVin(c, v);
+            if (b.length >= 10) {
+                // Bytes 8 and 9 are the battery voltage as volts and tenths (0D 02 = 13.2 V), the same as the service's #4.
+                int volts = b[8] & 0xFF, tenths = b[9] & 0xFF;
+                if (volts >= 6 && volts <= 20 && tenths <= 9) voltage = volts + tenths / 10f;
             }
         }
     }
@@ -107,11 +95,13 @@ public final class VehicleState {
 
     /**
      * True when the engine is running. The service may keep reporting the last rpm after the engine stops,
-     * so a charging voltage is required as well (when a voltage is known).
+     * so a charging voltage is required as well (when a voltage is known). On the Golf the idling engine showed no rpm
+     * at all in the 28 Oct 2026 recording while the battery sat at 13.1-13.2 V, so a charging voltage alone counts too.
      */
     public synchronized boolean engineRunning() {
-        if (!serviceFresh() || rpm <= 400) return false;
-        return Float.isNaN(voltage) || voltage >= 12.9f;
+        if (!serviceFresh()) return false;
+        if (!Float.isNaN(voltage) && voltage >= CHARGING_V) return true;
+        return rpm > 400 && (Float.isNaN(voltage) || voltage >= 12.9f);
     }
 
     /** Battery voltage, NaN when not known. */
@@ -123,37 +113,14 @@ public final class VehicleState {
     /** How long ago a door frame (18 or 26) last arrived, or Long.MAX_VALUE if none did. */
     public synchronized long doorsAgeMs() { return doorsAt == 0 ? Long.MAX_VALUE : System.currentTimeMillis() - doorsAt; }
 
-    /** The 17-character chassis number, from the car or the last time it was read; null when never seen. */
-    public synchronized String vin(Context c) {
-        if (vin == null && c != null) {
-            String saved = loadVin(c);
-            if (saved != null) vin = saved;
-        }
-        return vin;
-    }
-
-    // The chassis number lives in a file the backup leaves out, not in the preferences (those are backed up).
-    private static File vinFile(Context c) { return new File(c.getApplicationContext().getNoBackupFilesDir(), VIN_FILE); }
-
-    private static void saveVin(Context c, String v) {
-        try (FileWriter w = new FileWriter(vinFile(c))) {
-            w.write(v);
-        } catch (IOException ignored) {
-            // shown from memory this time; the next frame 31 tries again
-        }
-    }
-
-    private static String loadVin(Context c) {
-        String old = Prefs.str(c, PREF_VIN, null);
-        if (old != null) { // moves the value an earlier version kept in the preferences
-            Prefs.of(c).edit().remove(PREF_VIN).apply();
-            if (old.matches(VIN_PATTERN)) saveVin(c, old);
-        }
-        try (BufferedReader r = new BufferedReader(new FileReader(vinFile(c)))) {
-            String s = r.readLine();
-            return s != null && s.matches(VIN_PATTERN) ? s : null;
-        } catch (IOException e) {
-            return null;
-        }
+    /**
+     * Earlier versions showed the chassis number on the status page and kept a copy on the unit (a file, and before that a
+     * preference). It is not shown any more, so the leftovers are removed.
+     */
+    public static void forgetChassisNumber(Context c) {
+        Context app = c.getApplicationContext();
+        new java.io.File(app.getNoBackupFilesDir(), "car_vin.txt").delete();
+        android.content.SharedPreferences sp = com.thecarlauncher.util.Prefs.of(app);
+        if (sp.contains("car_vin")) sp.edit().remove("car_vin").apply();
     }
 }

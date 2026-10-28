@@ -356,8 +356,22 @@ public final class RadioController implements K706Tuner.Listener, TwRadio.Listen
 
     // ---- Presets / station list ---------------------------------------------------------------
 
-    /** On a TW unit every tile stands for a slot of the unit's own presets (names are not known yet): an empty placeholder. */
-    public Station preset(int i) { return twMode ? UNIT_PRESET : presets[i]; }
+    /**
+     * On a TW unit every tile stands for a slot of the unit's own presets on the band it is on. Until the unit has sent
+     * its list the tile is an empty placeholder; afterwards a stored station, or null for an empty slot.
+     */
+    public Station preset(int i) {
+        if (!twMode) return presets[i];
+        if (!tw.presetsKnown()) return UNIT_PRESET;
+        int f = tw.presetFreq(i);
+        return f <= 0 ? null : new Station(f, tw.presetName(i));
+    }
+
+    /** The name of a station, or its frequency when it has none (kHz on AM, MHz on FM). */
+    public String stationLabel(Station st) {
+        if (st.name.length() > 0) return st.name;
+        return twMode && isAm() ? st.freq + " kHz" : format(st.freq);
+    }
 
     public int presetIndexOfCurrent() {
         if (twMode) return tw.currentTile();

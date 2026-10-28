@@ -465,7 +465,7 @@ final class Tr {
         p("not listened to - restart the app", "dinlenmiyor - uygulamayı yeniden başlatın");
         p("not available on this unit", "bu ünitede kullanılamıyor");
         p("Radio is not the active source (open the radio app)", "Radyo etkin kaynak değil (radyo uygulamasını açın)");
-        p("Change the band in the radio app first", "Önce radyo uygulamasında bandı değiştirin");
+        p("The radio is not ready yet", "Radyo henüz hazır değil");
         p("Waiting for the radio…", "Radyo bekleniyor…");
         p("Trip history", "Yolculuk geçmişi");
         p("Trip in progress", "Yolculuk sürüyor");
@@ -509,6 +509,7 @@ final class Tr {
         p("Passenger door open", "Yolcu kapısı açık");
         p("Rear left door open", "Arka sol kapı açık");
         p("Rear right door open", "Arka sağ kapı açık");
+        p("Trunk open", "Bagaj açık");
         p("Driver seat belt not fastened", "Sürücü emniyet kemeri takılı değil");
         p("Battery", "Akü");
         p("low", "düşük");

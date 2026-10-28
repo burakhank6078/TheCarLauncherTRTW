@@ -42,7 +42,7 @@ public class RadioScreen extends Screen implements RadioController.Listener, com
     private final Preset[] presets = new Preset[RadioController.PRESETS];
     private final StationAdapter adapter = new StationAdapter();
     private boolean manual;
-    private int lastBand = -2;
+    private int lastTile = -2;
     private Boolean lastAvail;
 
     public RadioScreen(LauncherActivity act) {
@@ -343,10 +343,11 @@ public class RadioScreen extends Screen implements RadioController.Listener, com
         if (freq == null) return;
         if (radio.unitTuner()) checkTuner();
         if (!radio.unitTuner()) scale.setFreq(radio.freq());
-        else if (radio.band() >= 0 && radio.band() != lastBand) {
-            // The pages are the unit's bands: follow the band the unit is on.
-            lastBand = radio.band();
-            if (lastBand < pager.getChildCount() && pager.page() != lastBand) pager.setPage(lastBand);
+        else if (radio.presetIndexOfCurrent() >= 0 && radio.presetIndexOfCurrent() != lastTile) {
+            // The pages are the unit's 18 slots: follow the page of the preset the unit is on.
+            lastTile = radio.presetIndexOfCurrent();
+            int page = lastTile / PER_PAGE;
+            if (page < pager.getChildCount() && pager.page() != page) pager.setPage(page);
         }
         String ps = radio.ps().trim(), rt = radio.rt();
         String mhz = radio.isAm() ? " kHz" : " MHz";
@@ -423,8 +424,8 @@ public class RadioScreen extends Screen implements RadioController.Listener, com
                 @Override
                 public void onClick(View v) {
                     if (radio.unitTuner() && !radio.canRecall(index)) {
-                        // The unit recalls a slot of the band it is on; the page of another band cannot be reached from here.
-                        Ui.toast(act, s("Prvo promenite opseg u radio aplikaciji", "Change the band in the radio app first"));
+                        // The unit recalls a slot of the band it is on, so the band has to be known first.
+                        Ui.toast(act, s("Radio još nije spreman", "The radio is not ready yet"));
                         return;
                     }
                     if (radio.preset(index) == null) save();
@@ -449,7 +450,7 @@ public class RadioScreen extends Screen implements RadioController.Listener, com
         void bind(RadioController.Station st, boolean current) {
             if (st == null) name.setText(s("Prazno", "Empty"));
             else if (RadioController.isUnitPreset(st)) name.setText(""); // a slot of the unit's own presets: the name is not known
-            else name.setText(st.name.length() > 0 ? st.name : RadioController.format(st.freq));
+            else name.setText(radio.stationLabel(st));
             android.graphics.Bitmap b = st != null && st.name.length() > 0
                     ? com.thecarlauncher.radio.RadioLogos.get(act).logo(st.name) : null;
             logo.setImageBitmap(b);

@@ -17,7 +17,8 @@ public final class CarTexts {
             case 0: return Mib.t(c, "Vrata vozača otvorena", "Driver door open");
             case 1: return Mib.t(c, "Vrata suvozača otvorena", "Passenger door open");
             case 2: return Mib.t(c, "Zadnja leva vrata otvorena", "Rear left door open");
-            default: return Mib.t(c, "Zadnja desna vrata otvorena", "Rear right door open");
+            case 3: return Mib.t(c, "Zadnja desna vrata otvorena", "Rear right door open");
+            default: return Mib.t(c, "Prtljažnik otvoren", "Trunk open");
         }
     }
 
@@ -29,14 +30,16 @@ public final class CarTexts {
     public static List<String> lines(Context c, int doors, boolean beltOff) {
         List<String> out = new ArrayList<>();
         int open = 0;
-        for (int bit : VehicleState.DOOR_ORDER) if ((doors & bit) != 0) open++;
+        for (int bit : VehicleState.DOOR_ORDER) if (bit != VehicleState.DOOR_TRUNK && (doors & bit) != 0) open++;
         if (open > 1) {
             out.add(Mib.t(c, "Više vrata je otvoreno", "Several doors open"));
         } else {
             for (int i = 0; i < VehicleState.DOOR_ORDER.length; i++) {
-                if ((doors & VehicleState.DOOR_ORDER[i]) != 0) out.add(doorName(c, i));
+                int bit = VehicleState.DOOR_ORDER[i];
+                if (bit != VehicleState.DOOR_TRUNK && (doors & bit) != 0) out.add(doorName(c, i));
             }
         }
+        if ((doors & VehicleState.DOOR_TRUNK) != 0) out.add(doorName(c, VehicleState.DOOR_ORDER.length - 1));
         if (beltOff) out.add(beltText(c));
         return out;
     }

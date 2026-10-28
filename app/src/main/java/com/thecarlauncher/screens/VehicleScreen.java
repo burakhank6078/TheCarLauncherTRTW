@@ -61,7 +61,6 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
     private String liveSig;
     private static final long ASK_EVERY_MS = 30000;
     private static long lastAsk;
-    private static int vinAsks;
 
     private final Runnable ticker = new Runnable() {
         @Override
@@ -296,10 +295,8 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
         com.thecarlauncher.car.TwProbe probe = com.thecarlauncher.car.TwProbe.get();
         long now = System.currentTimeMillis();
         if (probe.usable(act) && now - lastAsk > ASK_EVERY_MS) {
-            // Ask for the chassis number (a few times at most, until it answers) and the current door / belt
-            // state (read-only, like the factory app), not on every visit to the page.
+            // Ask for the current door / belt state (read-only, like the factory app), not on every visit to the page.
             lastAsk = now;
-            if (com.thecarlauncher.car.VehicleState.get().vin(act) == null && vinAsks++ < 3) probe.requestFrameAsync(act, 31);
             if (Prefs.bool(act, Prefs.TRIP_OBD, false)) {
                 probe.requestFrameAsync(act, 18);
                 probe.requestFrameAsync(act, 26);
@@ -615,8 +612,6 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
             }
             if (vs.lights() == 1) lines.add(new Object[]{Mark.OK, s("Svetla uključena", "Lights on")});
         }
-        String vin = vs.vin(act);
-        if (vin != null) lines.add(new Object[]{-1, "VIN: " + vin});
         StringBuilder sig = new StringBuilder();
         for (Object[] l : lines) {
             for (Object o : l) sig.append(o).append('|');
