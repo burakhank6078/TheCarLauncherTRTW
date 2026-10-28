@@ -105,12 +105,24 @@ public final class TwRadio {
                             }
                             break;
                         case 2:
-                            if (plausible(band, arg2) && freq != arg2) {
-                                freq = arg2;
-                                name = "";
-                                pendingName = "";
-                                text = "";
-                                changed = true;
+                            if (plausible(-1, arg2)) {
+                                // The unit sends the band after the frequency of a band change (0/64, 3, 2, 4, 5 in the
+                                // recording), so the size of the number decides: FM is 8000-11000, AM 400-1800.
+                                boolean am = arg2 <= 1800;
+                                if (band >= 0 && am != (band == 2)) {
+                                    band = am ? 2 : 0; // FM1 until the band message says FM2
+                                    preset = -1;
+                                    changed = true;
+                                }
+                                if (freq != arg2) {
+                                    freq = arg2;
+                                    name = "";
+                                    pendingName = "";
+                                    text = "";
+                                    // a slot number from before is stale unless this is that slot's station (4/slot follows a recall)
+                                    if (preset >= 0 && band >= 0 && presetFreq[band][preset] != arg2) preset = -1;
+                                    changed = true;
+                                }
                             }
                             if (str != null && str.length() > 0 && takeName(str)) changed = true;
                             break;

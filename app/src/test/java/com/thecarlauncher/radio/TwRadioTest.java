@@ -32,13 +32,51 @@ public class TwRadioTest {
     }
 
     @Test
-    public void amUsesKilohertzAndFmValuesAreNotAcceptedThere() {
+    public void amUsesKilohertzAndTheSizeOfTheNumberCorrectsAStaleBand() {
         TwRadio.State s = new TwRadio.State();
         s.apply(1025, 1, 2, null); // AM
         assertTrue(s.apply(1025, 2, 1008, null));
         assertEquals(1008, s.freq);
-        assertFalse(s.apply(1025, 2, 10230, null)); // an FM number on AM is noise
+        // The unit sends the band after the frequency of a band change: an FM number while the band is still AM
+        // means the unit has moved to FM, it is not noise to be thrown away.
+        assertTrue(s.apply(1025, 2, 10230, null));
+        assertEquals(10230, s.freq);
+        assertEquals(0, s.band);
+        assertTrue(s.apply(1025, 5, 1, null)); // and the band message that follows has the last word (FM2)
+        assertEquals(1, s.band);
+    }
+
+    @Test
+    public void aBandChangeWithTheFrequencyFirstIsFollowed() {
+        TwRadio.State s = new TwRadio.State();
+        s.apply(1025, 5, 0, null);
+        s.apply(1025, 2, 8980, null);
+        s.apply(1025, 4, 10, null);
+        assertEquals(10, s.preset);
+        assertTrue(s.apply(1025, 2, 1008, null)); // AM frequency, band message not here yet
+        assertEquals(2, s.band);
         assertEquals(1008, s.freq);
+        assertEquals(-1, s.preset);               // the FM slot number does not belong to AM
+        assertEquals(8980, s.presetFreq[0][10]);  // and what was learned on FM stays there
+        assertEquals(0, s.presetFreq[2][10]);
+    }
+
+    @Test
+    public void aSeekAwayFromAPresetDropsTheSlotNumber() {
+        // 4/9 on 89.55, then a seek to 88.00: the unit sends no slot -1, so the old number would stay highlighted.
+        TwRadio.State s = new TwRadio.State();
+        s.apply(1025, 5, 0, null);
+        s.apply(1025, 2, 8955, null);
+        s.apply(1025, 4, 9, null);
+        assertEquals(9, s.preset);
+        s.apply(1025, 2, 8800, null);
+        assertEquals(-1, s.preset);
+        s.apply(1025, 2, 8955, null);             // back on the station: the unit says the slot again when it is a recall
+        s.apply(1025, 4, 9, null);
+        assertEquals(9, s.preset);
+        // a frequency that is the slot's own keeps the number (the unit may send 2 after 4)
+        s.apply(1025, 2, 8955, null);
+        assertEquals(9, s.preset);
     }
 
     @Test
@@ -185,7 +223,8 @@ public class TwRadioTest {
         s.apply(1025, 2, 8940, null);              // seeked away; the slot number is stale
         s.apply(1028, 0, 0, "OTHER");
         assertEquals("", s.presetName[0][10]);     // the other station's name must not land on slot 10
-        s.apply(1025, 2, 8980, null);              // back on the preset's station
+        s.apply(1025, 2, 8980, null);              // back on the preset's station, by recalling the slot
+        s.apply(1025, 4, 10, null);
         s.apply(1028, 0, 0, "RADYO D");
         assertEquals("RADYO D", s.presetName[0][10]);
         assertEquals(0, s.presetFreq[1][10]);      // another band is untouched

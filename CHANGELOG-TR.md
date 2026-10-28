@@ -24,9 +24,12 @@ en üstüne eklenir; GitHub sürüm sayfası bu en üst bölümü gösterir.
 - **Elle ayar geri geldi:** alt çubuktaki "Elle / Manual" tuşu ve frekans ölçeği açıldı; ölçeği bırakınca ünite o frekansa
   gider (fabrika uygulamasının frekans çubuğunun komutu). Yalnızca FM; komut izni ve etkin radyo kaynağı gerekir. İstasyon
   listesi tuşu ünitede yine yok.
+- **İstasyon logoları Türkçe adlarla da bulunur:** arama, Türkçe harfleri ve aksanları sadeleştirir ("TRT Türkü" ile RDS'teki
+  "TRTTURKU" artık aynı sayılır); boşluksuz RDS adları için ilk üç harfle ikinci bir arama yapılır. Türkiye ve Kıbrıs kanalları
+  öne alınır. Logolar yine bir kez inip ünitede kalır.
 - **İstasyon adı titremesi giderildi:** RDS adı ("A HABER") ara sıra bozuk harfle geliyordu ("A HABEa"); ad artık iki kez
   üst üste görülmeden değişmez.
-- **Hafızaya kaydetme:** bir hafıza karesine uzun basınca ya da boş kareye dokununca çalan istasyon ünitenin kendi hafızasına
+- **Hafızaya kaydetme:** bir hafıza karesine uzun basınca çalan istasyon ünitenin kendi hafızasına
   kaydedilir (fabrika uygulamasındaki uzun basışın aynısı). Komut izni açık ve radyo etkin kaynak olmalı; değilse ne eksik
   olduğunu söyleyen bir uyarı çıkar.
 

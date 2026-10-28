@@ -37,7 +37,7 @@ public final class RadioLogos {
             "https://fi1.api.radio-browser.info", "https://all.api.radio-browser.info"};
     /** Countries tried first when several stations share a name (the region the unit is used in). */
     private static final Set<String> NEAR = new HashSet<>(java.util.Arrays.asList(
-            "RS", "ME", "BA", "HR", "MK", "SI", "XK", "AL", "BG", "RO", "HU", "AT", "DE", "IT", "GR"));
+            "TR", "CY", "RS", "ME", "BA", "HR", "MK", "SI", "XK", "AL", "BG", "RO", "HU", "AT", "DE", "IT", "GR"));
 
     public interface Listener { void onLogo(); }
 
@@ -66,8 +66,15 @@ public final class RadioLogos {
         return d;
     }
 
+    /**
+     * The name as plain lowercase letters and digits, accents and Turkish letters folded to their Latin base ("TRT Türkü"
+     * and the RDS "TRTTURKU" both become "trtturku"), so a station is found whichever way its name is spelt.
+     */
     static String key(String name) {
-        return name == null ? "" : name.trim().toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", "");
+        if (name == null) return "";
+        String s = name.trim().toLowerCase(Locale.ROOT).replace('ı', 'i').replace('đ', 'd').replace('ł', 'l');
+        s = java.text.Normalizer.normalize(s, java.text.Normalizer.Form.NFD).replaceAll("\\p{M}", "");
+        return s.replaceAll("[^a-z0-9]", "");
     }
 
     public int count() {
@@ -152,18 +159,11 @@ public final class RadioLogos {
         String k = key(name);
         for (String server : SERVERS) {
             try {
-                String json = text(server + "/json/stations/byname/" + URLEncoder.encode(name, "UTF-8").replace("+", "%20")
-                        + "?limit=25&hidebroken=true&order=votes&reverse=true");
-                JSONArray arr = new JSONArray(json);
-                String best = null, any = null;
-                for (int i = 0; i < arr.length(); i++) {
-                    JSONObject o = arr.getJSONObject(i);
-                    String fav = o.optString("favicon", "");
-                    if (fav.isEmpty() || !key(o.optString("name")).contains(k)) continue;
-                    if (any == null) any = fav;
-                    if (best == null && NEAR.contains(o.optString("countrycode", ""))) best = fav;
+                String url = null;
+                for (String path : searchPaths(name)) {
+                    url = pick(rows(new JSONArray(text(server + path))), k);
+                    if (url != null) break;
                 }
-                String url = best != null ? best : any;
                 if (url == null) return false;
                 byte[] data = bytes(url);
                 Bitmap b = BitmapFactory.decodeByteArray(data, 0, data.length);
@@ -178,6 +178,44 @@ public final class RadioLogos {
             }
         }
         return false;
+    }
+
+    /**
+     * The searches to try, in order: the name as the unit sent it, then (for a name that is one run of letters, like the
+     * RDS "TRTTURKU" for "TRT Türkü") the first three letters, whose longer result list is filtered by {@link #pick}.
+     */
+    static List<String> searchPaths(String name) throws java.io.UnsupportedEncodingException {
+        List<String> out = new ArrayList<>();
+        String n = name.trim();
+        out.add("/json/stations/byname/" + URLEncoder.encode(n, "UTF-8").replace("+", "%20")
+                + "?limit=25&hidebroken=true&order=votes&reverse=true");
+        if (n.length() >= 5 && n.indexOf(' ') < 0) {
+            out.add("/json/stations/search?name=" + URLEncoder.encode(n.substring(0, 3), "UTF-8")
+                    + "&limit=400&hidebroken=true&order=votes&reverse=true");
+        }
+        return out;
+    }
+
+    /** The favicon of the best station whose name contains the key: one from the region first, else the first with a logo. */
+    static String pick(List<String[]> rows, String k) {
+        String best = null, any = null;
+        for (String[] r : rows) {
+            String fav = r[1];
+            if (fav.isEmpty() || !key(r[0]).contains(k)) continue;
+            if (any == null) any = fav;
+            if (best == null && NEAR.contains(r[2])) best = fav;
+        }
+        return best != null ? best : any;
+    }
+
+    /** The stations of an answer as {name, favicon, country code}. */
+    private static List<String[]> rows(JSONArray arr) throws org.json.JSONException {
+        List<String[]> out = new ArrayList<>();
+        for (int i = 0; i < arr.length(); i++) {
+            JSONObject o = arr.getJSONObject(i);
+            out.add(new String[]{o.optString("name", ""), o.optString("favicon", ""), o.optString("countrycode", "")});
+        }
+        return out;
     }
 
     private static String text(String url) throws Exception { return new String(bytes(url), "UTF-8"); }

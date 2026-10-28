@@ -352,7 +352,7 @@ public class RadioScreen extends Screen implements RadioController.Listener, com
     public void onRadioChanged() {
         if (freq == null) return;
         if (radio.unitTuner()) checkTuner();
-        if (!radio.unitTuner() || (!radio.isAm() && radio.freq() > 0)) scale.setFreq(radio.freq());
+        if (!radio.unitTuner() || (!radio.isAm() && radio.freq() > 0)) scale.showFreq(radio.freq());
         if (radio.unitTuner() && radio.presetIndexOfCurrent() >= 0 && radio.presetIndexOfCurrent() != lastTile) {
             // The pages are the unit's 18 slots: follow the page of the preset the unit is on.
             lastTile = radio.presetIndexOfCurrent();

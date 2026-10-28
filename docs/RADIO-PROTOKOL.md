@@ -42,7 +42,7 @@ başka bir tuş (kaynak/mod); basılınca radyo uygulaması açıldı ve durum b
 | `write(0x401, 2, 0)` / `(0x401, 2, 1)` | İnce adım: 0 yukarı, 1 aşağı (fabrikada `step_right` = 0, `step_left` = 1) | koddan |
 | `write(0x401, 5, band)` | Band seç (0 FM1, 1 FM2, 2 AM) | koddan |
 | `write(0x401, 255)` | **Tuner durumunu iste** (band, frekans, hafıza); fabrika uygulaması açılışta gönderir, ilk sürümde eksikti | koddan |
-| `write(0x401, 8, slot)` | **Çalan istasyonu hafızaya kaydet**: fabrika uygulamasında bir hafıza karesine uzun basınca gider. Launcher'da da uzun basış / boş kareye dokunuş bunu gönderir | koddan |
+| `write(0x401, 8, slot)` | **Çalan istasyonu hafızaya kaydet**: fabrika uygulamasında bir hafıza karesine uzun basınca gider. Launcher'da da uzun basış bunu gönderir. Kareye dokunmak ise (boş görünse de) fabrikadaki gibi o slotu çağırır: fabrika `onPClick` içinde slotun dolu olup olmadığına bakmadan `(0x402, slot, band)` gönderiyor | koddan |
 | `write(0x401, 6, 0)` | Ayarlardaki düğme (otomatik arama ve kaydetme olabilir); kullanılmıyor | düşük |
 | `write(0x401, 0, 0)` | Tarama ya da otomatik kaydetme (ne olduğu kesin değil) | düşük |
 | `write(0x401, 4, 0/1)` | Bir bayrağı değiştirir | düşük |
@@ -61,6 +61,9 @@ Fabrika uygulaması gibi kendi kanalını (`TWUtil(1)` + yukarıdaki kimlikler) 
 - **Hafıza kareleri 18 slottur** (6'lı üç sayfa), bant başına ayrı değil: karelerin her biri ünitenin o anki bandındaki slottur.
   Ünite listeyi kendiliğinden göndermediği için kareler ünitenin söylediklerinden öğrenir: `2/frekans` ardından `4/slot` gelince
   o slotun frekansı (ve RDS adı) hatırlanır; buradan kaydedilen istasyon da hemen görünür.
+- Frekans mesajı bandın değiştiği mesajdan önce gelebilir (kayıttaki sıra `0/64, 3, 2, 4, 5`): frekansın büyüklüğü bandı belirler
+  (FM 8000–11000, AM 400–1800), ardından gelen band mesajı son sözü söyler. Frekans değişince eski slot numarası bırakılır
+  (ünite, hafıza dışı bir istasyona gidince `4/-1` göndermiyor).
 - **Elle ayar**: ölçek bırakılınca `write(0x402, 255, frekans)` gider.
 - RDS adı iki kez üst üste görülmeden değişmez (titreme süzgeci).
 - Band mesajı `5/0` da kabul edilir.

@@ -20,6 +20,7 @@ public class FmScaleView extends View {
     }
 
     // Positions measured on the factory scale image (958 px wide): 88 MHz at x=92, 108 MHz at x=885.
+    private static final long HOLD_MS = 1500;
     private static final float IMG_W = 958f, IMG_H = 111f, X88 = 92f, X108 = 885f, DOT_Y = 70f;
 
     private final Drawable scale;
@@ -27,6 +28,7 @@ public class FmScaleView extends View {
     private final RectF box = new RectF();
     private int freq = RadioController.FM_MIN;
     private Listener listener;
+    private long holdUntil;
 
     public FmScaleView(Context c) {
         super(c);
@@ -39,6 +41,15 @@ public class FmScaleView extends View {
         if (f == freq) return;
         freq = f;
         invalidate();
+    }
+
+    /**
+     * The tuner's own frequency, as it reports it: ignored while a finger is on the dial and for a moment after it is
+     * let go, so an update that was already on its way (RDS text, the old frequency) cannot pull the needle back.
+     */
+    public void showFreq(int f) {
+        if (android.os.SystemClock.uptimeMillis() < holdUntil) return;
+        setFreq(f);
     }
 
     private float k() { return box.width() / IMG_W; }
@@ -73,18 +84,29 @@ public class FmScaleView extends View {
     }
 
     @Override
+    protected void onDetachedFromWindow() {
+        holdUntil = 0; // a touch that never ended must not freeze the needle
+        super.onDetachedFromWindow();
+    }
+
+    @Override
     public boolean onTouchEvent(MotionEvent e) {
         int f = freqAt(e.getX());
         switch (e.getActionMasked()) {
             case MotionEvent.ACTION_DOWN:
                 getParent().requestDisallowInterceptTouchEvent(true);
             case MotionEvent.ACTION_MOVE:
+                holdUntil = Long.MAX_VALUE;
                 setFreq(f);
                 if (listener != null) listener.onTune(f, false);
                 return true;
             case MotionEvent.ACTION_UP:
+                holdUntil = android.os.SystemClock.uptimeMillis() + HOLD_MS;
                 setFreq(f);
                 if (listener != null) listener.onTune(f, true);
+                return true;
+            case MotionEvent.ACTION_CANCEL:
+                holdUntil = android.os.SystemClock.uptimeMillis() + HOLD_MS;
                 return true;
             default:
                 return true;
