@@ -550,15 +550,18 @@ public final class AmbientBle {
         for (byte[] m : messages(app)) send(m);
     }
 
-    /** The colour of a zone (1 or 2): its own when it was set, else the main Ambient colour. */
+    /**
+     * The colour of a zone (1 or 2). Zone 1 is the main Ambient colour (the one that colours the screen); Zone 2 has its own
+     * once it was set apart and follows the main one before that.
+     */
     public static int zoneColor(Context c, int zone) {
-        int own = Prefs.integer(c, zone == 1 ? Prefs.AMBIENT_Z1 : Prefs.AMBIENT_Z2, 0);
+        int own = zone == 2 ? Prefs.integer(c, Prefs.AMBIENT_Z2, 0) : 0;
         return own != 0 ? own : Prefs.integer(c, Prefs.AMBIENT, Mib.DEFAULT_AMBIENT);
     }
 
-    /** The level of a zone (1 or 2): its own when it was set, else the main Ambient level. */
+    /** The level of a zone (1 or 2), by the same rule as {@link #zoneColor}. */
     public static int zoneLevel(Context c, int zone) {
-        int own = Prefs.integer(c, zone == 1 ? Prefs.AMBIENT_L1 : Prefs.AMBIENT_L2, 0);
+        int own = zone == 2 ? Prefs.integer(c, Prefs.AMBIENT_L2, 0) : 0;
         return own != 0 ? own : Prefs.integer(c, Prefs.AMBIENT_LEVEL, 100);
     }
 

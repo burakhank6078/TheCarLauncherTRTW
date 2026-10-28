@@ -17,8 +17,9 @@ en üstüne eklenir; GitHub sürüm sayfası bu en üst bölümü gösterir.
 **Ambiyans şeridi (LAMP&FRGN)**
 - **İki bölge ayrı ayarlanır:** LAMP&FRGN uygulamasındaki "Bölge 1" ve "Bölge 2" artık Ambiyans ekranından ayrı renk ve ayrı
   parlaklıkla sürülür. Şerit açıksa renk çubuğunun yanında bir bölge tuşu çıkar: **Hepsi → 1 → 2**. Bir bölge seçiliyken renk
-  ve parlaklık (güneş tuşu) yalnızca o bölgeyi değiştirir, ekranın kendi vurgu rengi aynı kalır; "Hepsi" seçilip bir şey
-  seçilince iki bölge yine birlikte gider. Hangi bölgenin ayak aydınlatması, hangisinin şerit olduğunu dokunup görerek anlayın.
+  ve parlaklık (güneş tuşu) yalnızca o bölgeyi değiştirir; "Hepsi" seçilip bir şey seçilince iki bölge yine birlikte gider.
+  **Ekranın kendi rengi (MIB vurgu rengi) Hepsi'yi ve Bölge 1'i izler, Bölge 2'ye hiç bakmaz**; Bölge 2 yalnızca şeridi
+  değiştirir. Hangi bölgenin ayak aydınlatması, hangisinin şerit olduğunu dokunup görerek anlayın.
   Komut biçimleri uygulamanın kodundan okundu (iki bölge: renk `8D 01 00 R1G1B1 R2G2B2`, parlaklık `8D 00 40 L1 L2`).
 - **Renkler şeritte solmuyor:** paletteki pastel renkler (buz mavisi, lavanta, gül…) ekran için seçilmişti; LED şeritte sıfır
   olmayan her kanal beyaz katar, bu yüzden bu renkler soluk çıkıyor ve kısılınca beyaza dönüyordu. Renk artık şeride tam

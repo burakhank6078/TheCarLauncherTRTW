@@ -27,9 +27,11 @@ public final class Prefs {
     public static final String LANGUAGE = "language";
     public static final String AMBIENT = "ambient_color";
     public static final String AMBIENT_LEVEL = "ambient_level";
-    /** The strip's two zones (Zone 1 and Zone 2 of the LAMP&FRGN app): colour and level of each; 0 = follows the main value. */
-    public static final String AMBIENT_Z1 = "ambient_z1", AMBIENT_Z2 = "ambient_z2";
-    public static final String AMBIENT_L1 = "ambient_l1", AMBIENT_L2 = "ambient_l2";
+    /**
+     * Zone 2 of the LAMP&FRGN strip: its own colour and level, 0 = follows the main Ambient values. Zone 1 is the main
+     * Ambient colour and level themselves (which also colour the screen).
+     */
+    public static final String AMBIENT_Z2 = "ambient_z2", AMBIENT_L2 = "ambient_l2";
     /** Sends the strip saturated colours (a pastel colour looks white on LEDs); default on. */
     public static final String AMBIENT_VIVID = "ambient_led_vivid";
     public static final String SHOT_HIDE_STREET = "screenshot_hide_street";

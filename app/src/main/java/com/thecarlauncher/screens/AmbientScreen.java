@@ -180,26 +180,28 @@ public class AmbientScreen extends Screen {
     private int zone;
     private TextView zoneLabel;
 
+    /*
+     * Zone 1 (and "All") is the main Ambient colour and level, which is also what colours the screen; Zone 2 has its own
+     * values that only the strip uses, and follows the main ones until it is set apart.
+     */
     private int level() {
-        return zone == 0 ? Prefs.integer(act, Prefs.AMBIENT_LEVEL, 100) : com.thecarlauncher.util.AmbientBle.zoneLevel(act, zone);
+        return zone == 2 ? com.thecarlauncher.util.AmbientBle.zoneLevel(act, 2) : Prefs.integer(act, Prefs.AMBIENT_LEVEL, 100);
     }
 
     private int currentColor() {
-        return zone == 0 ? Prefs.integer(act, Prefs.AMBIENT, Mib.DEFAULT_AMBIENT) : com.thecarlauncher.util.AmbientBle.zoneColor(act, zone);
+        return zone == 2 ? com.thecarlauncher.util.AmbientBle.zoneColor(act, 2) : Prefs.integer(act, Prefs.AMBIENT, Mib.DEFAULT_AMBIENT);
     }
 
-    /** Makes both zones hold their own value, so changing one leaves the other as it is now. */
-    private void splitZones() {
-        Prefs.put(act, Prefs.AMBIENT_Z1, com.thecarlauncher.util.AmbientBle.zoneColor(act, 1));
+    /** Makes Zone 2 hold its own value, so changing Zone 1 leaves it as it is now. */
+    private void setZone2Apart() {
         Prefs.put(act, Prefs.AMBIENT_Z2, com.thecarlauncher.util.AmbientBle.zoneColor(act, 2));
-        Prefs.put(act, Prefs.AMBIENT_L1, com.thecarlauncher.util.AmbientBle.zoneLevel(act, 1));
         Prefs.put(act, Prefs.AMBIENT_L2, com.thecarlauncher.util.AmbientBle.zoneLevel(act, 2));
     }
 
     /** Next of: all, zone 1, zone 2. The pickers then show and change that part of the strip. */
     private void cycleZone() {
         zone = (zone + 1) % 3;
-        if (zone != 0) splitZones();
+        if (zone != 0) setZone2Apart();
         zoneLabel.setText(zone == 0 ? Mib.t(act, "Sve", "All", "Hepsi") : String.valueOf(zone));
         index = indexOf(currentColor());
         show(index);
@@ -211,19 +213,19 @@ public class AmbientScreen extends Screen {
     private void pick(int i, boolean done) {
         show(i);
         if (!done) return;
-        if (zone != 0) {
-            // one zone of the strip: the screen's own accent colour stays as it is
-            if (color(i) != com.thecarlauncher.util.AmbientBle.zoneColor(act, zone)) {
-                Prefs.put(act, zone == 1 ? Prefs.AMBIENT_Z1 : Prefs.AMBIENT_Z2, color(i));
+        if (zone == 2) {
+            // Zone 2 is only on the strip: the screen keeps the colour of Zone 1
+            if (color(i) != com.thecarlauncher.util.AmbientBle.zoneColor(act, 2)) {
+                Prefs.put(act, Prefs.AMBIENT_Z2, color(i));
                 com.thecarlauncher.util.AmbientBle.get(act).syncFromPrefs();
             }
             return;
         }
+        // All or Zone 1: this is the colour of the screen too
         if (color(i) != Prefs.integer(act, Prefs.AMBIENT, Mib.DEFAULT_AMBIENT)
-                || Prefs.integer(act, Prefs.AMBIENT_Z1, 0) != 0 || Prefs.integer(act, Prefs.AMBIENT_Z2, 0) != 0) {
+                || (zone == 0 && Prefs.integer(act, Prefs.AMBIENT_Z2, 0) != 0)) {
             Prefs.put(act, Prefs.AMBIENT, color(i));
-            Prefs.put(act, Prefs.AMBIENT_Z1, 0); // both zones follow the main colour again
-            Prefs.put(act, Prefs.AMBIENT_Z2, 0);
+            if (zone == 0) Prefs.put(act, Prefs.AMBIENT_Z2, 0); // Zone 2 follows again
             com.thecarlauncher.util.AmbientBle.get(act).syncFromPrefs();
             act.restartUi();
         }
@@ -245,19 +247,17 @@ public class AmbientScreen extends Screen {
                     public void onClick(android.content.DialogInterface d, int i) {
                         d.dismiss();
                         int old = level();
-                        if (LEVELS[i] == old && (zone != 0 || (Prefs.integer(act, Prefs.AMBIENT_L1, 0) == 0
-                                && Prefs.integer(act, Prefs.AMBIENT_L2, 0) == 0))) return;
-                        if (zone == 0) {
-                            Prefs.put(act, Prefs.AMBIENT_LEVEL, LEVELS[i]);
-                            Prefs.put(act, Prefs.AMBIENT_L1, 0); // both zones follow the main level again
-                            Prefs.put(act, Prefs.AMBIENT_L2, 0);
+                        if (LEVELS[i] == old && (zone != 0 || Prefs.integer(act, Prefs.AMBIENT_L2, 0) == 0)) return;
+                        if (zone == 2) {
+                            Prefs.put(act, Prefs.AMBIENT_L2, LEVELS[i]);
                         } else {
-                            Prefs.put(act, zone == 1 ? Prefs.AMBIENT_L1 : Prefs.AMBIENT_L2, LEVELS[i]);
+                            Prefs.put(act, Prefs.AMBIENT_LEVEL, LEVELS[i]);
+                            if (zone == 0) Prefs.put(act, Prefs.AMBIENT_L2, 0); // Zone 2 follows again
                         }
                         com.thecarlauncher.util.AmbientBle.get(act).syncFromPrefs();
-                        // The screen's accent stops dimming at 60 %; below that only the strip changes. A single zone
-                        // never changes the screen.
-                        if (zone == 0 && Math.max(60, old) != Math.max(60, LEVELS[i])) act.restartUi();
+                        // The screen's accent stops dimming at 60 %; below that only the strip changes. Zone 2 never
+                        // changes the screen.
+                        if (zone != 2 && Math.max(60, old) != Math.max(60, LEVELS[i])) act.restartUi();
                         else show(index);
                     }
                 })
@@ -276,7 +276,7 @@ public class AmbientScreen extends Screen {
 
     @Override
     public void onShow() {
-        show(indexOf(Prefs.integer(act, Prefs.AMBIENT, Mib.DEFAULT_AMBIENT)));
+        show(indexOf(currentColor()));
     }
 
     @Override
