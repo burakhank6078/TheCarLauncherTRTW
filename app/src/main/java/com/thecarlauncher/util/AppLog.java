@@ -248,6 +248,8 @@ public final class AppLog {
         } catch (Throwable ignored) {
         }
         write("SYS", ab.toString());
+        // The factory radio's own station logos (looked up by PI code): where they are on this unit, if anywhere.
+        for (String l : com.thecarlauncher.radio.RadioLogoProbe.describe()) write("SYS", "radiologo " + l);
         try {
             List<PackageInfo> all = app.getPackageManager().getInstalledPackages(0);
             StringBuilder p = new StringBuilder();

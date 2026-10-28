@@ -27,6 +27,15 @@ en üstüne eklenir; GitHub sürüm sayfası bu en üst bölümü gösterir.
 - **İstasyon logoları Türkçe adlarla da bulunur:** arama, Türkçe harfleri ve aksanları sadeleştirir ("TRT Türkü" ile RDS'teki
   "TRTTURKU" artık aynı sayılır); boşluksuz RDS adları için ilk üç harfle ikinci bir arama yapılır. Türkiye ve Kıbrıs kanalları
   öne alınır. Logolar yine bir kez inip ünitede kalır.
+- **Kaydedilen kareye RDS adı da gelir:** bir istasyonu hafızaya kaydedince ya da bir hafızaya gidince ad, frekanstan birkaç
+  saniye sonra geliyor; kare o zamana kadar yalnızca frekansı bilip adı hiç almıyordu. Ad artık sonradan gelse de aynı
+  frekansı tutan, adsız tüm karelere işlenir (ünitede aynı istasyon iki slotta da olabiliyor).
+- **Çakma görünen logolar elendi:** internetten inen logo kısa kenarı 96 pikselden küçükse ya da afiş gibi uzunsa (ekrana
+  büyütülünce bulanıklaşıyor) kullanılmaz; sonraki adaylar denenir, hiçbiri yeterince net değilse karede yalnızca ad kalır.
+  Eski sürümlerin kaydettiği küçük logolar silinip daha netiyle değiştirilir.
+- **Fabrika radyonun kendi logoları için hazırlık:** fabrika radyo, logoyu RDS PI koduna ve frekansa göre ünitenin kendi
+  veritabanından alıyor (`radio_data.txt` + `RadioLogo.zip`). Tanılama kaydı artık bu dosyaların bu ünitede olup olmadığını
+  `SYS radiologo` satırlarıyla yazar; kayıt gelince fabrikanın logoları okunacak.
 - **İstasyon adı titremesi giderildi:** RDS adı ("A HABER") ara sıra bozuk harfle geliyordu ("A HABEa"); ad artık iki kez
   üst üste görülmeden değişmez.
 - **Hafızaya kaydetme:** bir hafıza karesine uzun basınca çalan istasyon ünitenin kendi hafızasına

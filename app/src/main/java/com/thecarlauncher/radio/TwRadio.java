@@ -75,6 +75,15 @@ public final class TwRadio {
                 name = s;
                 pendingName = "";
                 if (preset >= 0 && band >= 0 && presetFreq[band][preset] == freq) presetName[band][preset] = s; // the slot's own station
+                // Any other slot of this band that holds this frequency and has no name yet gets it too: the name can arrive
+                // after the slot was stored or recalled, and the tile would show the frequency for good.
+                if (band >= 0) {
+                    for (int i = 0; i < SLOTS; i++) {
+                        if (presetFreq[band][i] == freq && (presetName[band][i] == null || presetName[band][i].isEmpty())) {
+                            presetName[band][i] = s;
+                        }
+                    }
+                }
                 return true;
             }
             pendingName = s;
@@ -468,6 +477,7 @@ public final class TwRadio {
         if (!canStore(tile)) return false;
         send(1025, 8, tile);
         synchronized (state) {
+            state.preset = tile; // the playing station now is that slot, so its name is kept when it arrives
             state.rememberPreset(tile);
         }
         changed();

@@ -43,6 +43,31 @@ public class RadioLogosTest {
     }
 
     @Test
+    public void onlySharpLogosOfSensibleShapeAreKept() {
+        assertTrue(RadioLogos.goodSize(256, 256));
+        assertTrue(RadioLogos.goodSize(96, 150));
+        assertEquals(false, RadioLogos.goodSize(64, 64));    // a favicon blown up to a tile looks cheap
+        assertEquals(false, RadioLogos.goodSize(512, 100));  // a banner
+        assertEquals(false, RadioLogos.goodSize(95, 400));
+    }
+
+    @Test
+    public void candidatesComeFromTheRegionFirstWithoutDuplicatesAndAreLimited() {
+        java.util.List<String[]> rows = java.util.Arrays.asList(
+                row("Radio X", "http://x/us.png", "US"),
+                row("Radio X", "http://x/tr1.png", "TR"),
+                row("Radio X FM", "http://x/tr1.png", "TR"),   // the same logo again
+                row("Radio X 2", "http://x/de.png", "DE"),
+                row("Radio X 3", "http://x/fr.png", "FR"),
+                row("Radio X 4", "http://x/es.png", "ES"),
+                row("Radio X 5", "http://x/it.png", "IT"));
+        java.util.List<String> c = RadioLogos.candidates(rows, "radiox");
+        assertEquals(4, c.size());
+        assertEquals("http://x/tr1.png", c.get(0));
+        assertEquals("http://x/de.png", c.get(1));   // DE is also in the region list
+    }
+
+    @Test
     public void aNameWithoutSpacesAlsoGetsAShortPrefixSearch() throws Exception {
         assertEquals(2, RadioLogos.searchPaths("TRTTURKU").size());
         assertTrue(RadioLogos.searchPaths("TRTTURKU").get(1).contains("name=TRT"));

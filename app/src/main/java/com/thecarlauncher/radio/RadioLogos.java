@@ -39,6 +39,8 @@ public final class RadioLogos {
     private static final Set<String> NEAR = new HashSet<>(java.util.Arrays.asList(
             "TR", "CY", "RS", "ME", "BA", "HR", "MK", "SI", "XK", "AL", "BG", "RO", "HU", "AT", "DE", "IT", "GR"));
 
+    private static final int MIN_SIDE = 96, MAX_TRIES = 4;
+
     public interface Listener { void onLogo(); }
 
     private static RadioLogos instance;
@@ -91,10 +93,11 @@ public final class RadioLogos {
         File f = new File(dir(), k + ".png");
         if (f.exists()) {
             b = BitmapFactory.decodeFile(f.getPath());
-            if (b != null) {
+            if (goodLogo(b)) {
                 memory.put(k, b);
                 return b;
             }
+            if (b != null) f.delete(); // a small one saved by an earlier version: dropped, a sharper one is looked up below
         }
         if (Prefs.bool(app, P_ON, true) && !missed.contains(k) && loading.add(k)) {
             final String n = name.trim();
@@ -159,14 +162,21 @@ public final class RadioLogos {
         String k = key(name);
         for (String server : SERVERS) {
             try {
-                String url = null;
+                List<String> urls = new ArrayList<>();
                 for (String path : searchPaths(name)) {
-                    url = pick(rows(new JSONArray(text(server + path))), k);
-                    if (url != null) break;
+                    urls = candidates(rows(new JSONArray(text(server + path))), k);
+                    if (!urls.isEmpty()) break;
                 }
-                if (url == null) return false;
-                byte[] data = bytes(url);
-                Bitmap b = BitmapFactory.decodeByteArray(data, 0, data.length);
+                // The first logo that is sharp enough: a small favicon blown up to a tile looks cheap, so none is better.
+                Bitmap b = null;
+                for (String url : urls) {
+                    byte[] data = bytes(url);
+                    Bitmap c = BitmapFactory.decodeByteArray(data, 0, data.length);
+                    if (goodLogo(c)) {
+                        b = c;
+                        break;
+                    }
+                }
                 if (b == null) return false;
                 FileOutputStream fo = new FileOutputStream(new File(dir(), k + ".png"));
                 b.compress(Bitmap.CompressFormat.PNG, 100, fo);
@@ -198,15 +208,30 @@ public final class RadioLogos {
 
     /** The favicon of the best station whose name contains the key: one from the region first, else the first with a logo. */
     static String pick(List<String[]> rows, String k) {
-        String best = null, any = null;
+        List<String> c = candidates(rows, k);
+        return c.isEmpty() ? null : c.get(0);
+    }
+
+    /** The logos of the stations whose name contains the key, those from the region first, at most four. */
+    static List<String> candidates(List<String[]> rows, String k) {
+        List<String> near = new ArrayList<>(), other = new ArrayList<>();
         for (String[] r : rows) {
             String fav = r[1];
             if (fav.isEmpty() || !key(r[0]).contains(k)) continue;
-            if (any == null) any = fav;
-            if (best == null && NEAR.contains(r[2])) best = fav;
+            List<String> into = NEAR.contains(r[2]) ? near : other;
+            if (!near.contains(fav) && !other.contains(fav)) into.add(fav);
         }
-        return best != null ? best : any;
+        near.addAll(other);
+        return near.size() > MAX_TRIES ? new ArrayList<>(near.subList(0, MAX_TRIES)) : near;
     }
+
+    /** Sharp enough for a tile (at least 96 px on the short side) and not a banner or a sliver. */
+    static boolean goodSize(int w, int h) {
+        int small = Math.min(w, h), big = Math.max(w, h);
+        return small >= MIN_SIDE && big <= small * 3;
+    }
+
+    private static boolean goodLogo(Bitmap b) { return b != null && goodSize(b.getWidth(), b.getHeight()); }
 
     /** The stations of an answer as {name, favicon, country code}. */
     private static List<String[]> rows(JSONArray arr) throws org.json.JSONException {

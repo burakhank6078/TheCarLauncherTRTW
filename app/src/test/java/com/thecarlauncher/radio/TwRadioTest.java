@@ -231,6 +231,34 @@ public class TwRadioTest {
     }
 
     @Test
+    public void aNameThatArrivesAfterTheSlotWasStoredStillReachesTheTile() {
+        // Stored right after tuning: the RDS name is not here yet, so the slot is first saved without one.
+        TwRadio.State s = new TwRadio.State();
+        s.apply(1025, 5, 0, null);
+        s.apply(1025, 2, 9890, null);
+        s.preset = 3;
+        assertTrue(s.rememberPreset(3));
+        assertEquals("", s.presetName[0][3]);
+        assertTrue(s.apply(1028, 0, 0, "RADYO D"));
+        assertEquals("RADYO D", s.presetName[0][3]);
+    }
+
+    @Test
+    public void everySlotWithThatFrequencyAndNoNameGetsTheName() {
+        // The unit may hold the same station twice (slots 0 and 1 were both 102.40 in the recording).
+        TwRadio.State s = new TwRadio.State();
+        s.apply(1025, 5, 0, null);
+        s.apply(1025, 2, 10240, null);
+        s.apply(1025, 4, 0, null);
+        s.apply(1025, 4, 1, null);
+        assertEquals(10240, s.presetFreq[0][1]);
+        s.apply(1028, 0, 0, "RADYO D");
+        assertEquals("RADYO D", s.presetName[0][1]);
+        assertEquals("RADYO D", s.presetName[0][0]);       // the other slot with the same station
+        assertEquals("", s.presetName[0][5] == null ? "" : s.presetName[0][5]);
+    }
+
+    @Test
     public void storingFillsTheSlotAtOnce() {
         TwRadio.State s = new TwRadio.State();
         assertFalse(s.rememberPreset(3));          // nothing is playing yet
