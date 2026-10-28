@@ -259,6 +259,47 @@ public class TwRadioTest {
     }
 
     @Test
+    public void namedStationsAreKeptPerBandForTheStationList() {
+        TwRadio.State s = new TwRadio.State();
+        s.apply(1025, 5, 0, null);
+        s.apply(1025, 2, 8800, null);
+        s.apply(1028, 0, 0, "A HABER");
+        assertEquals("A HABER", s.heardFm.get(8800));
+        assertTrue(s.heardDirty);
+        s.heardDirty = false;
+        s.apply(1028, 0, 0, "A HABEa");                 // a flicker is not a new station name
+        assertFalse(s.heardDirty);
+        s.apply(1025, 5, 2, null);                      // AM
+        s.apply(1025, 2, 1008, null);
+        s.apply(1028, 0, 0, "TRT RADYO 1");
+        assertEquals("TRT RADYO 1", s.heardAm.get(1008));
+        assertEquals(1, s.heardFm.size());              // AM stations are a list of their own
+    }
+
+    @Test
+    public void theListIsLimitedAndSurvivesBeingSavedAndLoaded() {
+        TwRadio.State s = new TwRadio.State();
+        s.apply(1025, 5, 0, null);
+        for (int i = 0; i < TwRadio.MAX_HEARD + 10; i++) {
+            s.apply(1025, 2, 8800 + i * 5, null);
+            s.apply(1028, 0, 0, "ST" + i);
+        }
+        assertEquals(TwRadio.MAX_HEARD, s.heardFm.size());
+        assertEquals(false, s.heardFm.containsKey(8800)); // the lowest frequencies went first
+        String saved = TwRadio.State.encodeHeard(s.heardFm);
+        java.util.TreeMap<Integer, String> back = new java.util.TreeMap<>();
+        TwRadio.State.decodeHeard(saved, back);
+        assertEquals(s.heardFm, back);
+        // names with the separator characters and broken pieces do not break loading
+        java.util.TreeMap<Integer, String> odd = new java.util.TreeMap<>();
+        odd.put(9000, "A;B=C");
+        java.util.TreeMap<Integer, String> again = new java.util.TreeMap<>();
+        TwRadio.State.decodeHeard(TwRadio.State.encodeHeard(odd) + ";x=y;=z;9100=", again);
+        assertEquals("A B C", again.get(9000));
+        assertEquals(1, again.size());
+    }
+
+    @Test
     public void storingFillsTheSlotAtOnce() {
         TwRadio.State s = new TwRadio.State();
         assertFalse(s.rememberPreset(3));          // nothing is playing yet

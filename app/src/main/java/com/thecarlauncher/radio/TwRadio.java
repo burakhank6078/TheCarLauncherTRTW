@@ -11,6 +11,8 @@ import com.thecarlauncher.util.AppLog;
 import com.thecarlauncher.util.Prefs;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
@@ -30,6 +32,9 @@ public final class TwRadio {
     public static final int SLOTS = 18;
     public static final int PAGE = 6;
     public static final int BANDS = 3; // FM1, FM2, AM
+    /** Named stations kept in the launcher's own list per band group (FM, AM). */
+    static final int MAX_HEARD = 80;
+    private static final String HEARD_FM = "twradio_heard_fm", HEARD_AM = "twradio_heard_am";
 
     private static final int MODULE = 1;
     private static final short[] IDS = {265, 266, 274, 513, 515, 769, 1025, 1026, 1028, 1029, 1030, -25088, -25087};
@@ -61,6 +66,42 @@ public final class TwRadio {
         /** The preset list the unit sent, per band and slot; a frequency of 0 = nothing stored (or not sent yet). */
         final int[][] presetFreq = new int[BANDS][SLOTS];
         final String[][] presetName = new String[BANDS][SLOTS];
+        /** Stations that sent a name while the unit was tuned to them, by frequency: the launcher's own station list. */
+        final java.util.TreeMap<Integer, String> heardFm = new java.util.TreeMap<>(), heardAm = new java.util.TreeMap<>();
+        boolean heardDirty;
+
+        /** Remembers a named station of the playing band (at most {@link #MAX_HEARD} per band, the oldest frequencies first out). */
+        private void noteHeard(String s) {
+            if (freq <= 0 || band < 0 || s.isEmpty()) return;
+            java.util.TreeMap<Integer, String> m = band == 2 ? heardAm : heardFm;
+            if (s.equals(m.get(freq))) return;
+            m.put(freq, s);
+            while (m.size() > MAX_HEARD) m.remove(m.firstKey());
+            heardDirty = true;
+        }
+
+        static String encodeHeard(java.util.Map<Integer, String> m) {
+            StringBuilder sb = new StringBuilder();
+            for (java.util.Map.Entry<Integer, String> e : m.entrySet()) {
+                sb.append(sb.length() > 0 ? ";" : "").append(e.getKey()).append('=').append(e.getValue().replace(';', ' ').replace('=', ' '));
+            }
+            return sb.toString();
+        }
+
+        static void decodeHeard(String text, java.util.Map<Integer, String> into) {
+            if (text == null) return;
+            for (String part : text.split(";")) {
+                int eq = part.indexOf('=');
+                if (eq <= 0) continue;
+                try {
+                    int f = Integer.parseInt(part.substring(0, eq));
+                    String n = part.substring(eq + 1).trim();
+                    if (f > 0 && !n.isEmpty()) into.put(f, n);
+                } catch (NumberFormatException ignored) {
+                    // a broken entry is skipped
+                }
+            }
+        }
 
         /**
          * A station name is taken when nothing is shown yet or when it arrives twice in a row: the RDS name flickers
@@ -74,6 +115,7 @@ public final class TwRadio {
             if (name.isEmpty() || s.equals(pendingName)) {
                 name = s;
                 pendingName = "";
+                noteHeard(s);
                 if (preset >= 0 && band >= 0 && presetFreq[band][preset] == freq) presetName[band][preset] = s; // the slot's own station
                 // Any other slot of this band that holds this frequency and has no name yet gets it too: the name can arrive
                 // after the slot was stored or recalled, and the tile would show the frequency for good.
@@ -229,6 +271,8 @@ public final class TwRadio {
 
     private TwRadio(Context c) {
         app = c;
+        State.decodeHeard(Prefs.str(c, HEARD_FM, ""), state.heardFm);
+        State.decodeHeard(Prefs.str(c, HEARD_AM, ""), state.heardAm);
         if (Prefs.of(c).getBoolean(TRY, false)) addSuspect(c); // the app died while the channel was being opened
     }
 
@@ -324,9 +368,16 @@ public final class TwRadio {
                 public void handleMessage(Message m) {
                     try {
                         boolean ch;
+                        String saveFm = null, saveAm = null;
                         synchronized (state) {
                             ch = state.apply(m.what, m.arg1, m.arg2, m.obj);
+                            if (state.heardDirty) {
+                                state.heardDirty = false;
+                                saveFm = State.encodeHeard(state.heardFm);
+                                saveAm = State.encodeHeard(state.heardAm);
+                            }
                         }
+                        if (saveFm != null) Prefs.of(app).edit().putString(HEARD_FM, saveFm).putString(HEARD_AM, saveAm).apply();
                         if (ch) changed();
                         com.thecarlauncher.car.TwProbe.get().radioTap(m); // the recorder sees the same messages
                     } catch (Throwable ignored) {
@@ -481,6 +532,31 @@ public final class TwRadio {
             state.rememberPreset(tile);
         }
         changed();
+        return true;
+    }
+
+    /** The stations heard on the current band (AM or FM) as the launcher's own list, by frequency. */
+    public List<RadioController.Station> heard() {
+        List<RadioController.Station> out = new ArrayList<>();
+        synchronized (state) {
+            for (java.util.Map.Entry<Integer, String> e : (state.band == 2 ? state.heardAm : state.heardFm).entrySet()) {
+                out.add(new RadioController.Station(e.getKey(), e.getValue()));
+            }
+        }
+        return out;
+    }
+
+    /** The band as the factory app names it: FM1, FM2 or AM; empty while not known. */
+    public String bandText() {
+        int b = band();
+        return b == 2 ? "AM" : b == 1 ? "FM2" : b == 0 ? "FM1" : "";
+    }
+
+    /** Switches to the next band (FM1, FM2, AM) with write(1025, 5, band), as the factory app's band key does. */
+    public boolean cycleBand() {
+        int b = band();
+        if (b < 0 || !canSend() || !isRadioSource()) return false;
+        send(1025, 5, (b + 1) % BANDS);
         return true;
     }
 

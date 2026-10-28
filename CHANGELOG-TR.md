@@ -21,6 +21,11 @@ en üstüne eklenir; GitHub sürüm sayfası bu en üst bölümü gösterir.
 - **Hafıza kareleri:** ünite bantta 18 hafıza tutar (6'lı üç sayfa). Kareler ünitenin o anki bandındaki slotlara bağlandı.
   Ünite listeyi kendiliğinden vermediği için kareler, hafızaya gidildikçe (kare ya da direksiyon tuşuyla) ya da buradan
   kaydedildikçe dolar. Sayfa, seçili hafızanın sayfasını izler.
+- **Radyo ekranı fabrikadaki düzene yaklaştı:** üstte büyük frekans, altında küçük istasyon adı (önceden ad, frekansın yerini
+  alıyordu); hafıza karelerinin içinde frekans, altında ad; alt çubuk dolu: **band tuşu** (FM1 / FM2 / AM, dokununca sıradaki
+  banda geçer), **İstasyonlar** ve **Elle**. İstasyonlar listesi, ünitenin ad gönderdiği istasyonlardan kendiliğinden dolar
+  (FM ve AM için ayrı, en çok 80'er, uygulama kapansa da kalır); satıra dokununca o istasyona gider. Ünite kendi listesini
+  vermediği için "listeyi güncelle" taraması henüz yok.
 - **Elle ayar geri geldi:** alt çubuktaki "Elle / Manual" tuşu ve frekans ölçeği açıldı; ölçeği bırakınca ünite o frekansa
   gider (fabrika uygulamasının frekans çubuğunun komutu). Yalnızca FM; komut izni ve etkin radyo kaynağı gerekir. İstasyon
   listesi tuşu ünitede yine yok.
@@ -30,9 +35,12 @@ en üstüne eklenir; GitHub sürüm sayfası bu en üst bölümü gösterir.
 - **Kaydedilen kareye RDS adı da gelir:** bir istasyonu hafızaya kaydedince ya da bir hafızaya gidince ad, frekanstan birkaç
   saniye sonra geliyor; kare o zamana kadar yalnızca frekansı bilip adı hiç almıyordu. Ad artık sonradan gelse de aynı
   frekansı tutan, adsız tüm karelere işlenir (ünitede aynı istasyon iki slotta da olabiliyor).
-- **Çakma görünen logolar elendi:** internetten inen logo kısa kenarı 96 pikselden küçükse ya da afiş gibi uzunsa (ekrana
-  büyütülünce bulanıklaşıyor) kullanılmaz; sonraki adaylar denenir, hiçbiri yeterince net değilse karede yalnızca ad kalır.
-  Eski sürümlerin kaydettiği küçük logolar silinip daha netiyle değiştirilir.
+- **Logo eşleşmesi gevşetildi, bulanık olanlar yine elenir:** "TRT Radyo Haber", "TRT Haber Radyo" ve RDS'teki "TRTHABER"
+  artık aynı istasyon sayılır ("radyo", "radio", "fm", "canlı" sözcükleri eşleşmede yok sayılır). Logo, karedeki logo kutusuna
+  sığdırılırken yaklaşık %15'ten fazla büyütülecekse kullanılmaz (32 px'lik ikon bulanık olur, 64 px'lik olur); geniş ama büyük
+  logolar (TRT Haber yazısı gibi) kabul edilir. PNG, JPEG'den önce denenir (JPEG çoğu zaman fotoğraf ya da kapak resmi);
+  sonraki adaylar denenir, hiçbiri uygun değilse karede yalnızca ad kalır. Veritabanında hiç logosu olmayan istasyonlarda
+  (TRT Türkü gibi) internetten logo bulunamaz; fabrika radyonun kendi logoları için hazırlık aşağıda.
 - **Fabrika radyonun kendi logoları için hazırlık:** fabrika radyo, logoyu RDS PI koduna ve frekansa göre ünitenin kendi
   veritabanından alıyor (`radio_data.txt` + `RadioLogo.zip`). Tanılama kaydı artık bu dosyaların bu ünitede olup olmadığını
   `SYS radiologo` satırlarıyla yazar; kayıt gelince fabrikanın logoları okunacak.

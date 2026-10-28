@@ -43,6 +43,9 @@ public class RadioScreen extends Screen implements RadioController.Listener, com
     private final StationAdapter adapter = new StationAdapter();
     private boolean manual;
     private int lastTile = -2;
+    /** A copy of the station list the list view shows; refreshed with every update so it cannot change under the adapter. */
+    private java.util.List<RadioController.Station> listed = new java.util.ArrayList<>();
+    private MibBar.Key sourceKey;
     private Boolean lastAvail;
 
     public RadioScreen(LauncherActivity act) {
@@ -98,7 +101,7 @@ public class RadioScreen extends Screen implements RadioController.Listener, com
         m.addView(fr, fl);
 
         // RDS station name / radio text under the frequency.
-        info = Mib.text(act, "", 24, Mib.regular(act), Mib.GREY);
+        info = Mib.text(act, "", 24, Mib.semibold(act), Mib.WHITE);
         info.setGravity(Gravity.CENTER);
         FrameLayout.LayoutParams il = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -204,7 +207,7 @@ public class RadioScreen extends Screen implements RadioController.Listener, com
                     if (radio.scanning()) radio.stopScan();
                     else radio.startScan();
                 } else {
-                    radio.tune(radio.stations().get(position - 1).freq);
+                    if (position - 1 < listed.size()) radio.tune(listed.get(position - 1).freq);
                 }
             }
         });
@@ -214,6 +217,22 @@ public class RadioScreen extends Screen implements RadioController.Listener, com
 
         // ---- Soft keys ----
         MibBar bar = new MibBar(act);
+        // Like the factory radio's bar: the band (FM1, FM2, AM) as the source key, then the station list and manual tuning.
+        if (radio.unitTuner()) {
+            sourceKey = bar.add("FM", R.drawable.ui_key_radio, new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (!radio.canCycleBand()) {
+                        Ui.toast(act, !radio.canControl()
+                                ? s("Upravljanje: uključite komande u Podešavanja → Vozilo", "Control: allow commands in Setup → Vehicle")
+                                : !radio.shown() ? s("Radio nije aktivan izvor (otvorite radio aplikaciju)", "Radio is not the active source (open the radio app)")
+                                : s("Radio još nije spreman", "The radio is not ready yet"));
+                        return;
+                    }
+                    radio.cycleBand();
+                }
+            });
+        }
         listKey = bar.add(s("Lista stan.", "Stations"), R.drawable.ui_key_list, new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -236,7 +255,7 @@ public class RadioScreen extends Screen implements RadioController.Listener, com
                 setManual(!manual);
             }
         });
-        bar.gap(4);
+        bar.gap(radio.unitTuner() ? 3 : 4);
         bar.add("Setup", R.drawable.ui_key_setup, new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -309,9 +328,9 @@ public class RadioScreen extends Screen implements RadioController.Listener, com
         lastAvail = ok;
         if (ok) {
             message.setVisibility(View.GONE);
-            // On a TW unit the factory radio app plays; the unit gives no station list, so only the manual dial stays
-            // (it tunes with the frequency command of the factory app's own frequency bar).
-            listKey.setVisibility(radio.unitTuner() ? View.INVISIBLE : View.VISIBLE);
+            // On a TW unit the factory radio app plays: the band key switches FM1, FM2 and AM, the station list holds what
+            // was heard so far, and the manual dial tunes with the frequency command of the factory app's frequency bar.
+            listKey.setVisibility(View.VISIBLE);
             manualKey.setVisibility(View.VISIBLE);
         } else {
             message.setVisibility(View.VISIBLE);
@@ -361,12 +380,12 @@ public class RadioScreen extends Screen implements RadioController.Listener, com
         }
         String ps = radio.ps().trim(), rt = radio.rt();
         String mhz = radio.isAm() ? " kHz" : " MHz";
-        // The station's own name (RDS) replaces the frequency at the top when it is sent.
-        boolean named = radio.shown() && ps.length() > 0 && !manual;
-        freq.setText(named ? ps : radio.freqText());
+        // Like the factory radio: the frequency big at the top, the station's own name (RDS) small beneath it.
+        freq.setText(radio.freqText());
         unit.setText(mhz);
-        unit.setVisibility(named ? View.GONE : View.VISIBLE);
-        StringBuilder sb = new StringBuilder(named ? radio.freqText() + mhz : "");
+        unit.setVisibility(View.VISIBLE);
+        StringBuilder sb = new StringBuilder(radio.shown() && !manual ? ps : "");
+        boolean hint = false;
         if (rt.length() > 0) sb.append(sb.length() > 0 ? "  ·  " : "").append(rt);
         if (radio.stereo()) sb.append(sb.length() > 0 ? "   " : "").append("ST");
         if (!radio.shown()) sb.setLength(0);
@@ -375,6 +394,7 @@ public class RadioScreen extends Screen implements RadioController.Listener, com
                     .append(s("Upravljanje: uključite komande u Podešavanja → Vozilo", "Control: allow commands in Setup → Vehicle"));
         }
         if (radio.unitTuner() && !radio.shown()) {
+            hint = true;
             // The factory radio app owns the audio: say so instead of showing an old frequency as if it were playing, and
             // do not claim "not active" before the unit has said which source is.
             if (radio.sourceKnown()) sb.append(s("Radio nije aktivan izvor (otvorite radio aplikaciju)", "Radio is not the active source (open the radio app)"));
@@ -382,6 +402,9 @@ public class RadioScreen extends Screen implements RadioController.Listener, com
             else sb.append(s("Čekam radio…", "Waiting for the radio…"));
         }
         info.setText(sb.toString());
+        info.setTextColor(hint ? Mib.GREY : Mib.WHITE); // the name is white, a hint about the unit is grey
+        if (sourceKey != null) sourceKey.setLabel(radio.bandText().isEmpty() ? "FM" : radio.bandText());
+        listed = new java.util.ArrayList<>(radio.stations());
         int cur = radio.presetIndexOfCurrent();
         for (int i = 0; i < presets.length; i++) presets[i].bind(radio.preset(i), i == cur);
         listTitle.setText(s("Lista stanica", "Station list") + (radio.scanning() ? "  —  " + s("Pretraga…", "Scanning…") : ""));
@@ -397,7 +420,7 @@ public class RadioScreen extends Screen implements RadioController.Listener, com
     private class Preset extends LinearLayout {
         final int index;
         final FrameLayout face;
-        final TextView number, name;
+        final TextView number, name, freqLabel;
         final ImageView logo;
         final View line;
 
@@ -421,6 +444,13 @@ public class RadioScreen extends Screen implements RadioController.Listener, com
             nl.rightMargin = Mib.px(act, 10);
             nl.topMargin = Mib.px(act, 2);
             face.addView(number, nl);
+            // The frequency in the tile's lower left, as the factory radio shows it (hidden while a logo fills the tile).
+            freqLabel = Mib.text(act, "", 22, Mib.regular(act), Mib.WHITE);
+            FrameLayout.LayoutParams fl = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.LEFT);
+            fl.leftMargin = Mib.px(act, 10);
+            fl.bottomMargin = Mib.px(act, 6);
+            face.addView(freqLabel, fl);
             addView(face, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Mib.px(act, 110)));
             line = new View(act);
             line.setBackgroundColor(Mib.BLUE);
@@ -467,13 +497,17 @@ public class RadioScreen extends Screen implements RadioController.Listener, com
         void bind(RadioController.Station st, boolean current) {
             if (st == null) name.setText(s("Prazno", "Empty"));
             else if (RadioController.isUnitPreset(st)) name.setText(""); // a slot of the unit's own presets: the name is not known
-            else name.setText(radio.stationLabel(st));
+            else name.setText(st.name); // the frequency is in the tile itself, the name beneath it
             android.graphics.Bitmap b = st != null && st.name.length() > 0
                     ? com.thecarlauncher.radio.RadioLogos.get(act).logo(st.name) : null;
             logo.setImageBitmap(b);
+            // the frequency sits in the tile unless a logo is there; an empty or unknown slot has none
+            boolean known = st != null && !RadioController.isUnitPreset(st) && st.freq > 0;
+            freqLabel.setText(known && b == null ? radio.frequencyLabel(st) : "");
             int c = current ? Mib.BLUE : Mib.WHITE;
             number.setTextColor(c);
             name.setTextColor(c);
+            freqLabel.setTextColor(c);
             ViewGroup.LayoutParams lp = line.getLayoutParams();
             int h = Math.max(2, Mib.px(act, current ? 5 : 3));
             if (lp.height != h) {
@@ -487,7 +521,7 @@ public class RadioScreen extends Screen implements RadioController.Listener, com
 
     private class StationAdapter extends BaseAdapter {
         @Override
-        public int getCount() { return radio == null ? 0 : radio.stations().size() + 1; }
+        public int getCount() { return radio == null ? 0 : listed.size() + 1; }
 
         @Override
         public Object getItem(int i) { return i; }
@@ -505,11 +539,13 @@ public class RadioScreen extends Screen implements RadioController.Listener, com
             TextView t, f;
             if (pos == 0) {
                 iv = Mib.icon(act, R.drawable.ui_ic_refresh, Mib.WHITE);
-                t = Mib.text(act, radio.scanning() ? s("Zaustavi pretragu", "Stop scan")
-                        : s("Ažuriraj listu stanica", "Update station list"), 28, Mib.regular(act), Mib.WHITE);
+                t = Mib.text(act, radio.unitTuner() ? s("Lista se puni dok slušate", "The list fills as you listen")
+                        : radio.scanning() ? s("Zaustavi pretragu", "Stop scan")
+                        : s("Ažuriraj listu stanica", "Update station list"), 28, Mib.regular(act),
+                        radio.unitTuner() ? Mib.GREY : Mib.WHITE);
                 f = Mib.text(act, "", 26, Mib.regular(act), Mib.GREY);
             } else {
-                RadioController.Station st = radio.stations().get(pos - 1);
+                RadioController.Station st = listed.get(pos - 1);
                 boolean cur = st.freq == radio.freq();
                 android.graphics.Bitmap lb = st.name.length() > 0 ? com.thecarlauncher.radio.RadioLogos.get(act).logo(st.name) : null;
                 if (lb != null) {

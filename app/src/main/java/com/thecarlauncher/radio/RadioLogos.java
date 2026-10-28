@@ -39,7 +39,8 @@ public final class RadioLogos {
     private static final Set<String> NEAR = new HashSet<>(java.util.Arrays.asList(
             "TR", "CY", "RS", "ME", "BA", "HR", "MK", "SI", "XK", "AL", "BG", "RO", "HU", "AT", "DE", "IT", "GR"));
 
-    private static final int MIN_SIDE = 96, MAX_TRIES = 4;
+    /** The logo box of a preset tile in pixels (about 170 x 68 on the unit's screen) and how many candidates are tried. */
+    private static final int BOX_W = 170, BOX_H = 68, MAX_TRIES = 4;
 
     public interface Listener { void onLogo(); }
 
@@ -212,23 +213,56 @@ public final class RadioLogos {
         return c.isEmpty() ? null : c.get(0);
     }
 
-    /** The logos of the stations whose name contains the key, those from the region first, at most four. */
+    /**
+     * The key without the words that stations add or leave out ("TRT Radyo Haber", "TRT Haber Radyo" and the RDS
+     * "TRTHABER" all become "trthaber"); a name that would shrink to almost nothing is kept whole.
+     */
+    static String core(String key) {
+        String c = key.replace("radyo", "").replace("radio", "").replace("canli", "").replace("fm", "");
+        return c.length() >= 3 ? c : key;
+    }
+
+    /** Logos are usually PNG; a JPEG is often a photo or a cover picture, so it is tried last. */
+    private static int rank(String url) {
+        String u = url.toLowerCase(Locale.ROOT);
+        int q = u.indexOf('?');
+        if (q >= 0) u = u.substring(0, q);
+        if (u.endsWith(".png")) return 0;
+        if (u.endsWith(".jpg") || u.endsWith(".jpeg")) return 2;
+        return 1;
+    }
+
+    /**
+     * The logos of the stations whose name matches the key, those from the region first and PNG before JPEG, at most four.
+     */
     static List<String> candidates(List<String[]> rows, String k) {
+        String want = core(k);
         List<String> near = new ArrayList<>(), other = new ArrayList<>();
         for (String[] r : rows) {
             String fav = r[1];
-            if (fav.isEmpty() || !key(r[0]).contains(k)) continue;
+            if (fav.isEmpty() || !core(key(r[0])).contains(want)) continue;
             List<String> into = NEAR.contains(r[2]) ? near : other;
             if (!near.contains(fav) && !other.contains(fav)) into.add(fav);
         }
+        java.util.Comparator<String> byRank = new java.util.Comparator<String>() {
+            @Override
+            public int compare(String a, String b) { return rank(a) - rank(b); }
+        };
+        java.util.Collections.sort(near, byRank); // stable: the order of votes stays within a rank
+        java.util.Collections.sort(other, byRank);
         near.addAll(other);
         return near.size() > MAX_TRIES ? new ArrayList<>(near.subList(0, MAX_TRIES)) : near;
     }
 
-    /** Sharp enough for a tile (at least 96 px on the short side) and not a banner or a sliver. */
+    /**
+     * Good enough for a tile: shown inside the logo box of a preset tile it is not enlarged by more than about 15 % (a
+     * 64 px icon fits, a 32 px one would look blurry). Wide logos are fine when they are large, so a 1728x320 wordmark
+     * passes while a sliver does not.
+     */
     static boolean goodSize(int w, int h) {
-        int small = Math.min(w, h), big = Math.max(w, h);
-        return small >= MIN_SIDE && big <= small * 3;
+        if (w < 24 || h < 24 || Math.max(w, h) > Math.min(w, h) * 8) return false;
+        double scale = Math.min((double) BOX_W / w, (double) BOX_H / h);
+        return scale <= 1.15;
     }
 
     private static boolean goodLogo(Bitmap b) { return b != null && goodSize(b.getWidth(), b.getHeight()); }

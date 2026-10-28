@@ -45,10 +45,35 @@ public class RadioLogosTest {
     @Test
     public void onlySharpLogosOfSensibleShapeAreKept() {
         assertTrue(RadioLogos.goodSize(256, 256));
-        assertTrue(RadioLogos.goodSize(96, 150));
-        assertEquals(false, RadioLogos.goodSize(64, 64));    // a favicon blown up to a tile looks cheap
-        assertEquals(false, RadioLogos.goodSize(512, 100));  // a banner
-        assertEquals(false, RadioLogos.goodSize(95, 400));
+        assertTrue(RadioLogos.goodSize(64, 64));             // fits the 68 px high logo box almost as it is
+        assertTrue(RadioLogos.goodSize(160, 60));            // the small TRT Radyo Haber PNG
+        assertTrue(RadioLogos.goodSize(1728, 320));          // a wide wordmark, large enough
+        assertEquals(false, RadioLogos.goodSize(32, 32));    // a favicon blown up to a tile looks cheap
+        assertEquals(false, RadioLogos.goodSize(20, 200));
+        assertEquals(false, RadioLogos.goodSize(2000, 100)); // a sliver
+        assertEquals(false, RadioLogos.goodSize(0, 0));
+    }
+
+    @Test
+    public void wordsStationsAddOrLeaveOutDoNotStopAMatch() {
+        assertEquals("trthaber", RadioLogos.core(RadioLogos.key("TRT Radyo Haber")));
+        assertEquals("trthaber", RadioLogos.core(RadioLogos.key("TRT Haber Radyo")));
+        assertEquals("trthaber", RadioLogos.core(RadioLogos.key("TRTHABER")));
+        assertEquals("kral", RadioLogos.core(RadioLogos.key("Kral FM")));
+        assertEquals("fm", RadioLogos.core("fm"));            // would shrink to nothing: kept whole
+        java.util.List<String[]> rows = java.util.Arrays.asList(
+                row("TRT Radyo Haber", "http://x/a.png", "TR"),
+                row("TRT Haber Radyo", "http://x/b.png", "TR"),
+                row("TRT 1", "http://x/c.png", "TR"));
+        assertEquals(2, RadioLogos.candidates(rows, "trthaber").size());
+    }
+
+    @Test
+    public void aPngIsTriedBeforeAJpegOfTheSameRegion() {
+        java.util.List<String[]> rows = java.util.Arrays.asList(
+                row("TRT Nağme", "http://x/photo.jpeg", "TR"),
+                row("TRT Nağme", "http://x/logo.png?v=2", "TR"));
+        assertEquals("http://x/logo.png?v=2", RadioLogos.candidates(rows, "trtnagme").get(0));
     }
 
     @Test

@@ -467,6 +467,7 @@ final class Tr {
         p("Radio is not the active source (open the radio app)", "Radyo etkin kaynak değil (radyo uygulamasını açın)");
         p("The radio is not ready yet", "Radyo henüz hazır değil");
         p("Manual tuning is for FM only", "Elle ayar yalnızca FM için");
+        p("The list fills as you listen", "Liste dinledikçe dolar");
         p("Waiting for the radio…", "Radyo bekleniyor…");
         p("Trip history", "Yolculuk geçmişi");
         p("Trip in progress", "Yolculuk sürüyor");

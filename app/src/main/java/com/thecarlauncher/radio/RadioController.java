@@ -371,10 +371,9 @@ public final class RadioController implements K706Tuner.Listener, TwRadio.Listen
         return f <= 0 ? UNIT_PRESET : new Station(f, tw.presetName(i));
     }
 
-    /** The name of a station, or its frequency when it has none (kHz on AM, MHz on FM). */
-    public String stationLabel(Station st) {
-        if (st.name.length() > 0) return st.name;
-        return twMode && isAm() ? st.freq + " kHz" : format(st.freq);
+    /** A station's frequency with its unit, as it is written in a tile ("88.3 MHz", "1008 kHz"). */
+    public String frequencyLabel(Station st) {
+        return twMode && isAm() ? st.freq + " kHz" : format(st.freq) + " MHz";
     }
 
     public int presetIndexOfCurrent() {
@@ -416,7 +415,18 @@ public final class RadioController implements K706Tuner.Listener, TwRadio.Listen
         if (presets[i] != null) tune(presets[i].freq);
     }
 
-    public List<Station> stations() { return stations; }
+    /** The station list: the scan result on the launcher's own tuner, the stations heard so far on a TW unit. */
+    public List<Station> stations() { return twMode ? tw.heard() : stations; }
+
+    /** The band key's label (FM1, FM2, AM) on a TW unit; empty elsewhere. */
+    public String bandText() { return twMode ? tw.bandText() : ""; }
+
+    /** True when the band key can switch the band now. */
+    public boolean canCycleBand() { return twMode && tw.controllable() && tw.isRadioSource() && tw.band() >= 0; }
+
+    public void cycleBand() {
+        if (twMode) tw.cycleBand();
+    }
 
     /** Software scan: seek upward through the band and list every station that stops the seek. */
     public void startScan() {
