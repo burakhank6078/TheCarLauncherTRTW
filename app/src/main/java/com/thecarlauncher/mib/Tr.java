@@ -468,6 +468,8 @@ final class Tr {
         p("The radio is not ready yet", "Radyo henüz hazır değil");
         p("Manual tuning is for FM only", "Elle ayar yalnızca FM için");
         p("The list fills as you listen", "Liste dinledikçe dolar");
+        p("Vivid colours for the strip", "Şerit için canlı renkler");
+        p("Each colour is sent to the strip at full saturation: pastel colours look white on an LED strip and go white when dimmed. Warm and cool white stay as they are.", "Her renk şeride tam doygunlukta gönderilir: pastel renkler LED şeritte beyaz görünür ve kısılınca beyaza döner. Sıcak ve soğuk beyaz olduğu gibi kalır.");
         p("Waiting for the radio…", "Radyo bekleniyor…");
         p("Trip history", "Yolculuk geçmişi");
         p("Trip in progress", "Yolculuk sürüyor");

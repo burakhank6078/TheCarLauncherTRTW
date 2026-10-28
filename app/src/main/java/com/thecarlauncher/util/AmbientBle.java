@@ -15,7 +15,6 @@ import android.bluetooth.le.ScanResult;
 import android.bluetooth.le.ScanSettings;
 import android.content.Context;
 import android.content.pm.PackageManager;
-import android.graphics.Color;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
@@ -35,8 +34,10 @@ import java.util.UUID;
  * notify characteristic 0xAE02 (some boxes use the 00010203-... service with 2B11 / 2B10). Every
  * message is  2E, type, length, data..., checksum  where checksum = (sum of type, length and data
  * bytes) XOR 0xFF. Type 0x81 data 01 starts a session; type 0x8D data 01 08 R G B R G B sets one
- * colour; type 0x8D data 00 48 L L sets the brightness (L = 0-100, a guess to be confirmed on the
- * strip). The strip takes one connection at a time, so the phone app must be closed.
+ * colour for the whole strip, 01 00 R1 G1 B1 R2 G2 B2 sets the two zones (Zone 1 and Zone 2 of the app) apart;
+ * 00 48 L L sets one brightness, 00 40 L1 L2 the two zones apart (L = 0-100, the 0x40 bit is "lamp on"). The zone
+ * forms and the 0-100 range are read from the decompiled app (v1.3.3: BrightnessCmd, ColorControlCmd). The strip takes
+ * one connection at a time, so the phone app must be closed.
  *
  * Everything is written to the diagnostic recorder (tag BLE).
  */
@@ -546,11 +547,59 @@ public final class AmbientBle {
                 return;
             }
         }
-        int color = Prefs.integer(app, Prefs.AMBIENT, Mib.DEFAULT_AMBIENT);
-        int level = Prefs.integer(app, Prefs.AMBIENT_LEVEL, 100);
-        byte r = (byte) Color.red(color), g = (byte) Color.green(color), b = (byte) Color.blue(color);
-        send(pack((byte) 0x8D, (byte) 1, (byte) 8, r, g, b, r, g, b));
-        send(pack((byte) 0x8D, (byte) 0, (byte) 0x48, (byte) level, (byte) level));
+        for (byte[] m : messages(app)) send(m);
+    }
+
+    /** The colour of a zone (1 or 2): its own when it was set, else the main Ambient colour. */
+    public static int zoneColor(Context c, int zone) {
+        int own = Prefs.integer(c, zone == 1 ? Prefs.AMBIENT_Z1 : Prefs.AMBIENT_Z2, 0);
+        return own != 0 ? own : Prefs.integer(c, Prefs.AMBIENT, Mib.DEFAULT_AMBIENT);
+    }
+
+    /** The level of a zone (1 or 2): its own when it was set, else the main Ambient level. */
+    public static int zoneLevel(Context c, int zone) {
+        int own = Prefs.integer(c, zone == 1 ? Prefs.AMBIENT_L1 : Prefs.AMBIENT_L2, 0);
+        return own != 0 ? own : Prefs.integer(c, Prefs.AMBIENT_LEVEL, 100);
+    }
+
+    private static List<byte[]> messages(Context c) {
+        return messages(zoneColor(c, 1), zoneColor(c, 2), zoneLevel(c, 1), zoneLevel(c, 2),
+                Prefs.bool(c, Prefs.AMBIENT_VIVID, true));
+    }
+
+    /** Warm and cool white: kept as they are, they are meant to be pale. */
+    private static final int[] WHITES = {0xFFE2B8, 0xD8ECFF};
+
+    /**
+     * The colour as the strip should get it. The palette is made for the screen, where a pastel such as "Ice blue" or
+     * "Lavender" looks fine; on an LED strip every channel that is not zero adds white, so such colours come out pale and
+     * go white when dimmed. A coloured entry is therefore stretched to full saturation (its darkest channel to 0, its
+     * brightest to 255, the hue kept); greys and the two whites are left alone.
+     */
+    static int ledColor(int color, boolean vivid) {
+        int rgb = color & 0xFFFFFF;
+        if (!vivid) return rgb;
+        for (int w : WHITES) if (rgb == w) return rgb;
+        int r = (rgb >> 16) & 0xFF, g = (rgb >> 8) & 0xFF, b = rgb & 0xFF;
+        int max = Math.max(r, Math.max(g, b)), min = Math.min(r, Math.min(g, b));
+        if (max == 0 || (max - min) * 100 < max * 15) return rgb; // black, grey or silver: nothing to saturate
+        int span = max - min;
+        int half = span / 2; // rounds to the nearest
+        return ((((r - min) * 255 + half) / span) << 16) | ((((g - min) * 255 + half) / span) << 8) | (((b - min) * 255 + half) / span);
+    }
+
+    /**
+     * The messages that set the strip: the colour and the level. Equal colours (or levels) go as one value for the whole
+     * strip, different ones as the app's two-zone form (type 0x00 in place of 0x08 for colours, 0x40 in place of 0x48 for
+     * the level, which also carries the lamp-on bit). Both forms as the LAMP&FRGN app sends them.
+     */
+    static List<byte[]> messages(int color1, int color2, int level1, int level2, boolean vivid) {
+        List<byte[]> out = new ArrayList<>();
+        int a = ledColor(color1, vivid), b = ledColor(color2, vivid);
+        out.add(pack((byte) 0x8D, (byte) 1, (byte) (a == b ? 8 : 0),
+                (byte) (a >> 16), (byte) (a >> 8), (byte) a, (byte) (b >> 16), (byte) (b >> 8), (byte) b));
+        out.add(pack((byte) 0x8D, (byte) 0, (byte) (level1 == level2 ? 0x48 : 0x40), (byte) level1, (byte) level2));
+        return out;
     }
 
     /** One framed message: 2E, type, length, data, checksum. */

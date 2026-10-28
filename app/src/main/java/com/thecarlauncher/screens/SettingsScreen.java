@@ -1120,6 +1120,11 @@ public class SettingsScreen extends Screen {
                         refreshKeep();
                     }
                 });
+        toggle(s("Žive boje za traku", "Vivid colours for the strip"), Prefs.AMBIENT_VIVID, true, new Runnable() {
+            public void run() { ble.syncFromPrefs(); }
+        });
+        note(s("Svaka boja se šalje traci pojačana do pune zasićenosti: pastelne boje na LED traci izgledaju bele i pobele kad se zatamne. Toplo i hladno bela ostaju kakve jesu.",
+                "Each colour is sent to the strip at full saturation: pastel colours look white on an LED strip and go white when dimmed. Warm and cool white stay as they are."));
         info(s("Stanje", "Status"), ble.status().isEmpty() ? "—" : bleStatus(ble.status()));
         String saved = Prefs.str(act, com.thecarlauncher.util.AmbientBle.ADDR, "");
         info(s("Izabrani uređaj", "Chosen device"), saved.isEmpty() ? "—" : saved);

@@ -23,6 +23,7 @@ import com.thecarlauncher.LauncherActivity;
 import com.thecarlauncher.R;
 import com.thecarlauncher.mib.Mib;
 import com.thecarlauncher.util.Prefs;
+import com.thecarlauncher.util.Ui;
 
 /**
  * MIB "Ambijentalno osvetljenje": the Corsa C interior picture, a 30-colour
@@ -124,6 +125,25 @@ public class AmbientScreen extends Screen {
                 pick((index + 1) % Mib.AMBIENT.length, true);
             }
         }), new LinearLayout.LayoutParams(box, box));
+        if (com.thecarlauncher.util.AmbientBle.enabled(act)) {
+            // The strip has two zones (the LAMP&FRGN app's Zone 1 and Zone 2): this key picks which one the colour and
+            // brightness keys act on.
+            FrameLayout zoneKey = new FrameLayout(act);
+            zoneKey.setBackground(Mib.box(act));
+            zoneLabel = Mib.text(act, zone == 0 ? Mib.t(act, "Sve", "All", "Hepsi") : String.valueOf(zone), 24, Mib.semibold(act), Mib.WHITE);
+            zoneLabel.setGravity(Gravity.CENTER);
+            zoneKey.addView(zoneLabel, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER));
+            zoneKey.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    cycleZone();
+                }
+            });
+            LinearLayout.LayoutParams zl = new LinearLayout.LayoutParams(Mib.px(act, 100), box);
+            zl.leftMargin = Mib.px(act, 18);
+            row.addView(zoneKey, zl);
+        }
         FrameLayout sun = new FrameLayout(act);
         sun.setBackground(Mib.box(act));
         ImageView sv = new ImageView(act);
@@ -156,16 +176,54 @@ public class AmbientScreen extends Screen {
         return b;
     }
 
+    /** Which part of the strip the colour and brightness keys act on: 0 = all, 1 = Zone 1, 2 = Zone 2. */
+    private int zone;
+    private TextView zoneLabel;
+
     private int level() {
-        return Prefs.integer(act, Prefs.AMBIENT_LEVEL, 100);
+        return zone == 0 ? Prefs.integer(act, Prefs.AMBIENT_LEVEL, 100) : com.thecarlauncher.util.AmbientBle.zoneLevel(act, zone);
+    }
+
+    private int currentColor() {
+        return zone == 0 ? Prefs.integer(act, Prefs.AMBIENT, Mib.DEFAULT_AMBIENT) : com.thecarlauncher.util.AmbientBle.zoneColor(act, zone);
+    }
+
+    /** Makes both zones hold their own value, so changing one leaves the other as it is now. */
+    private void splitZones() {
+        Prefs.put(act, Prefs.AMBIENT_Z1, com.thecarlauncher.util.AmbientBle.zoneColor(act, 1));
+        Prefs.put(act, Prefs.AMBIENT_Z2, com.thecarlauncher.util.AmbientBle.zoneColor(act, 2));
+        Prefs.put(act, Prefs.AMBIENT_L1, com.thecarlauncher.util.AmbientBle.zoneLevel(act, 1));
+        Prefs.put(act, Prefs.AMBIENT_L2, com.thecarlauncher.util.AmbientBle.zoneLevel(act, 2));
+    }
+
+    /** Next of: all, zone 1, zone 2. The pickers then show and change that part of the strip. */
+    private void cycleZone() {
+        zone = (zone + 1) % 3;
+        if (zone != 0) splitZones();
+        zoneLabel.setText(zone == 0 ? Mib.t(act, "Sve", "All", "Hepsi") : String.valueOf(zone));
+        index = indexOf(currentColor());
+        show(index);
+        Ui.toast(act, zone == 0 ? Mib.t(act, "Cela traka", "The whole strip", "Tüm şerit")
+                : Mib.t(act, "Zona " + zone, "Zone " + zone, "Bölge " + zone));
     }
 
     /** Preview while dragging; store and recolour the whole UI once the finger lifts. */
     private void pick(int i, boolean done) {
         show(i);
         if (!done) return;
-        if (color(i) != Prefs.integer(act, Prefs.AMBIENT, Mib.DEFAULT_AMBIENT)) {
+        if (zone != 0) {
+            // one zone of the strip: the screen's own accent colour stays as it is
+            if (color(i) != com.thecarlauncher.util.AmbientBle.zoneColor(act, zone)) {
+                Prefs.put(act, zone == 1 ? Prefs.AMBIENT_Z1 : Prefs.AMBIENT_Z2, color(i));
+                com.thecarlauncher.util.AmbientBle.get(act).syncFromPrefs();
+            }
+            return;
+        }
+        if (color(i) != Prefs.integer(act, Prefs.AMBIENT, Mib.DEFAULT_AMBIENT)
+                || Prefs.integer(act, Prefs.AMBIENT_Z1, 0) != 0 || Prefs.integer(act, Prefs.AMBIENT_Z2, 0) != 0) {
             Prefs.put(act, Prefs.AMBIENT, color(i));
+            Prefs.put(act, Prefs.AMBIENT_Z1, 0); // both zones follow the main colour again
+            Prefs.put(act, Prefs.AMBIENT_Z2, 0);
             com.thecarlauncher.util.AmbientBle.get(act).syncFromPrefs();
             act.restartUi();
         }
@@ -187,11 +245,19 @@ public class AmbientScreen extends Screen {
                     public void onClick(android.content.DialogInterface d, int i) {
                         d.dismiss();
                         int old = level();
-                        if (LEVELS[i] == old) return;
-                        Prefs.put(act, Prefs.AMBIENT_LEVEL, LEVELS[i]);
+                        if (LEVELS[i] == old && (zone != 0 || (Prefs.integer(act, Prefs.AMBIENT_L1, 0) == 0
+                                && Prefs.integer(act, Prefs.AMBIENT_L2, 0) == 0))) return;
+                        if (zone == 0) {
+                            Prefs.put(act, Prefs.AMBIENT_LEVEL, LEVELS[i]);
+                            Prefs.put(act, Prefs.AMBIENT_L1, 0); // both zones follow the main level again
+                            Prefs.put(act, Prefs.AMBIENT_L2, 0);
+                        } else {
+                            Prefs.put(act, zone == 1 ? Prefs.AMBIENT_L1 : Prefs.AMBIENT_L2, LEVELS[i]);
+                        }
                         com.thecarlauncher.util.AmbientBle.get(act).syncFromPrefs();
-                        // The screen's accent stops dimming at 60 %; below that only the strip changes.
-                        if (Math.max(60, old) != Math.max(60, LEVELS[i])) act.restartUi();
+                        // The screen's accent stops dimming at 60 %; below that only the strip changes. A single zone
+                        // never changes the screen.
+                        if (zone == 0 && Math.max(60, old) != Math.max(60, LEVELS[i])) act.restartUi();
                         else show(index);
                     }
                 })
@@ -204,7 +270,8 @@ public class AmbientScreen extends Screen {
         slider.setSelected(i);
         int lvl = level();
         String name = s((String) Mib.AMBIENT[i][0], (String) Mib.AMBIENT[i][1]);
-        value.setText(lvl < 100 ? name + "  " + lvl + "%" : name);
+        String zoneName = zone == 0 ? "" : Mib.t(act, "Zona " + zone, "Zone " + zone, "Bölge " + zone) + ": ";
+        value.setText(zoneName + (lvl < 100 ? name + "  " + lvl + "%" : name));
     }
 
     @Override
