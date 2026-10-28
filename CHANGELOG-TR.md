@@ -18,10 +18,17 @@ en üstüne eklenir; GitHub sürüm sayfası bu en üst bölümü gösterir.
 - **Arama yönü düzeltildi:** ekrandaki "sonraki" oku artık bir sonraki istasyona gider (öncekinde ters çalışıyordu).
 - **Açılışta frekans görünür:** ünite, frekansı yalnızca değişince bildiriyordu; radyo ekranı açılınca artık tuner
   durumu da istenir.
-- **Hafıza kareleri gerçek listeden gelir:** ünite bantta 18 hafıza tutar (6'lı üç sayfa). Kareler ünitenin o anki
-  bandındaki slotlara bağlandı; ad ve frekanslar ünitenin kendi listesinden okunur. Sayfa, seçili hafızanın sayfasını izler.
+- **Hafıza kareleri:** ünite bantta 18 hafıza tutar (6'lı üç sayfa). Kareler ünitenin o anki bandındaki slotlara bağlandı.
+  Ünite listeyi kendiliğinden vermediği için kareler, hafızaya gidildikçe (kare ya da direksiyon tuşuyla) ya da buradan
+  kaydedildikçe dolar. Sayfa, seçili hafızanın sayfasını izler.
+- **Elle ayar geri geldi:** alt çubuktaki "Elle / Manual" tuşu ve frekans ölçeği açıldı; ölçeği bırakınca ünite o frekansa
+  gider (fabrika uygulamasının frekans çubuğunun komutu). Yalnızca FM; komut izni ve etkin radyo kaynağı gerekir. İstasyon
+  listesi tuşu ünitede yine yok.
 - **İstasyon adı titremesi giderildi:** RDS adı ("A HABER") ara sıra bozuk harfle geliyordu ("A HABEa"); ad artık iki kez
   üst üste görülmeden değişmez.
+- **Hafızaya kaydetme:** bir hafıza karesine uzun basınca ya da boş kareye dokununca çalan istasyon ünitenin kendi hafızasına
+  kaydedilir (fabrika uygulamasındaki uzun basışın aynısı). Komut izni açık ve radyo etkin kaynak olmalı; değilse ne eksik
+  olduğunu söyleyen bir uyarı çıkar.
 
 **Araç durumu**
 - **Şasi numarası (VIN) araç durumu sayfasından kaldırıldı.** Araçtan artık istenmez; önceki sürümlerin ünitede bıraktığı kopya

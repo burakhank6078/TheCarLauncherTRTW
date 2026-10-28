@@ -223,6 +223,15 @@ public class RadioScreen extends Screen implements RadioController.Listener, com
         manualKey = bar.add(s("Ručno", "Manual"), R.drawable.ui_key_manual, new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                if (!manual && radio.unitTuner() && !radio.canTuneManually()) {
+                    // say what is missing instead of opening a dial that cannot tune
+                    Ui.toast(act, !radio.canControl()
+                            ? s("Upravljanje: uključite komande u Podešavanja → Vozilo", "Control: allow commands in Setup → Vehicle")
+                            : !radio.shown() ? s("Radio nije aktivan izvor (otvorite radio aplikaciju)", "Radio is not the active source (open the radio app)")
+                            : radio.isAm() ? s("Ručno podešavanje je samo za FM", "Manual tuning is for FM only")
+                            : s("Radio još nije spreman", "The radio is not ready yet"));
+                    return;
+                }
                 showList(false);
                 setManual(!manual);
             }
@@ -300,9 +309,10 @@ public class RadioScreen extends Screen implements RadioController.Listener, com
         lastAvail = ok;
         if (ok) {
             message.setVisibility(View.GONE);
-            // On a TW unit the factory radio app plays; the list and the manual dial of the launcher's own tuner do not apply.
+            // On a TW unit the factory radio app plays; the unit gives no station list, so only the manual dial stays
+            // (it tunes with the frequency command of the factory app's own frequency bar).
             listKey.setVisibility(radio.unitTuner() ? View.INVISIBLE : View.VISIBLE);
-            manualKey.setVisibility(radio.unitTuner() ? View.INVISIBLE : View.VISIBLE);
+            manualKey.setVisibility(View.VISIBLE);
         } else {
             message.setVisibility(View.VISIBLE);
             String app = LauncherActivity.radioPackage(act);
@@ -342,8 +352,8 @@ public class RadioScreen extends Screen implements RadioController.Listener, com
     public void onRadioChanged() {
         if (freq == null) return;
         if (radio.unitTuner()) checkTuner();
-        if (!radio.unitTuner()) scale.setFreq(radio.freq());
-        else if (radio.presetIndexOfCurrent() >= 0 && radio.presetIndexOfCurrent() != lastTile) {
+        if (!radio.unitTuner() || (!radio.isAm() && radio.freq() > 0)) scale.setFreq(radio.freq());
+        if (radio.unitTuner() && radio.presetIndexOfCurrent() >= 0 && radio.presetIndexOfCurrent() != lastTile) {
             // The pages are the unit's 18 slots: follow the page of the preset the unit is on.
             lastTile = radio.presetIndexOfCurrent();
             int page = lastTile / PER_PAGE;
@@ -442,7 +452,14 @@ public class RadioScreen extends Screen implements RadioController.Listener, com
         }
 
         void save() {
-            if (radio.unitTuner()) return; // the unit's own presets cannot be stored from here yet
+            if (radio.unitTuner() && !radio.canStore(index)) {
+                // say what is missing instead of doing nothing
+                Ui.toast(act, !radio.canControl()
+                        ? s("Upravljanje: uključite komande u Podešavanja → Vozilo", "Control: allow commands in Setup → Vehicle")
+                        : !radio.shown() ? s("Radio nije aktivan izvor (otvorite radio aplikaciju)", "Radio is not the active source (open the radio app)")
+                        : s("Radio još nije spreman", "The radio is not ready yet"));
+                return;
+            }
             radio.savePreset(index);
             Ui.toast(act, Mib.t(act, "Sačuvano na " + (index % PER_PAGE + 1), "Stored on " + (index % PER_PAGE + 1), (index % PER_PAGE + 1) + " numaraya kaydedildi"));
         }

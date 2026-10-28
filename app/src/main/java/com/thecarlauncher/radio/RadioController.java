@@ -276,7 +276,10 @@ public final class RadioController implements K706Tuner.Listener, TwRadio.Listen
     // ---- Tuning ------------------------------------------------------------------------------
 
     public void tune(int f) {
-        if (twMode) return; // the unit's tuner has no "go to this frequency" command that we know of yet
+        if (twMode) {
+            tw.tune(f); // write(1026, 255, f), as the factory app's frequency bar does
+            return;
+        }
         f = Math.max(FM_MIN, Math.min(FM_MAX, f));
         if (!active) start();
         setFreq(f);
@@ -357,14 +360,15 @@ public final class RadioController implements K706Tuner.Listener, TwRadio.Listen
     // ---- Presets / station list ---------------------------------------------------------------
 
     /**
-     * On a TW unit every tile stands for a slot of the unit's own presets on the band it is on. Until the unit has sent
-     * its list the tile is an empty placeholder; afterwards a stored station, or null for an empty slot.
+     * On a TW unit every tile stands for a slot of the unit's own presets on the band it is on. The unit does not hand
+     * out its list (as far as the recording shows), so a tile shows what the launcher has seen in that slot - the
+     * stations it was tuned to by the preset or the steering wheel, or stored from here - and is otherwise a blank
+     * placeholder.
      */
     public Station preset(int i) {
         if (!twMode) return presets[i];
-        if (!tw.presetsKnown()) return UNIT_PRESET;
         int f = tw.presetFreq(i);
-        return f <= 0 ? null : new Station(f, tw.presetName(i));
+        return f <= 0 ? UNIT_PRESET : new Station(f, tw.presetName(i));
     }
 
     /** The name of a station, or its frequency when it has none (kHz on AM, MHz on FM). */
@@ -382,8 +386,17 @@ public final class RadioController implements K706Tuner.Listener, TwRadio.Listen
     /** True for the placeholder tile of a TW unit: the slot exists but its station is not known. */
     public static boolean isUnitPreset(Station s) { return s == UNIT_PRESET; }
 
+    /** True when a frequency can be tuned by hand now (always on the launcher's own tuner; FM only there). */
+    public boolean canTuneManually() { return twMode ? tw.canTune() && !tw.isAm() : true; }
+
+    /** True when the playing station can be stored on this tile now (always on the launcher's own tuner). */
+    public boolean canStore(int i) { return !twMode || tw.canStore(i); }
+
     public void savePreset(int i) {
-        if (twMode) return; // storing on the unit's own presets is not wired
+        if (twMode) {
+            tw.store(i); // the unit's own preset slot, as the factory app does it
+            return;
+        }
         presets[i] = new Station(freq, ps);
         Prefs.put(app, P_PRESETS, serialize(java.util.Arrays.asList(presets)));
         changed();

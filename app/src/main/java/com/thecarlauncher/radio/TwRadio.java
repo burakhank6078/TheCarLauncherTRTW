@@ -74,10 +74,20 @@ public final class TwRadio {
             if (name.isEmpty() || s.equals(pendingName)) {
                 name = s;
                 pendingName = "";
+                if (preset >= 0 && band >= 0 && presetFreq[band][preset] == freq) presetName[band][preset] = s; // the slot's own station
                 return true;
             }
             pendingName = s;
             return false;
+        }
+
+        /** Notes the playing station as the content of a slot of the current band; true when that changed what is known. */
+        boolean rememberPreset(int slot) {
+            if (band < 0 || slot < 0 || slot >= SLOTS || !plausible(band, freq)) return false;
+            if (presetFreq[band][slot] == freq && presetName[band][slot] != null) return false;
+            presetFreq[band][slot] = freq;
+            presetName[band][slot] = name;
+            return true;
         }
 
         /** Applies one message; true when something shown changed. */
@@ -113,6 +123,8 @@ public final class TwRadio {
                                 preset = p;
                                 changed = true;
                             }
+                            // The unit says "slot p" right after the frequency of that slot: that is how the tiles learn.
+                            if (rememberPreset(p)) changed = true;
                             break;
                         default:
                             break;
@@ -182,7 +194,6 @@ public final class TwRadio {
     private volatile Object util;
     private volatile Handler io;
     private volatile boolean opened, failed;
-    private volatile int listedBand = -1;
     private boolean opening;
     private volatile int attempts;
     private volatile long nextTryAt;
@@ -292,17 +303,10 @@ public final class TwRadio {
                 public void handleMessage(Message m) {
                     try {
                         boolean ch;
-                        int b;
                         synchronized (state) {
                             ch = state.apply(m.what, m.arg1, m.arg2, m.obj);
-                            b = state.band;
                         }
                         if (ch) changed();
-                        // The preset list is per band: ask for it once the band is known, and again when the band changes.
-                        if (b >= 0 && b != listedBand && canSend()) {
-                            listedBand = b;
-                            send(1026, 255, b);
-                        }
                         com.thecarlauncher.car.TwProbe.get().radioTap(m); // the recorder sees the same messages
                     } catch (Throwable ignored) {
                         // an odd message must never kill the thread
@@ -385,11 +389,10 @@ public final class TwRadio {
     /**
      * Asks the unit for what it only says when it changes, like the factory radio app does when it starts: the
      * active source (0x301, 255), the tuner state with band, frequency and preset (0x401, 255) and the RDS status
-     * (0x404, 255). Two-argument writes. The preset list is asked for when the band arrives.
+     * (0x404, 255). Two-argument writes.
      */
     public void requestState() {
         if (!canSend()) return;
-        listedBand = -1;
         io.post(new Runnable() {
             @Override
             public void run() {
@@ -440,13 +443,38 @@ public final class TwRadio {
         }
     }
 
-    /** True once the unit has sent at least one entry of the current band's preset list. */
-    public boolean presetsKnown() {
+    /** True when the station that is playing can be stored in the slot of a tile now (radio is the source, a frequency is known). */
+    public boolean canStore(int tile) {
+        return canRecall(tile) && canSend() && freq() > 0 && isRadioSource();
+    }
+
+    /**
+     * Stores the station that is playing in the slot of a tile, as a long press on a preset does in the factory radio
+     * app: write(1025, 8, slot). The tile shows it at once. False when it cannot be done now.
+     */
+    public boolean store(int tile) {
+        if (!canStore(tile)) return false;
+        send(1025, 8, tile);
         synchronized (state) {
-            if (state.band < 0) return false;
-            for (int i = 0; i < SLOTS; i++) if (state.presetName[state.band][i] != null) return true;
-            return false;
+            state.rememberPreset(tile);
         }
+        changed();
+        return true;
+    }
+
+    /** True when a frequency of the current band can be tuned directly from the launcher. */
+    public boolean canTune() { return canSend() && isRadioSource() && band() >= 0; }
+
+    /**
+     * Tunes to a frequency, as the factory radio app does when its frequency bar is let go: write(1026, 255, frequency)
+     * (FM in 10 kHz, 8750-10800; AM in kHz, 522-1620). False when it cannot be done now or the value is out of range.
+     */
+    public boolean tune(int f) {
+        int band = band();
+        boolean inRange = band == 2 ? f >= 522 && f <= 1620 : f >= 8750 && f <= 10800;
+        if (!canTune() || !inRange) return false;
+        send(1026, 255, f);
+        return true;
     }
 
     /** Goes to the preset of a tile on the current band; false while the band is not known. */

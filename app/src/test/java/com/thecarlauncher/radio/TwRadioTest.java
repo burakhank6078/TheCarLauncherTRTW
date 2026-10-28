@@ -175,6 +175,35 @@ public class TwRadioTest {
     }
 
     @Test
+    public void tilesLearnTheSlotsTheUnitReports() {
+        // The recording: "2/8980" then "4/10" when preset 10 was recalled; a seek to another station sends no slot at all.
+        TwRadio.State s = new TwRadio.State();
+        s.apply(1025, 5, 0, null);
+        s.apply(1025, 2, 8980, null);
+        assertTrue(s.apply(1025, 4, 10, null));
+        assertEquals(8980, s.presetFreq[0][10]);
+        s.apply(1025, 2, 8940, null);              // seeked away; the slot number is stale
+        s.apply(1028, 0, 0, "OTHER");
+        assertEquals("", s.presetName[0][10]);     // the other station's name must not land on slot 10
+        s.apply(1025, 2, 8980, null);              // back on the preset's station
+        s.apply(1028, 0, 0, "RADYO D");
+        assertEquals("RADYO D", s.presetName[0][10]);
+        assertEquals(0, s.presetFreq[1][10]);      // another band is untouched
+    }
+
+    @Test
+    public void storingFillsTheSlotAtOnce() {
+        TwRadio.State s = new TwRadio.State();
+        assertFalse(s.rememberPreset(3));          // nothing is playing yet
+        s.apply(1025, 5, 0, null);
+        s.apply(1025, 2, 9890, null);
+        assertTrue(s.rememberPreset(3));
+        assertEquals(9890, s.presetFreq[0][3]);
+        assertFalse(s.rememberPreset(3));          // the same again
+        assertFalse(s.rememberPreset(18));         // no such slot
+    }
+
+    @Test
     public void nextIsZeroAndPreviousIsOneAsInTheFactoryApp() {
         assertEquals(0, TwRadio.directionArg(true));
         assertEquals(1, TwRadio.directionArg(false));

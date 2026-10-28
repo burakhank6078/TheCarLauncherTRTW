@@ -23,7 +23,7 @@ Radyoya özgü olanlar: `265, 1025, 1026, 1028, 1029, 1030, -25088, -25087`.
 | 0x404 (1028) | bayrak | `arg1` bayrakları (bit 4 REG, 32 TA, 64 AF, 2 ve 128 TP/TA göstergesi); **üst 16 bit RDS PI kodu** (0x322D, 0x32A1; frekans değil); `arg2` alt bayt sinyal; `obj` RDS adı (PS). Ad titrer: "A HABER", "A HABEa", "A HABER@" | kayıtla doğrulandı |
 | 0x405 (1029) | – | `obj` String: RDS metni (kayıtta gelmedi) | koddan |
 | 0x406 (1030) | 0–7 | Aralıklar: 0 bölge (1), 1 FM üst sınır (10800), 2 FM alt sınır (8750), 3 AM üst (1620 kHz), 4 AM alt (522 kHz), 5 FM adım (5 = 0,05 MHz), 6 AM adım (9 kHz), 7 bayrak (1). Radyo uygulaması açılınca bir kerede gelir | kayıtla doğrulandı |
-| 0x402 (1026) | `slot \| band<<8 \| PI<<16` | Hafıza listesinin bir satırı: `arg2` frekans, `obj` ad. Fabrika uygulaması her bantta **18 satır** tutar (`Ib[18]`). `write(0x402, 255, band)` ile istenir; kayıtta istenmediği için gelmedi | koddan |
+| 0x402 (1026) | `slot \| band<<8 \| PI<<16` | Hafıza listesinin bir satırı: `arg2` frekans, `obj` ad. Fabrika uygulaması her bantta **18 satır** tutar (`Ib[18]`). Kayıtta hiç gelmedi: fabrika kodunda listeyi isteyen bir komut yok, satırlar ünite kendiliğinden gönderirse gelir | koddan |
 | 0x301 (769) | – | `arg1` = 1: etkin kaynak radyo; radyodan çıkınca 0 | kayıtla doğrulandı |
 | 0x109 (265) | – | `byte[0]` bölge (kayıtta 1) | kayıtla doğrulandı |
 | 0x10A (266) | 0 | `obj` ünite protokol dizesi `T13.1.1-300-114-A6939D-2` | kayıtla doğrulandı |
@@ -42,10 +42,12 @@ başka bir tuş (kaynak/mod); basılınca radyo uygulaması açıldı ve durum b
 | `write(0x401, 2, 0)` / `(0x401, 2, 1)` | İnce adım: 0 yukarı, 1 aşağı (fabrikada `step_right` = 0, `step_left` = 1) | koddan |
 | `write(0x401, 5, band)` | Band seç (0 FM1, 1 FM2, 2 AM) | koddan |
 | `write(0x401, 255)` | **Tuner durumunu iste** (band, frekans, hafıza); fabrika uygulaması açılışta gönderir, ilk sürümde eksikti | koddan |
+| `write(0x401, 8, slot)` | **Çalan istasyonu hafızaya kaydet**: fabrika uygulamasında bir hafıza karesine uzun basınca gider. Launcher'da da uzun basış / boş kareye dokunuş bunu gönderir | koddan |
+| `write(0x401, 6, 0)` | Ayarlardaki düğme (otomatik arama ve kaydetme olabilir); kullanılmıyor | düşük |
 | `write(0x401, 0, 0)` | Tarama ya da otomatik kaydetme (ne olduğu kesin değil) | düşük |
 | `write(0x401, 4, 0/1)` | Bir bayrağı değiştirir | düşük |
 | `write(0x402, sıra, band)` | Hafızadaki istasyona geç | koddan |
-| `write(0x402, 255, band)` | Hafıza listesini iste | koddan |
+| `write(0x402, 255, frekans)` | **Frekansa git** (FM 10 kHz biriminde 8750–10800, AM kHz biriminde 522–1620): fabrika uygulamasında frekans çubuğu bırakılınca gider (`FreqBarView` → `ta(freq)`). 29 Ekim'de push edilen ilk sürüm bunu yanlışlıkla "liste iste" sanıp band numarasıyla (0/1/2) gönderiyordu; düzeltildi | koddan |
 | `write(0x404, 0/1/3, 0/1)` | AF / TA / REG aç-kapat | düşük |
 | `write(0x404, 255)`, `write(0x301, 255)` | RDS durumunu ve etkin kaynağı iste | kayıtla doğrulandı (cevap geldi) |
 
@@ -57,12 +59,13 @@ Fabrika uygulaması gibi kendi kanalını (`TWUtil(1)` + yukarıdaki kimlikler) 
 - **Arama ve ince adım yönü düzeltildi** (0 = sonraki, 1 = önceki).
 - Açılışta `0x401, 255` de istenir; ilk kayıtta frekans, aramaya kadar hiç gelmemişti.
 - **Hafıza kareleri 18 slottur** (6'lı üç sayfa), bant başına ayrı değil: karelerin her biri ünitenin o anki bandındaki slottur.
-  Band bilinince `write(0x402, 255, band)` ile liste istenir; gelen satırlar karelerde ad ve frekans olarak görünür.
+  Ünite listeyi kendiliğinden göndermediği için kareler ünitenin söylediklerinden öğrenir: `2/frekans` ardından `4/slot` gelince
+  o slotun frekansı (ve RDS adı) hatırlanır; buradan kaydedilen istasyon da hemen görünür.
+- **Elle ayar**: ölçek bırakılınca `write(0x402, 255, frekans)` gider.
 - RDS adı iki kez üst üste görülmeden değişmez (titreme süzgeci).
 - Band mesajı `5/0` da kabul edilir.
 
 ## Sıradaki adımlar
-1. Yeni kayıtta `0x402` satırlarını görüp liste biçimini doğrulamak (özellikle `band` baytının anlamını).
-2. İstasyon listesi (Stations) ve elle ayar (Manual) tuşlarını açmak: elle ayar için ünitede "frekansa git" komutu görülmedi,
-   ince adımla ilerlemek gerekir (87,5 → 108 MHz arası 0,05'lik adımlar).
+1. Frekansa git (`0x402, 255, frekans`) ve hafızaya kaydı (`0x401, 8, slot`) araçta doğrulamak.
+2. İstasyon listesi (Stations): ünite liste vermiyor; duyulan istasyonlardan kendi listemizi tutmak ya da arama ile taramak gerekir.
 3. Müzik açıkken direksiyon tuşu kaydı (müziğin ters yönünü ayırmak için).
