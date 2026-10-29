@@ -106,7 +106,27 @@ public final class CarSettings {
         return true;
     }
 
-    public synchronized void forget() { frames.clear(); }
+    public synchronized void forget() {
+        frames.clear();
+        askedAt = 0;
+    }
+
+    private long askedAt;
+
+    /** Notes that the light frames were just asked for (so the page does not ask again on every refresh). */
+    public synchronized void asked() { askedAt = System.currentTimeMillis(); }
+
+    /** Milliseconds since the light frames were last asked for, Long.MAX_VALUE if never. */
+    public synchronized long sinceAsked() {
+        return askedAt == 0 ? Long.MAX_VALUE : System.currentTimeMillis() - askedAt;
+    }
+
+    /** The light frames the car has not sent yet. */
+    public synchronized List<Integer> missingLights() {
+        List<Integer> out = new ArrayList<>();
+        for (int f : LIGHT_FRAMES) if (!frames.containsKey(f)) out.add(f);
+        return out;
+    }
 
     public synchronized Reading read(Item it) {
         byte[] f = frames.get(it.frame);

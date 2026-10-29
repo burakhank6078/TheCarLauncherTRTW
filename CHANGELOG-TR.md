@@ -21,6 +21,10 @@ en üstüne eklenir; GitHub sürüm sayfası bu en üst bölümü gösterir.
   ortam rengi, ton, ana ve ikinci renk ile pencere / orta konsol / kapı girişi / ayak bölgesi parlaklığı. Değerler, fabrika
   uygulamasının yaptığı gibi Canbus üzerinden aracın 102, 103 ve 104 numaralı çerçevelerinden okunur (komut izni açık
   olmalı: çerçeve istemek de üniteye bir mesajdır). Aracın olmayan ayarları "bu araçta yok" notuyla gösterilir.
+- **İstekler artık aralıklı ve tekrarsız:** ilk araç denemesinde yalnızca ilk çerçeve (104) geldi, ışık sayfası "Araç verisi
+  bekleniyor…" diye takılı kaldı. Üç çerçeve arka arkaya isteniyordu ve eksik çerçeve varken sayfa her yenilendiğinde yeniden
+  isteniyordu. Artık fabrika uygulaması gibi 60 ms arayla istenir, eksik kalan 1,5 saniye sonra bir kez daha istenir, bir tur
+  sürerken (10 sn) yenisi başlamaz ve 4 saniye sonra hâlâ eksik varsa sayfa bunu açıkça yazar (araçta bu ayarlar olmayabilir).
 - **Şimdilik yalnızca gösterim.** Değerlerin araçta doğru çıktığı görülünce değiştirme açılacak; her ayarın yazma anahtarı
   (komut 109) fabrika kodundan çıkarılıp tabloda duruyor, hiçbir şey gönderilmiyor.
 
@@ -30,6 +34,12 @@ en üstüne eklenir; GitHub sürüm sayfası bu en üst bölümü gösterir.
   **Ses ve medya** (Ses, Medya, Radyo, Bluetooth ses, Telefon ve radyo uygulamaları), **Navigasyon ve araç** (Navigasyon, Araç,
   Aracın kendi ayarları), **Bağlantılar** (Wi-Fi, Hotspot, App-Connect) ve **Sistem** (Ayar yedeği, Android sistem, Sistem
   bilgileri, Tanılama kaydı) başlıkları girdi. Başka ekranlardan açılan kısayollar eskisi gibi çalışır.
+
+**Uygulamalar**
+- **Uzun basış menüsü ekranın ortasında:** Uygulamalar'da bir simgeye uzun basınca açılan menü (MENU'ye ekle, telefon / radyo
+  uygulaması yap, uygulama bilgisi, kaldır) artık simgenin yanına asılı Android menüsü değil; ortada, MIB açılır pencere
+  görünümünde (siyah panel, beyaz çerçeve, başlıkta uygulamanın adı). "Kaldır" satırı kırmızı yazılır, ekranın altında
+  ulaşılması zor kalmaz; panelin dışına dokunmak kapatır.
 
 **Sürüş uyarısı ve direksiyon tuşları**
 - **Kapı / kemer uyarısı MIB açılır penceresi gibi:** üst çubuğun altındaki metin şeridi kalktı. Resim biraz kararır, ortada

@@ -1205,10 +1205,38 @@ public class SettingsScreen extends Screen {
                 "The values are read from the car over the Canbus, as the factory \"Araç ayarı\" app does. Display only for now; changing them comes after it has been checked on the car."));
     }
 
+    /**
+     * Asks the car for the light frames one after the other, 60 ms apart (the factory app waits between them; sent in one
+     * go only the first was answered), and once more for what is still missing after a second and a half. Not again while
+     * a round is still running, so a refresh of the page never starts a new storm of requests.
+     */
     private void requestCarLights() {
-        for (int frame : com.thecarlauncher.car.CarSettings.LIGHT_FRAMES) {
-            com.thecarlauncher.car.TwProbe.get().requestFrameAsync(act, frame);
+        final com.thecarlauncher.car.CarSettings cs = com.thecarlauncher.car.CarSettings.get();
+        if (cs.sinceAsked() < 10000) return;
+        cs.asked();
+        final android.os.Handler h = new android.os.Handler(android.os.Looper.getMainLooper());
+        int n = 0;
+        for (final int frame : com.thecarlauncher.car.CarSettings.LIGHT_FRAMES) {
+            h.postDelayed(new Runnable() {
+                public void run() { com.thecarlauncher.car.TwProbe.get().requestFrameAsync(act, frame); }
+            }, 60L * n++);
         }
+        h.postDelayed(new Runnable() {
+            public void run() {
+                int k = 0;
+                for (final int frame : cs.missingLights()) {
+                    h.postDelayed(new Runnable() {
+                        public void run() { com.thecarlauncher.car.TwProbe.get().requestFrameAsync(act, frame); }
+                    }, 60L * k++);
+                }
+            }
+        }, 1500);
+        // the page says what is missing once the car has had time to answer
+        h.postDelayed(new Runnable() {
+            public void run() {
+                if (onCarLightsPage()) refreshKeep();
+            }
+        }, 4500);
     }
 
     /** The light page of the car: every setting with the value the car reports, greyed out text for the ones this car lacks. */
@@ -1231,7 +1259,11 @@ public class SettingsScreen extends Screen {
             info(s("Stanje", "Status"), s("Uključite komande u Podešavanja → Vozilo", "Allow commands in Setup → Vehicle"));
         } else if (!cs.haveLights()) {
             requestCarLights();
-            info(s("Stanje", "Status"), s("Čekam podatke iz vozila…", "Waiting for car data…"));
+            // after a few seconds say it plainly: the car may simply not have the rest (no ambient lighting, for example)
+            info(s("Stanje", "Status"), cs.sinceAsked() > 4000
+                    ? s("Vozilo nije poslalo sve podatke (možda nema ova podešavanja)",
+                    "The car did not send all of it (it may not have these settings)")
+                    : s("Čekam podatke iz vozila…", "Waiting for car data…"));
         }
         for (com.thecarlauncher.car.CarSettings.Section sec : com.thecarlauncher.car.CarSettings.lightSections()) {
             section(t.tr(sec.en));
@@ -1254,6 +1286,7 @@ public class SettingsScreen extends Screen {
         }
         action(s("Osveži", "Refresh"), null, new Runnable() {
             public void run() {
+                cs.forget(); // ask again from scratch (the values show "—" until the car answers)
                 requestCarLights();
                 Ui.toast(act, s("Tražim podatke iz vozila…", "Asking the car…"));
             }

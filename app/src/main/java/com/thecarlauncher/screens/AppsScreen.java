@@ -6,7 +6,6 @@ import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.GridView;
 import android.widget.LinearLayout;
-import android.widget.PopupMenu;
 
 import com.thecarlauncher.LauncherActivity;
 import com.thecarlauncher.R;
@@ -130,28 +129,26 @@ public class AppsScreen extends Screen implements AppRepository.Listener {
         adapter.notifyDataSetChanged();
     }
 
+    /** The long-press choices, in the middle of the screen (an Android pop-up menu hung at the edge, out of reach). */
     private void menu(View anchor, final AppRepository.App a) {
         final AppRepository repo = AppRepository.get(act);
-        PopupMenu m = new PopupMenu(act, anchor);
-        m.getMenu().add(0, 1, 0, repo.isFavourite(a) ? s("Ukloni iz MENU", "Remove from MENU") : s("Dodaj u MENU", "Add to MENU"));
-        m.getMenu().add(0, 2, 1, s("Koristi kao telefon", "Use as phone app"));
-        m.getMenu().add(0, 5, 2, s("Koristi kao radio", "Use as radio app"));
-        m.getMenu().add(0, 3, 3, s("Informacije o aplikaciji", "App info"));
-        m.getMenu().add(0, 4, 4, s("Deinstaliraj", "Uninstall"));
-        m.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
-            @Override
-            public boolean onMenuItemClick(android.view.MenuItem item) {
-                switch (item.getItemId()) {
-                    case 1: repo.toggleFavourite(a); break;
-                    case 2: Prefs.put(act, Prefs.PHONE_PKG, a.pkg); break;
-                    case 5: Prefs.put(act, Prefs.RADIO_PKG, a.pkg); break;
-                    case 3: AppRepository.showInfo(act, a.pkg); break;
-                    case 4: AppRepository.uninstall(act, a.pkg); break;
-                }
-                return true;
-            }
-        });
-        m.show();
+        new com.thecarlauncher.mib.MibMenu(act, a.label)
+                .add(repo.isFavourite(a) ? s("Ukloni iz MENU", "Remove from MENU") : s("Dodaj u MENU", "Add to MENU"), new Runnable() {
+                    public void run() { repo.toggleFavourite(a); }
+                })
+                .add(s("Koristi kao telefon", "Use as phone app"), new Runnable() {
+                    public void run() { Prefs.put(act, Prefs.PHONE_PKG, a.pkg); }
+                })
+                .add(s("Koristi kao radio", "Use as radio app"), new Runnable() {
+                    public void run() { Prefs.put(act, Prefs.RADIO_PKG, a.pkg); }
+                })
+                .add(s("Informacije o aplikaciji", "App info"), new Runnable() {
+                    public void run() { AppRepository.showInfo(act, a.pkg); }
+                })
+                .add(s("Deinstaliraj", "Uninstall"), true, new Runnable() {
+                    public void run() { AppRepository.uninstall(act, a.pkg); }
+                })
+                .show(anchor);
     }
 
     private class GridAdapter extends BaseAdapter {

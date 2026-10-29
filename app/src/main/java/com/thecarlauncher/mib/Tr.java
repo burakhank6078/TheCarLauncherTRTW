@@ -475,6 +475,7 @@ final class Tr {
         p("Allow commands in Setup → Vehicle", "Ayarlar → Araç'ta komutlara izin verin");
         p("not on this car", "bu araçta yok");
         p("Asking the car…", "Araçtan soruluyor…");
+        p("The car did not send all of it (it may not have these settings)", "Araç verinin tamamını göndermedi (bu ayarlar araçta olmayabilir)");
         p("The values are read from the car over the Canbus, as the factory \"Araç ayarı\" app does. Display only for now; changing them comes after it has been checked on the car.", "Değerler, fabrika \"Araç ayarı\" uygulamasındaki gibi Canbus üzerinden araçtan okunur. Şimdilik yalnızca gösterim; değiştirme, araçta doğrulandıktan sonra gelecek.");
         p("Headlights", "Farlar");
         p("Interior lighting", "İç aydınlatma");
