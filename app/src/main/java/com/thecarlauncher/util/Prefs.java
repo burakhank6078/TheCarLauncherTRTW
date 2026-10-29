@@ -37,6 +37,8 @@ public final class Prefs {
     public static final String SHOT_HIDE_STREET = "screenshot_hide_street";
     public static final String RADIO_PKG = "radio_pkg";
     public static final String RADIO_INTERNAL = "radio_internal";
+    /** On a TW unit: opening the Radio screen while another source plays switches the radio on (default on). */
+    public static final String RADIO_AUTO = "radio_auto_activate";
     public static final String RADIO_LOC = "radio_loc";
     public static final String RADIO_RDS = "radio_rds";
     public static final String BT_PKG = "bt_pkg";

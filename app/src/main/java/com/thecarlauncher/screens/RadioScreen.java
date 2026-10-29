@@ -22,6 +22,7 @@ import com.thecarlauncher.mib.MibBar;
 import com.thecarlauncher.mib.MibPager;
 import com.thecarlauncher.radio.FmScaleView;
 import com.thecarlauncher.radio.RadioController;
+import com.thecarlauncher.util.Prefs;
 import com.thecarlauncher.util.Ui;
 
 /**
@@ -310,6 +311,9 @@ public class RadioScreen extends Screen implements RadioController.Listener, com
 
     @Override
     public void onShow() {
+        visible = true;
+        autoHandler.removeCallbacks(autoActivate);
+        autoHandler.postDelayed(autoActivate, 1500);
         lastAvail = null;
         checkTuner();
         if (radio.available()) radio.start();
@@ -347,9 +351,31 @@ public class RadioScreen extends Screen implements RadioController.Listener, com
 
     @Override
     public void onHide() {
+        visible = false;
         radio.removeListener(this);
         com.thecarlauncher.radio.RadioLogos.get(act).removeListener(this);
     }
+
+    private boolean visible;
+    private static long lastAuto;
+    private final android.os.Handler autoHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+
+    /**
+     * Opening the radio screen while another source plays (or the radio has stopped): switch the radio on, so a tap on the
+     * Radio tile is enough. Waits a moment for the unit to say which source is on; at most once in 20 seconds.
+     */
+    private final Runnable autoActivate = new Runnable() {
+        @Override
+        public void run() {
+            if (!visible || !radio.unitTuner() || !radio.available() || radio.shown() || !radio.sourceKnown()) return;
+            if (!Prefs.bool(act, Prefs.RADIO_AUTO, true)) return;
+            long now = android.os.SystemClock.uptimeMillis();
+            if (now - lastAuto < 20000) return;
+            lastAuto = now;
+            Ui.toast(act, s("Uključujem radio…", "Switching the radio on…"));
+            act.activateFactoryRadio();
+        }
+    };
 
     @Override
     public void onLogo() { onRadioChanged(); }

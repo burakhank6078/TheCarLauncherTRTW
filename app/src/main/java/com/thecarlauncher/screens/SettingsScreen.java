@@ -1059,6 +1059,9 @@ public class SettingsScreen extends Screen {
                 refresh();
             }
         });
+        toggle(s("Automatski uključi radio", "Switch the radio on automatically"), Prefs.RADIO_AUTO, true, false);
+        note(s("Na TW jedinici: kad otvorite Radio, a drugi izvor svira, pokreće se fabrička radio aplikacija da jedinica pređe na radio, pa se launcher vraća na ekran.",
+                "On a TW unit: when you open Radio while another source plays, the factory radio app is started so the unit switches to the radio, and the launcher comes back to the front."));
         toggle(s("Samo jake stanice (LOC)", "Strong stations only (LOC)"), Prefs.RADIO_LOC, false, new Runnable() {
             public void run() { radio.setLocal(Prefs.bool(act, Prefs.RADIO_LOC, false)); }
         });

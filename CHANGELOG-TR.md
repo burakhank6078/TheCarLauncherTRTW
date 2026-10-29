@@ -16,8 +16,10 @@ en üstüne eklenir; GitHub sürüm sayfası bu en üst bölümü gösterir.
 ## 28 Ekim 2026
 **Ambiyans şeridi (LAMP&FRGN)**
 - **İki bölge ayrı ayarlanır:** LAMP&FRGN uygulamasındaki "Bölge 1" ve "Bölge 2" artık Ambiyans ekranından ayrı renk ve ayrı
-  parlaklıkla sürülür. Şerit açıksa renk çubuğunun yanında bir bölge tuşu çıkar: **Hepsi → 1 → 2**. Bir bölge seçiliyken renk
-  ve parlaklık (güneş tuşu) yalnızca o bölgeyi değiştirir; "Hepsi" seçilip bir şey seçilince iki bölge yine birlikte gider.
+  parlaklıkla sürülür. Şerit açıksa renk çubuğunun yanında üç ayrı tuş çıkar: **Hepsi, 1 ve 2**; seçili olan vurgu
+  renginde yazılır ve üstteki değer satırı da hangi bölgede olduğunuzu söyler. Seçim, ekran yeniden kurulsa da (Bölge 1 ya da
+  Hepsi'nin rengi değişince ekran yenilenir) korunur; önceden tuş her yenilemede "Hepsi"ne dönüyor ve ikinci değişiklik iki
+  bölgeyi birden karıştırıyordu. Bir bölge seçiliyken renk ve parlaklık (güneş tuşu) yalnızca o bölgeyi değiştirir; "Hepsi" seçilip bir şey seçilince iki bölge yine birlikte gider.
   **Ekranın kendi rengi (MIB vurgu rengi) Hepsi'yi ve Bölge 1'i izler, Bölge 2'ye hiç bakmaz**; Bölge 2 yalnızca şeridi
   değiştirir. Hangi bölgenin ayak aydınlatması, hangisinin şerit olduğunu dokunup görerek anlayın.
   Komut biçimleri uygulamanın kodundan okundu (iki bölge: renk `8D 01 00 R1G1B1 R2G2B2`, parlaklık `8D 00 40 L1 L2`).
@@ -27,6 +29,10 @@ en üstüne eklenir; GitHub sürüm sayfası bu en üst bölümü gösterir.
   kalır. Ayarlar → Ambiyans şeridi → "Şerit için canlı renkler" ile kapatılabilir.
 
 **Radyo (araç kaydına göre düzeltmeler)**
+- **Radyo kendiliğinden açılır:** Radyo karosuna basınca, ünite başka bir kaynaktaysa (müzik, Bluetooth, radyo durmuşsa) fabrika
+  radyo uygulaması kısaca başlatılır, ünite radyoya geçince launcher yeniden öne alınır; radyo ekranı açık kalır. Ünitenin hangi
+  kaynakta olduğunu söylemesi ve komut izni gerekir; 20 saniyede en çok bir kez denenir; 5 saniyede geçmezse fabrika uygulaması
+  ekranda kalır. Ayarlar → Radyo → "Radyoyu otomatik aç" ile kapatılabilir.
 - **Arama yönü düzeltildi:** ekrandaki "sonraki" oku artık bir sonraki istasyona gider (öncekinde ters çalışıyordu).
 - **Açılışta frekans görünür:** ünite, frekansı yalnızca değişince bildiriyordu; radyo ekranı açılınca artık tuner
   durumu da istenir.

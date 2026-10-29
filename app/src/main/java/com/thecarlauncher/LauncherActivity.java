@@ -532,6 +532,43 @@ public class LauncherActivity extends Activity implements LocationTracker.Listen
         openRadioApp();
     }
 
+    /**
+     * Switches a TW unit to the radio the way a tap on the factory radio icon does: the factory radio app is started (it
+     * tells the unit it is the front source when it resumes), and as soon as the unit reports the radio as its source the
+     * launcher is brought back, so the launcher's own radio screen stays in front. If the unit has not switched within a few
+     * seconds the factory app is left on screen, so the user sees what is wrong.
+     */
+    public void activateFactoryRadio() {
+        String pkg = radioPackage(this);
+        if (pkg == null || !AppRepository.launchPackage(this, pkg)) return;
+        final com.thecarlauncher.radio.TwRadio tw = com.thecarlauncher.radio.TwRadio.get(this);
+        final long t0 = android.os.SystemClock.uptimeMillis();
+        final android.os.Handler h = new android.os.Handler(android.os.Looper.getMainLooper());
+        h.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if (tw.isRadioSource()) {
+                    // let the unit settle, then come back to the launcher
+                    h.postDelayed(new Runnable() {
+                        @Override
+                        public void run() { bringLauncherToFront(); }
+                    }, 600);
+                } else if (android.os.SystemClock.uptimeMillis() - t0 < 5000) {
+                    h.postDelayed(this, 300);
+                }
+            }
+        }, 600);
+    }
+
+    private void bringLauncherToFront() {
+        try {
+            android.app.ActivityManager am = (android.app.ActivityManager) getSystemService(ACTIVITY_SERVICE);
+            if (am != null) am.moveTaskToFront(getTaskId(), 0);
+        } catch (RuntimeException e) {
+            startActivity(new Intent(this, LauncherActivity.class).addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT));
+        }
+    }
+
     public void openRadioApp() {
         String pkg = radioPackage(this);
         if (pkg != null && AppRepository.launchPackage(this, pkg)) return;

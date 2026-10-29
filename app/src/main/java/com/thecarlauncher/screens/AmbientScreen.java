@@ -23,7 +23,6 @@ import com.thecarlauncher.LauncherActivity;
 import com.thecarlauncher.R;
 import com.thecarlauncher.mib.Mib;
 import com.thecarlauncher.util.Prefs;
-import com.thecarlauncher.util.Ui;
 
 /**
  * MIB "Ambijentalno osvetljenje": the Corsa C interior picture, a 30-colour
@@ -126,23 +125,30 @@ public class AmbientScreen extends Screen {
             }
         }), new LinearLayout.LayoutParams(box, box));
         if (com.thecarlauncher.util.AmbientBle.enabled(act)) {
-            // The strip has two zones (the LAMP&FRGN app's Zone 1 and Zone 2): this key picks which one the colour and
-            // brightness keys act on.
-            FrameLayout zoneKey = new FrameLayout(act);
-            zoneKey.setBackground(Mib.box(act));
-            zoneLabel = Mib.text(act, zone == 0 ? Mib.t(act, "Sve", "All", "Hepsi") : String.valueOf(zone), 24, Mib.semibold(act), Mib.WHITE);
-            zoneLabel.setGravity(Gravity.CENTER);
-            zoneKey.addView(zoneLabel, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER));
-            zoneKey.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    cycleZone();
-                }
-            });
-            LinearLayout.LayoutParams zl = new LinearLayout.LayoutParams(Mib.px(act, 100), box);
-            zl.leftMargin = Mib.px(act, 18);
-            row.addView(zoneKey, zl);
+            // The strip has two zones (the LAMP&FRGN app's Zone 1 and Zone 2): three keys, All, 1 and 2, say which part the
+            // colour and brightness keys act on; the chosen one is shown in the accent colour.
+            String[] names = {Mib.t(act, "Sve", "All", "Hepsi"), "1", "2"};
+            for (int z = 0; z < 3; z++) {
+                final int target = z;
+                FrameLayout zoneKey = new FrameLayout(act);
+                zoneKey.setBackground(Mib.box(act));
+                zoneKeys[z] = Mib.text(act, names[z], 24, Mib.semibold(act), Mib.WHITE);
+                zoneKeys[z].setGravity(Gravity.CENTER);
+                zoneKey.addView(zoneKeys[z], new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER));
+                zoneKey.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        selectZone(target);
+                    }
+                });
+                LinearLayout.LayoutParams zl = new LinearLayout.LayoutParams(Mib.px(act, z == 0 ? 92 : 62), box);
+                zl.leftMargin = Mib.px(act, z == 0 ? 18 : 6);
+                row.addView(zoneKey, zl);
+            }
+            showZoneKeys();
+        } else {
+            zone = 0; // no strip: nothing to pick between
         }
         FrameLayout sun = new FrameLayout(act);
         sun.setBackground(Mib.box(act));
@@ -164,7 +170,7 @@ public class AmbientScreen extends Screen {
         stage.addView(row, rl);
         r.addView(stage, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
 
-        show(index);
+        show(indexOf(currentColor())); // after the zone keys: the chosen zone is kept when the screen is rebuilt
         return r;
     }
 
@@ -177,8 +183,8 @@ public class AmbientScreen extends Screen {
     }
 
     /** Which part of the strip the colour and brightness keys act on: 0 = all, 1 = Zone 1, 2 = Zone 2. */
-    private int zone;
-    private TextView zoneLabel;
+    private static int zone; // static: a change of Zone 1 or All rebuilds the screen, and the choice must survive that
+    private final TextView[] zoneKeys = new TextView[3];
 
     /*
      * Zone 1 (and "All") is the main Ambient colour and level, which is also what colours the screen; Zone 2 has its own
@@ -198,15 +204,26 @@ public class AmbientScreen extends Screen {
         Prefs.put(act, Prefs.AMBIENT_L2, com.thecarlauncher.util.AmbientBle.zoneLevel(act, 2));
     }
 
-    /** Next of: all, zone 1, zone 2. The pickers then show and change that part of the strip. */
-    private void cycleZone() {
-        zone = (zone + 1) % 3;
-        if (zone != 0) setZone2Apart();
-        zoneLabel.setText(zone == 0 ? Mib.t(act, "Sve", "All", "Hepsi") : String.valueOf(zone));
-        index = indexOf(currentColor());
-        show(index);
-        Ui.toast(act, zone == 0 ? Mib.t(act, "Cela traka", "The whole strip", "Tüm şerit")
-                : Mib.t(act, "Zona " + zone, "Zone " + zone, "Bölge " + zone));
+    /** Chooses what the colour and brightness keys act on (0 = all, 1, 2); the pickers then show that part's own values. */
+    private void selectZone(int z) {
+        if (z == zone) return;
+        zone = z;
+        if (zone != 0) setZone2Apart(); // so changing one zone cannot drag the other along
+        showZoneKeys();
+        show(indexOf(currentColor()));
+    }
+
+    /** The chosen key in the accent colour, the others white, so it is always clear what a change will touch. */
+    private void showZoneKeys() {
+        for (int z = 0; z < zoneKeys.length; z++) {
+            if (zoneKeys[z] != null) zoneKeys[z].setTextColor(z == zone ? Mib.BLUE : Mib.WHITE);
+        }
+    }
+
+    /** "All", "Zone 1" or "Zone 2" in front of the value, only while the strip is in use. */
+    private String zoneName() {
+        if (zoneKeys[0] == null) return "";
+        return (zone == 0 ? Mib.t(act, "Cela traka", "All", "Hepsi") : Mib.t(act, "Zona " + zone, "Zone " + zone, "Bölge " + zone)) + ": ";
     }
 
     /** Preview while dragging; store and recolour the whole UI once the finger lifts. */
@@ -270,8 +287,7 @@ public class AmbientScreen extends Screen {
         slider.setSelected(i);
         int lvl = level();
         String name = s((String) Mib.AMBIENT[i][0], (String) Mib.AMBIENT[i][1]);
-        String zoneName = zone == 0 ? "" : Mib.t(act, "Zona " + zone, "Zone " + zone, "Bölge " + zone) + ": ";
-        value.setText(zoneName + (lvl < 100 ? name + "  " + lvl + "%" : name));
+        value.setText(zoneName() + (lvl < 100 ? name + "  " + lvl + "%" : name));
     }
 
     @Override
