@@ -234,7 +234,20 @@ public class SettingsScreen extends Screen {
 
     // ---- Pages -------------------------------------------------------------------------------
 
+    /**
+     * The root holds six rows instead of twenty: each of the first five opens a page that lists related pages (one more
+     * step, but nothing has to be searched for), the last one opens the diagnostic recording directly.
+     */
     private void buildRoot() {
+        sub(s("Izgled", "Appearance"), new Page() { public void build() { buildAppearance(); } });
+        sub(s("Zvuk i mediji", "Sound and media"), new Page() { public void build() { buildSoundGroup(); } });
+        sub(s("Navigacija i vozilo", "Navigation and vehicle"), new Page() { public void build() { buildDrivingGroup(); } });
+        sub(s("Veze", "Connections"), new Page() { public void build() { buildConnections(); } });
+        sub(s("Sistem", "System"), new Page() { public void build() { buildSystemGroup(); } });
+        sub(s("Snimanje dijagnostike", "Diagnostic recording"), new Page() { public void build() { buildRecording(); } });
+    }
+
+    private void buildAppearance() {
         sub(s("Ekran", "Screen"), new Page() { public void build() { buildDisplay(); } });
         LinearLayout amb = sub(s("Ambijentalno osvetljenje", "Ambient lighting"), new Page() { public void build() { buildAmbient(); } });
         // The factory-style page with the interior picture and colour slider replaces the list.
@@ -244,13 +257,14 @@ public class SettingsScreen extends Screen {
                 act.show(LauncherActivity.AMBIENT, true);
             }
         });
-        sub(s("Vreme i datum", "Time and date"), new Page() { public void build() { buildTime(); } });
+        sub(ambientBleTitle(), new Page() { public void build() { buildAmbientBle(); } });
         LinearLayout lang = sub(Mib.isTr(act) ? "Dil/Language" : "Jezik/Language", new Page() { public void build() { buildLanguage(); } });
         addLeading(lang, flag());
         sub(s("Jedinice", "Units"), new Page() { public void build() { buildUnits(); } });
-        sub(ambientBleTitle(), new Page() { public void build() { buildAmbientBle(); } });
-        sub(s("Snimanje dijagnostike", "Diagnostic recording"), new Page() { public void build() { buildRecording(); } });
-        sub(s("Navigacija", "Navigation"), new Page() { public void build() { buildNav(); } });
+        sub(s("Vreme i datum", "Time and date"), new Page() { public void build() { buildTime(); } });
+    }
+
+    private void buildSoundGroup() {
         LinearLayout sound = sub(s("Zvuk", "Sound"), new Page() { public void build() { buildMedia(); } });
         sound.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -261,11 +275,21 @@ public class SettingsScreen extends Screen {
         sub(s("Mediji", "Media"), new Page() { public void build() { buildMedia(); } });
         sub("Radio", new Page() { public void build() { buildRadio(); } });
         sub("Bluetooth audio", new Page() { public void build() { buildBluetooth(); } });
-        sub("App-Connect", new Page() { public void build() { buildAppConnect(); } });
         sub(s("Telefon i radio", "Phone and radio"), new Page() { public void build() { buildPhoneRadio(); } });
+    }
+
+    private void buildDrivingGroup() {
+        sub(s("Navigacija", "Navigation"), new Page() { public void build() { buildNav(); } });
         sub(s("Vozilo", "Vehicle"), new Page() { public void build() { buildVehicle(); } });
+    }
+
+    private void buildConnections() {
         sub("Wi-Fi", new Page() { public void build() { buildWifi(); } });
         sub(s("Hotspot", "Hotspot"), new Page() { public void build() { buildHotspot(); } });
+        sub("App-Connect", new Page() { public void build() { buildAppConnect(); } });
+    }
+
+    private void buildSystemGroup() {
         sub(s("Rezervna kopija podešavanja", "Settings backup"), new Page() { public void build() { buildBackup(); } });
         sub(s("Android sistem", "Android system"), new Page() { public void build() { buildAndroid(); } });
         sub(s("Informacije o sistemu", "System information"), new Page() { public void build() { buildAbout(); } });

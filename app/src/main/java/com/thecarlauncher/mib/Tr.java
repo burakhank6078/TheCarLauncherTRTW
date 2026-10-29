@@ -469,6 +469,11 @@ final class Tr {
         p("Manual tuning is for FM only", "Elle ayar yalnızca FM için");
         p("The list fills as you listen", "Liste dinledikçe dolar");
         p("Warning", "Dikkat");
+        p("Appearance", "Görünüm");
+        p("Sound and media", "Ses ve medya");
+        p("Navigation and vehicle", "Navigasyon ve araç");
+        p("Connections", "Bağlantılar");
+        p("System", "Sistem");
         p("Switch the radio on automatically", "Radyoyu otomatik aç");
         p("On a TW unit: when you open Radio while another source plays, the factory radio app is started so the unit switches to the radio, and the launcher comes back to the front.", "TW ünitede: başka bir kaynak çalarken Radyo'yu açınca fabrika radyo uygulaması başlatılır, ünite radyoya geçer ve launcher yeniden öne gelir.");
         p("Switching the radio on…", "Radyo açılıyor…");
