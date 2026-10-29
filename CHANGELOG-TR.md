@@ -14,6 +14,16 @@ en üstüne eklenir; GitHub sürüm sayfası bu en üst bölümü gösterir.
 ---
 
 ## 28 Ekim 2026
+**Aracın kendi ayarları (salt okunur, ilk sayfa: ışıklar)**
+- **Ayarlar → Navigasyon ve araç → Aracın kendi ayarları → Işıklar:** fabrikadaki "Araç ayarı" uygulamasının ışık sayfası
+  (27 ayar) launcher'ın Ayarlar'ında okunur: yağmurda otomatik far, şerit değiştirme sinyali, gündüz farları, far açılma
+  zamanı, eve dönüş / çıkış ışığı, trafik yönü, far menzili, gösterge, kapı, ayak boşluğu, tavan ve ön ortam aydınlatması,
+  ortam rengi, ton, ana ve ikinci renk ile pencere / orta konsol / kapı girişi / ayak bölgesi parlaklığı. Değerler, fabrika
+  uygulamasının yaptığı gibi Canbus üzerinden aracın 102, 103 ve 104 numaralı çerçevelerinden okunur (komut izni açık
+  olmalı: çerçeve istemek de üniteye bir mesajdır). Aracın olmayan ayarları "bu araçta yok" notuyla gösterilir.
+- **Şimdilik yalnızca gösterim.** Değerlerin araçta doğru çıktığı görülünce değiştirme açılacak; her ayarın yazma anahtarı
+  (komut 109) fabrika kodundan çıkarılıp tabloda duruyor, hiçbir şey gönderilmiyor.
+
 **Ayarlar düzeni**
 - **Ayarlar ana listesi 6 satıra indi** (önceden 20'den fazlaydı): **Görünüm** (Ekran, Ambiyans, Ambiyans şeridi, Dil, Birimler,
   Saat ve tarih), **Ses ve medya** (Ses, Medya, Radyo, Bluetooth ses, Telefon ve radyo uygulamaları), **Navigasyon ve araç**

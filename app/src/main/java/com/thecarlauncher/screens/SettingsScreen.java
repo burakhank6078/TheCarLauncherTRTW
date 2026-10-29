@@ -281,6 +281,7 @@ public class SettingsScreen extends Screen {
     private void buildDrivingGroup() {
         sub(s("Navigacija", "Navigation"), new Page() { public void build() { buildNav(); } });
         sub(s("Vozilo", "Vehicle"), new Page() { public void build() { buildVehicle(); } });
+        sub(s("Podešavanja vozila (iz vozila)", "Car's own settings"), new Page() { public void build() { buildCarSettings(); } });
     }
 
     private void buildConnections() {
@@ -1183,6 +1184,65 @@ public class SettingsScreen extends Screen {
         });
         note(s("Zatvorite aplikaciju na telefonu i isključite Bluetooth telefona: traka prihvata jednu vezu i dok je povezana sa telefonom ne može se naći. Boja i nivo iz Ambijentalnog osvetljenja se šalju traci.",
                 "Close the phone app and switch the phone's Bluetooth off first: the strip accepts one connection and cannot be found while the phone is connected. The colour and level of Ambient lighting are sent to the strip."));
+    }
+
+    // ---- The car's own settings (the factory "Araç ayarı" pages), read only for now -----------------------
+
+    private String carLightsTitle() { return s("Svetla", "Lights"); }
+
+    private boolean onCarLightsPage() {
+        return !stack.isEmpty() && stack.get(stack.size() - 1).title.equals(carLightsTitle());
+    }
+
+    private void buildCarSettings() {
+        sub(carLightsTitle(), new Page() { public void build() { buildCarLights(); } });
+        note(s("Vrednosti se čitaju iz vozila preko Canbus-a, kao u fabričkoj aplikaciji \"Araç ayarı\". Za sada samo prikaz; izmena stiže posle provere na vozilu.",
+                "The values are read from the car over the Canbus, as the factory \"Araç ayarı\" app does. Display only for now; changing them comes after it has been checked on the car."));
+    }
+
+    private void requestCarLights() {
+        for (int frame : com.thecarlauncher.car.CarSettings.LIGHT_FRAMES) {
+            com.thecarlauncher.car.TwProbe.get().requestFrameAsync(act, frame);
+        }
+    }
+
+    /** The light page of the car: every setting with the value the car reports, greyed out text for the ones this car lacks. */
+    private void buildCarLights() {
+        final com.thecarlauncher.car.CarSettings cs = com.thecarlauncher.car.CarSettings.get();
+        cs.setListener(new Runnable() {
+            public void run() {
+                act.runOnUiThread(new Runnable() {
+                    public void run() {
+                        if (onCarLightsPage()) refreshKeep();
+                    }
+                });
+            }
+        });
+        com.thecarlauncher.car.CarSettings.Translator t = new com.thecarlauncher.car.CarSettings.Translator() {
+            public String tr(String en) { return Mib.t(act, en, en); }
+        };
+        boolean usable = com.thecarlauncher.car.TwProbe.get().usable(act);
+        if (!usable) {
+            info(s("Stanje", "Status"), s("Uključite komande u Podešavanja → Vozilo", "Allow commands in Setup → Vehicle"));
+        } else if (!cs.haveLights()) {
+            requestCarLights();
+            info(s("Stanje", "Status"), s("Čekam podatke iz vozila…", "Waiting for car data…"));
+        }
+        for (com.thecarlauncher.car.CarSettings.Section sec : com.thecarlauncher.car.CarSettings.lightSections()) {
+            info("— " + t.tr(sec.en) + " —", null);
+            for (com.thecarlauncher.car.CarSettings.Item it : sec.items) {
+                com.thecarlauncher.car.CarSettings.Reading r = cs.read(it);
+                String value = cs.text(it, t);
+                if (r.known && !r.available) value += "  (" + s("nije na ovom vozilu", "not on this car") + ")";
+                info(t.tr(it.en), value);
+            }
+        }
+        action(s("Osveži", "Refresh"), null, new Runnable() {
+            public void run() {
+                requestCarLights();
+                Ui.toast(act, s("Tražim podatke iz vozila…", "Asking the car…"));
+            }
+        });
     }
 
     /** The status texts of AmbientBle are English; Tr.java has the Turkish ones, dynamic ones are handled here. */

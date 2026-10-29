@@ -603,6 +603,8 @@ public final class TwProbe {
         if (m.what == 0x501 && m.arg1 == 30 && m.obj instanceof byte[]) ServiceData.get().decodeFrame((byte[]) m.obj);
         // Doors, belt and the chassis number for the Vehicle status page.
         if (m.what == 0x501 && m.obj instanceof byte[]) VehicleState.get().decodeFrame(appCtx, m.arg1, (byte[]) m.obj);
+        // The car's own settings pages (lights first), for Setup > Vehicle > Car's own settings.
+        if (m.what == 0x501 && m.obj instanceof byte[]) CarSettings.get().decodeFrame(m.arg1, (byte[]) m.obj);
         // Only while "Take trip data from OBD" is on; the listener itself also serves the recorder.
         if (m.what == 0x501 && m.obj instanceof byte[] && appCtx != null
                 && com.thecarlauncher.util.Prefs.bool(appCtx, com.thecarlauncher.util.Prefs.TRIP_OBD, false)
