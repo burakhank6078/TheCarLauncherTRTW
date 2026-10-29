@@ -25,6 +25,9 @@ en üstüne eklenir; GitHub sürüm sayfası bu en üst bölümü gösterir.
   bekleniyor…" diye takılı kaldı. Üç çerçeve arka arkaya isteniyordu ve eksik çerçeve varken sayfa her yenilendiğinde yeniden
   isteniyordu. Artık fabrika uygulaması gibi 60 ms arayla istenir, eksik kalan 1,5 saniye sonra bir kez daha istenir, bir tur
   sürerken (10 sn) yenisi başlamaz ve 4 saniye sonra hâlâ eksik varsa sayfa bunu açıkça yazar (araçta bu ayarlar olmayabilir).
+- **Işık sayfası artık "bekleniyor"da takılmaz:** araçtan bazı çerçeveler hiç gelmezse (aracınızda ambiyans aydınlatma yoksa
+  gelmeyebilir) sayfa her yenilemede yeniden istemiyordu ama durumu da "bekleniyor"a çeviriyordu. Artık istek sayfaya her
+  girişte bir kez gider; 4 saniye sonra eksik varsa "Araç verinin tamamını göndermedi" yazısı kalır, gelenler okunmaya devam eder.
 - **Şimdilik yalnızca gösterim.** Değerlerin araçta doğru çıktığı görülünce değiştirme açılacak; her ayarın yazma anahtarı
   (komut 109) fabrika kodundan çıkarılıp tabloda duruyor, hiçbir şey gönderilmiyor.
 
@@ -34,6 +37,11 @@ en üstüne eklenir; GitHub sürüm sayfası bu en üst bölümü gösterir.
   **Ses ve medya** (Ses, Medya, Radyo, Bluetooth ses, Telefon ve radyo uygulamaları), **Navigasyon ve araç** (Navigasyon, Araç,
   Aracın kendi ayarları), **Bağlantılar** (Wi-Fi, Hotspot, App-Connect) ve **Sistem** (Ayar yedeği, Android sistem, Sistem
   bilgileri, Tanılama kaydı) başlıkları girdi. Başka ekranlardan açılan kısayollar eskisi gibi çalışır.
+
+**Telefon**
+- **Telefon karosu ayarlara gitmez:** telefon uygulaması seçilmemişse ve ünitede Android çevirici yoksa MENU'deki Telefon karosu
+  Ayarlar'ı açıyordu. Artık önce seçilen uygulama, yoksa fabrika Bluetooth uygulaması (com.tw.bt, ünitenin telefon ekranı)
+  açılır; o da yoksa eski davranış sürer.
 
 **Uygulamalar**
 - **Uzun basış menüsü ekranın ortasında:** Uygulamalar'da bir simgeye uzun basınca açılan menü (MENU'ye ekle, telefon / radyo

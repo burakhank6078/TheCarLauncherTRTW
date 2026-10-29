@@ -109,12 +109,23 @@ public final class CarSettings {
     public synchronized void forget() {
         frames.clear();
         askedAt = 0;
+        attempted = false;
     }
 
     private long askedAt;
+    private boolean attempted;
 
     /** Notes that the light frames were just asked for (so the page does not ask again on every refresh). */
-    public synchronized void asked() { askedAt = System.currentTimeMillis(); }
+    public synchronized void asked() {
+        askedAt = System.currentTimeMillis();
+        attempted = true;
+    }
+
+    /** True once the frames were asked for in this visit to the page; a refresh of the page does not ask again. */
+    public synchronized boolean attempted() { return attempted; }
+
+    /** A new visit to the page may ask again (the values already read stay). */
+    public synchronized void resetAttempt() { attempted = false; }
 
     /** Milliseconds since the light frames were last asked for, Long.MAX_VALUE if never. */
     public synchronized long sinceAsked() {

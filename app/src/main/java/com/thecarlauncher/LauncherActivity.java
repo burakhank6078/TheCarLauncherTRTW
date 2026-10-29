@@ -507,9 +507,13 @@ public class LauncherActivity extends Activity implements LocationTracker.Listen
         ((SettingsScreen) screens[SETTINGS]).open(page);
     }
 
+    private static final String FACTORY_BT = "com.tw.bt";
+
     public void openPhone() {
         String pkg = Prefs.str(this, Prefs.PHONE_PKG, null);
         if (pkg != null && AppRepository.launchPackage(this, pkg)) return;
+        // A TW unit has no Android dialer: its phone is the factory Bluetooth app, which is the natural default.
+        if (AppRepository.launchPackage(this, FACTORY_BT)) return;
         if (!Ui.start(this, new Intent(Intent.ACTION_DIAL))) {
             Ui.toast(this, Mib.t(this, "Izaberite aplikaciju za telefon u Podešavanjima",
                     "Choose a phone app in Setup"));

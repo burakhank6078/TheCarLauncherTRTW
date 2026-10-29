@@ -1200,6 +1200,7 @@ public class SettingsScreen extends Screen {
     }
 
     private void buildCarSettings() {
+        com.thecarlauncher.car.CarSettings.get().resetAttempt(); // each visit to a car page asks the car afresh
         sub(carLightsTitle(), new Page() { public void build() { buildCarLights(); } });
         note(s("Vrednosti se čitaju iz vozila preko Canbus-a, kao u fabričkoj aplikaciji \"Araç ayarı\". Za sada samo prikaz; izmena stiže posle provere na vozilu.",
                 "The values are read from the car over the Canbus, as the factory \"Araç ayarı\" app does. Display only for now; changing them comes after it has been checked on the car."));
@@ -1207,12 +1208,12 @@ public class SettingsScreen extends Screen {
 
     /**
      * Asks the car for the light frames one after the other, 60 ms apart (the factory app waits between them; sent in one
-     * go only the first was answered), and once more for what is still missing after a second and a half. Not again while
-     * a round is still running, so a refresh of the page never starts a new storm of requests.
+     * go only the first was answered), and once more for what is still missing after a second and a half. Only once per visit
+     * to the page (the list above resets it): a refresh of the page, or a frame that arrives later, never starts a new round.
      */
     private void requestCarLights() {
         final com.thecarlauncher.car.CarSettings cs = com.thecarlauncher.car.CarSettings.get();
-        if (cs.sinceAsked() < 10000) return;
+        if (cs.attempted()) return;
         cs.asked();
         final android.os.Handler h = new android.os.Handler(android.os.Looper.getMainLooper());
         int n = 0;
@@ -1257,13 +1258,15 @@ public class SettingsScreen extends Screen {
         boolean usable = com.thecarlauncher.car.TwProbe.get().usable(act);
         if (!usable) {
             info(s("Stanje", "Status"), s("Uključite komande u Podešavanja → Vozilo", "Allow commands in Setup → Vehicle"));
-        } else if (!cs.haveLights()) {
-            requestCarLights();
-            // after a few seconds say it plainly: the car may simply not have the rest (no ambient lighting, for example)
-            info(s("Stanje", "Status"), cs.sinceAsked() > 4000
-                    ? s("Vozilo nije poslalo sve podatke (možda nema ova podešavanja)",
-                    "The car did not send all of it (it may not have these settings)")
-                    : s("Čekam podatke iz vozila…", "Waiting for car data…"));
+        } else {
+            requestCarLights(); // once per visit (a refresh of the page does not ask again)
+            if (!cs.haveLights()) {
+                // after a few seconds say it plainly: the car may simply not have the rest (no ambient lighting, for example)
+                info(s("Stanje", "Status"), cs.sinceAsked() > 4000
+                        ? s("Vozilo nije poslalo sve podatke (možda nema ova podešavanja)",
+                        "The car did not send all of it (it may not have these settings)")
+                        : s("Čekam podatke iz vozila…", "Waiting for car data…"));
+            }
         }
         for (com.thecarlauncher.car.CarSettings.Section sec : com.thecarlauncher.car.CarSettings.lightSections()) {
             section(t.tr(sec.en));
