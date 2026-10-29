@@ -235,15 +235,20 @@ public class SettingsScreen extends Screen {
     // ---- Pages -------------------------------------------------------------------------------
 
     /**
-     * The root holds six rows instead of twenty: each of the first five opens a page that lists related pages (one more
-     * step, but nothing has to be searched for), the last one opens the diagnostic recording directly.
+     * One list with the MIB section headings (Appearance, Sound and media, Navigation and vehicle, Connections, System),
+     * so everything is on one page again and nothing needs a step more; the headings keep the long list readable.
      */
     private void buildRoot() {
-        sub(s("Izgled", "Appearance"), new Page() { public void build() { buildAppearance(); } });
-        sub(s("Zvuk i mediji", "Sound and media"), new Page() { public void build() { buildSoundGroup(); } });
-        sub(s("Navigacija i vozilo", "Navigation and vehicle"), new Page() { public void build() { buildDrivingGroup(); } });
-        sub(s("Veze", "Connections"), new Page() { public void build() { buildConnections(); } });
-        sub(s("Sistem", "System"), new Page() { public void build() { buildSystemGroup(); } });
+        section(s("Izgled", "Appearance"));
+        buildAppearance();
+        section(s("Zvuk i mediji", "Sound and media"));
+        buildSoundGroup();
+        section(s("Navigacija i vozilo", "Navigation and vehicle"));
+        buildDrivingGroup();
+        section(s("Veze", "Connections"));
+        buildConnections();
+        section(s("Sistem", "System"));
+        buildSystemGroup();
         sub(s("Snimanje dijagnostike", "Diagnostic recording"), new Page() { public void build() { buildRecording(); } });
     }
 

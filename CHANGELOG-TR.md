@@ -25,11 +25,11 @@ en üstüne eklenir; GitHub sürüm sayfası bu en üst bölümü gösterir.
   (komut 109) fabrika kodundan çıkarılıp tabloda duruyor, hiçbir şey gönderilmiyor.
 
 **Ayarlar düzeni**
-- **Ayarlar ana listesi 6 satıra indi** (önceden 20'den fazlaydı): **Görünüm** (Ekran, Ambiyans, Ambiyans şeridi, Dil, Birimler,
-  Saat ve tarih), **Ses ve medya** (Ses, Medya, Radyo, Bluetooth ses, Telefon ve radyo uygulamaları), **Navigasyon ve araç**
-  (Navigasyon, Araç), **Bağlantılar** (Wi-Fi, Hotspot, App-Connect), **Sistem** (Ayar yedeği, Android sistem, Sistem bilgileri)
-  ve doğrudan açılan **Tanılama kaydı**. Sayfaların içeriği aynı; yalnızca bir basamak daha var. Radyo, Araç gibi sayfalara
-  başka ekranlardan açılan kısayollar eskisi gibi çalışır ve geri tuşu çağıran ekrana döner.
+- **Ayarlar tek listede, MIB bölüm başlıklarıyla:** önceki sürümde 6 satıra indirilen liste çok sade bulunduğu için geri
+  alındı. Tüm sayfalar yine tek listede; araya **Görünüm** (Ekran, Ambiyans, Ambiyans şeridi, Dil, Birimler, Saat ve tarih),
+  **Ses ve medya** (Ses, Medya, Radyo, Bluetooth ses, Telefon ve radyo uygulamaları), **Navigasyon ve araç** (Navigasyon, Araç,
+  Aracın kendi ayarları), **Bağlantılar** (Wi-Fi, Hotspot, App-Connect) ve **Sistem** (Ayar yedeği, Android sistem, Sistem
+  bilgileri, Tanılama kaydı) başlıkları girdi. Başka ekranlardan açılan kısayollar eskisi gibi çalışır.
 
 **Sürüş uyarısı ve direksiyon tuşları**
 - **Kapı / kemer uyarısı MIB açılır penceresi gibi:** üst çubuğun altındaki metin şeridi kalktı. Resim biraz kararır, ortada
