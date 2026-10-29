@@ -41,6 +41,9 @@ public final class CarSettings {
         final Opt[] opts;
         final Kind kind;
 
+        /** True for an on/off setting, which the screen draws as a tick box. */
+        public boolean isCheck() { return kind == Kind.CHECK; }
+
         Item(String en, int frame, int index, int shift, int bits, int enIndex, int enBit, int writeKey, Kind kind, Opt[] opts) {
             this.en = en;
             this.frame = frame;

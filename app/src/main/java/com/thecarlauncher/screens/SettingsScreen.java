@@ -1229,12 +1229,22 @@ public class SettingsScreen extends Screen {
             info(s("Stanje", "Status"), s("Čekam podatke iz vozila…", "Waiting for car data…"));
         }
         for (com.thecarlauncher.car.CarSettings.Section sec : com.thecarlauncher.car.CarSettings.lightSections()) {
-            info("— " + t.tr(sec.en) + " —", null);
+            section(t.tr(sec.en));
             for (com.thecarlauncher.car.CarSettings.Item it : sec.items) {
                 com.thecarlauncher.car.CarSettings.Reading r = cs.read(it);
-                String value = cs.text(it, t);
-                if (r.known && !r.available) value += "  (" + s("nije na ovom vozilu", "not on this car") + ")";
-                info(t.tr(it.en), value);
+                // As in the rest of Setup (and the MIB): a light bar, the name on the left, a tick box for an on/off
+                // setting, the value on the right for a list; the ones this car lacks are faded.
+                LinearLayout row;
+                if (it.isCheck() && r.known) {
+                    row = bar(t.tr(it.en), null);
+                    checkbox(row, r.value != 0);
+                } else {
+                    String value = cs.text(it, t);
+                    if (r.known && !r.available) value += "  (" + s("nije na ovom vozilu", "not on this car") + ")";
+                    row = bar(t.tr(it.en), value);
+                }
+                row.setClickable(false);
+                if (r.known && !r.available) row.setAlpha(0.45f);
             }
         }
         action(s("Osveži", "Refresh"), null, new Runnable() {
