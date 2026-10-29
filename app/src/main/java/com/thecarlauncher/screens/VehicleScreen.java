@@ -638,12 +638,12 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
     }
 
     /** Green tick / amber or red warning triangle, drawn crisp at any size. */
-    private static final class Mark extends Drawable {
-        static final int OK = 0, WARN = 1, ALERT = 2;
+    public static final class Mark extends Drawable {
+        public static final int OK = 0, WARN = 1, ALERT = 2;
         private final int type;
         private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
 
-        Mark(int type) { this.type = type; }
+        public Mark(int type) { this.type = type; }
 
         @Override
         public void draw(Canvas c) {

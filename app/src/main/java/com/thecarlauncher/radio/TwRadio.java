@@ -37,7 +37,12 @@ public final class TwRadio {
     private static final String HEARD_FM = "twradio_heard_fm", HEARD_AM = "twradio_heard_am";
 
     private static final int MODULE = 1;
-    private static final short[] IDS = {265, 266, 274, 513, 515, 769, 1025, 1026, 1028, 1029, 1030, -25088, -25087};
+    /**
+     * Only what the mirror needs: the source (0x301), the tuner (0x401, 0x402), the RDS name and text (0x404, 0x405) and the
+     * ranges (0x406). The factory radio app also registers the key route (0x201), 0x203, 0x109, 0x10A, 0x112 and the radio key
+     * ids (0x9E00, 0x9E01); they are left out on purpose, so this channel can have nothing to do with the steering wheel keys.
+     */
+    private static final short[] IDS = {769, 1025, 1026, 1028, 1029, 1030};
     private static final String TRY = "twradio_try", BAD = "twradio_bad", SUSPECT = "twradio_suspect";
 
     /** True for the ids of the radio channel (so the recorder does not log what this channel delivers a second time). */

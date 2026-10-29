@@ -105,7 +105,8 @@ public class TwRadioTest {
     @Test
     public void theRadioChannelKnowsItsOwnIds() {
         assertTrue(TwRadio.listensTo(1025));
-        assertTrue(TwRadio.listensTo(0x9E00));
+        assertFalse(TwRadio.listensTo(0x9E00)); // the radio key ids and the key route (0x201) are left to the factory apps
+        assertFalse(TwRadio.listensTo(0x201));
         assertFalse(TwRadio.listensTo(0x501)); // car frames come over the main channel
     }
 

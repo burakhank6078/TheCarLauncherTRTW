@@ -14,6 +14,16 @@ en üstüne eklenir; GitHub sürüm sayfası bu en üst bölümü gösterir.
 ---
 
 ## 28 Ekim 2026
+**Sürüş uyarısı ve direksiyon tuşları**
+- **Kapı / kemer uyarısı MIB açılır penceresi gibi:** üst çubuğun altındaki metin şeridi kalktı. Resim biraz kararır, ortada
+  siyah, beyaz çerçeveli bir panel hafifçe büyüyerek yükselir: uyarı üçgeni, "Dikkat" başlığı, altında mavi çizgi, satırlar ve
+  "Tamam" tuşu (telefon bağlanırken çıkan MIB pencereleri gibi). Yalnızca panel dokunuş alır, harita ve tuşlar kullanılabilir
+  kalır; "Tamam" ya da panele dokunmak uyarıyı kapatır. Ayarlar → Araç → "Uyarıyı dene" ile görülür.
+- **Radyo kanalı sadeleştirildi:** launcher'ın radyo kanalı artık yalnızca kaynak, tuner ve RDS mesajlarına abone olur;
+  fabrika radyonun abone olduğu tuş yolu (0x201) ve radyo tuş mesajları (0x9E00/0x9E01) bırakıldı. Direksiyon "sonraki /
+  önceki" tuşlarının ara sıra gitmesi için bulabildiğim tek launcher kaynaklı olasılık buydu; yine de sebebi kesin değil: tuş
+  kaybolunca tanılama kaydını alın (0x201 satırları tuşun ünitenin ucuna gelip gelmediğini gösterir).
+
 **Ambiyans şeridi (LAMP&FRGN)**
 - **İki bölge ayrı ayarlanır:** LAMP&FRGN uygulamasındaki "Bölge 1" ve "Bölge 2" artık Ambiyans ekranından ayrı renk ve ayrı
   parlaklıkla sürülür. Şerit açıksa renk çubuğunun yanında üç ayrı tuş çıkar: **Hepsi, 1 ve 2**; seçili olan vurgu

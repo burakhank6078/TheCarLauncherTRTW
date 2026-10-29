@@ -460,7 +460,7 @@ final class Tr {
         p("Several doors open", "Birden fazla kapı açık");
         p("Door and belt warning while driving", "Sürüş sırasında kapı ve kemer uyarısı");
         p("Try the warning", "Uyarıyı dene");
-        p("A banner under the top bar when a door is open or the driver belt is off while the car moves. Needs the OBD data and the GPS speed, and only shows while the launcher is on screen.", "Araç giderken kapı açıksa ya da sürücü kemeri takılı değilse üst çubuğun altında bir uyarı çıkar. OBD verisi ve GPS hızı gerekir; yalnızca launcher ekrandayken görünür.");
+        p("A pop-up in the MIB style when a door is open or the driver belt is off while the car moves. Needs the OBD data and the GPS speed, and only shows while the launcher is on screen.", "Araç giderken kapı açıksa ya da sürücü kemeri takılı değilse MIB tarzı bir uyarı penceresi çıkar. OBD verisi ve GPS hızı gerekir; yalnızca launcher ekrandayken görünür.");
         p("Phone and radio messages", "Telefon ve radyo mesajları");
         p("not listened to - restart the app", "dinlenmiyor - uygulamayı yeniden başlatın");
         p("not available on this unit", "bu ünitede kullanılamıyor");
@@ -468,6 +468,7 @@ final class Tr {
         p("The radio is not ready yet", "Radyo henüz hazır değil");
         p("Manual tuning is for FM only", "Elle ayar yalnızca FM için");
         p("The list fills as you listen", "Liste dinledikçe dolar");
+        p("Warning", "Dikkat");
         p("Switch the radio on automatically", "Radyoyu otomatik aç");
         p("On a TW unit: when you open Radio while another source plays, the factory radio app is started so the unit switches to the radio, and the launcher comes back to the front.", "TW ünitede: başka bir kaynak çalarken Radyo'yu açınca fabrika radyo uygulaması başlatılır, ünite radyoya geçer ve launcher yeniden öne gelir.");
         p("Switching the radio on…", "Radyo açılıyor…");

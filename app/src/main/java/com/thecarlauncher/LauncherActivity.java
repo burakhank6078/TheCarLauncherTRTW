@@ -157,12 +157,10 @@ public class LauncherActivity extends Activity implements LocationTracker.Listen
         root.addView(banner, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, LoadingBanner.height(this),
                 Gravity.TOP));
         LoadingBanner.attach(banner);
-        // Just under the status bar, so the top bar (back arrow, clock) stays usable while it is up.
+        // The door and belt warning: a MIB-style pop-up over the whole window; only its panel takes touches.
         carWarning = new com.thecarlauncher.mib.CarWarning(this);
-        FrameLayout.LayoutParams wl = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-                com.thecarlauncher.mib.CarWarning.height(this), Gravity.TOP);
-        wl.topMargin = Mib.px(this, 54);
-        root.addView(carWarning, wl);
+        root.addView(carWarning, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT));
         setContentView(root);
         rootView = root;
         applyDisplay();
