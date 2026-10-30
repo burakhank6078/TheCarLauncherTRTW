@@ -734,6 +734,8 @@ final class Tr {
         p("Clock screen when the ignition is off", "Kontak kapalıyken saat ekranı");
         p("Like the standby of a MIB unit: a black screen with a big clock a few seconds after the ignition goes off. A touch brings the launcher back. The brightness is not changed.", "MIB ünitelerinin bekleme modu gibi: kontak kapandıktan birkaç saniye sonra büyük saatli siyah ekran. Dokunmak launcher'ı geri getirir. Parlaklık değiştirilmez.");
         p("Dashboard", "Gösterge paneli");
+        p("Live data", "Canlı veri");
+        p("Ambient", "Ortam");
         p("Speed", "Hız");
         p("Engine speed", "Motor devri");
         p("This trip", "Bu yolculuk");

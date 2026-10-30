@@ -23,7 +23,7 @@ en üstüne eklenir; GitHub sürüm sayfası bu en üst bölümü gösterir.
   kalırsa "Şarj sorunu olabilir" uyarısı çıkar. Kontak açıldıktan birkaç saniye sonra ölçülen dinlenme voltajı son 30 kayıt olarak saklanır.
 - **Bekleme saati:** kontak kapandıktan 8 saniye sonra MIB ünitelerindeki gibi siyah ekranda büyük saat ve tarih gösterilir
   (ekran yanması olmasın diye her dakika birkaç piksel kayar). Dokununca launcher geri gelir. Ekran parlaklığı değiştirilmez.
-- **Araç → Gösterge paneli:** hız, motor devri, akü voltajı, bu yolculuğun mesafesi, sürüş puanı ve son 5 dinlenme voltajı ortalaması.
+- **Araç → Gösterge paneli (Araç durumu sayfasının altındaki "Canlı veri" tuşuyla da açılır; yanında Servis ve Ortam aydınlatması tuşları var):** hız, motor devri, akü voltajı, bu yolculuğun mesafesi, sürüş puanı ve son 5 dinlenme voltajı ortalaması.
 - **Ayarlar → Araç:** "Araç bildirimleri" ve "Kontak kapalıyken saat ekranı" anahtarları (ikisi de açık gelir).
 - Hepsi OBD verisi ister ("Yolculuk verilerini OBD'den al"); bildirimler ve saat yalnızca launcher ekrandayken görünür.
 

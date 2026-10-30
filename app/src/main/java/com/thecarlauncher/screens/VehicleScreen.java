@@ -315,26 +315,44 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
                 ViewGroup.LayoutParams.WRAP_CONTENT);
         body.addView(col, ll);
 
-        // Framed button like the factory "Start-stop" one.
+        // Framed buttons like the factory "Start-stop" one, in a row along the bottom: Service, the digital data page
+        // and the Ambient lighting screen, so they are one touch away from the status page.
+        LinearLayout row = new LinearLayout(act);
+        row.addView(statusButton(R.drawable.ui_ic_eq, s("Servis", "Service"), new Runnable() {
+            public void run() { setPage(SERVICE); }
+        }));
+        row.addView(statusButton(R.drawable.ui_ic_speedo, s("Podaci", "Live data"), new Runnable() {
+            public void run() { setPage(DASH); }
+        }));
+        row.addView(statusButton(R.drawable.ui_ic_car_s, s("Ambijent", "Ambient"), new Runnable() {
+            public void run() { act.show(LauncherActivity.AMBIENT, true); }
+        }));
+        FrameLayout.LayoutParams bl = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Mib.px(act, 60),
+                Gravity.BOTTOM | Gravity.LEFT);
+        bl.leftMargin = Mib.px(act, 30);
+        bl.bottomMargin = Mib.px(act, 34);
+        body.addView(row, bl);
+    }
+
+    private View statusButton(int icon, String label, final Runnable click) {
         LinearLayout btn = new LinearLayout(act);
         btn.setGravity(Gravity.CENTER_VERTICAL);
         btn.setBackground(Mib.box(act));
-        btn.setPadding(Mib.px(act, 14), 0, Mib.px(act, 30), 0);
-        btn.addView(Mib.icon(act, R.drawable.ui_ic_eq, Mib.WHITE), new LinearLayout.LayoutParams(Mib.px(act, 44), Mib.px(act, 44)));
-        TextView bt = Mib.text(act, s("Servis", "Service"), 34, Mib.regular(act), Mib.WHITE);
-        bt.setPadding(Mib.px(act, 14), 0, 0, 0);
+        btn.setPadding(Mib.px(act, 14), 0, Mib.px(act, 22), 0);
+        btn.addView(Mib.icon(act, icon, Mib.WHITE), new LinearLayout.LayoutParams(Mib.px(act, 40), Mib.px(act, 40)));
+        TextView bt = Mib.text(act, label, 28, Mib.regular(act), Mib.WHITE);
+        bt.setPadding(Mib.px(act, 12), 0, 0, 0);
         btn.addView(bt);
         btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                setPage(SERVICE);
+                click.run();
             }
         });
-        FrameLayout.LayoutParams bl = new FrameLayout.LayoutParams(Mib.px(act, 320), Mib.px(act, 60),
-                Gravity.BOTTOM | Gravity.LEFT);
-        bl.leftMargin = Mib.px(act, 30);
-        bl.bottomMargin = Mib.px(act, 34);
-        body.addView(btn, bl);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT);
+        lp.rightMargin = Mib.px(act, 12);
+        btn.setLayoutParams(lp);
+        return btn;
     }
 
     // ---- Pritisak u gumama -------------------------------------------------------------------
