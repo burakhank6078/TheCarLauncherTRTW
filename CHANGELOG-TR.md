@@ -13,6 +13,20 @@ en üstüne eklenir; GitHub sürüm sayfası bu en üst bölümü gösterir.
 
 ---
 
+## 30 Ekim 2026
+**Kontak olayları: yolculuk özeti, akü uyarıları, bekleme saati, gösterge paneli**
+- **Yolculuk özeti:** kontak kapanınca yolculuk hemen kapanır (eskiden 5 dakika beklenirdi) ve MIB tarzı pencerede özetlenir:
+  mesafe ve süre, ortalama / en yüksek hız, ortalama tüketim ve girdiğiniz yakıt fiyatına göre yaklaşık yakıt tutarı, sürüş puanı.
+- **Sürüş puanı:** sert frenleme (3 m/s² üzeri) ve sert kalkış (2,5 m/s² üzeri) GPS hızından sayılır; mesafeye göre 0–100 puan.
+  Puan yolculuk geçmişindeki her satırda ve Araç → Gösterge paneli'nde (devam eden yolculuk) görünür.
+- **Akü uyarıları:** kontak açık, motor kapalıyken voltaj 12,0 V altına inerse "Akü zayıf"; sürüşte 90 saniyeden uzun 12,4 V altında
+  kalırsa "Şarj sorunu olabilir" uyarısı çıkar. Kontak açıldıktan birkaç saniye sonra ölçülen dinlenme voltajı son 30 kayıt olarak saklanır.
+- **Bekleme saati:** kontak kapandıktan 8 saniye sonra MIB ünitelerindeki gibi siyah ekranda büyük saat ve tarih gösterilir
+  (ekran yanması olmasın diye her dakika birkaç piksel kayar). Dokununca launcher geri gelir. Ekran parlaklığı değiştirilmez.
+- **Araç → Gösterge paneli:** hız, motor devri, akü voltajı, bu yolculuğun mesafesi, sürüş puanı ve son 5 dinlenme voltajı ortalaması.
+- **Ayarlar → Araç:** "Araç bildirimleri" ve "Kontak kapalıyken saat ekranı" anahtarları (ikisi de açık gelir).
+- Hepsi OBD verisi ister ("Yolculuk verilerini OBD'den al"); bildirimler ve saat yalnızca launcher ekrandayken görünür.
+
 ## 28 Ekim 2026
 **Aracın kendi ayarları (salt okunur, ilk sayfa: ışıklar)**
 - **Ayarlar → Navigasyon ve araç → Aracın kendi ayarları → Işıklar:** fabrikadaki "Araç ayarı" uygulamasının ışık sayfası

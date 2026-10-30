@@ -36,8 +36,11 @@ Kaynak: `carlauncher-log_7.txt`. Motor 17:38:30'da kapandı (akü voltajı 13,2 
 
 **Yolcu emniyet kemeri (A08)**: dört işaret sırasında hiçbir çerçeve değişmedi. Yolcu koltuğu boşken kutu kemeri
 göndermiyor olabilir (doluluk sensörü); dolu koltukla bir kez daha denemeye değer.
-**Dış sıcaklık**: AIDL #59 17:35–17:38 arası 23,1–24,8 °C verdi; kümedeki dış sıcaklıkla karşılaştırılırsa kabin mi dış mı
-olduğu anlaşılır (bu kayıtta fotoğraf/not yok).
+**Sıcaklık (düzeltme, 29 Ekim)**: AIDL #59 bir sıcaklık **değil**. Car Info Service'in kodunda #59 `Track` adıyla geçiyor
+(direksiyon izi / açısı); 231–248 arası değerler direksiyonun oynamasından geliyordu. Önceki "kabin sıcaklığı olabilir" tahmini
+yanlıştı. Serviste su (hararet) ya da dış sıcaklık adı geçen hiçbir kayıt yok; adlı kodlar: #4 voltaj, #5 far, #14 el freni,
+#18 hız, #37 km/psi/mil/kpa/bar, #58 radar, #59 Track, #60 Turn. Hararet ve dış sıcaklık için aday yalnızca çerçeveler
+(49 son bayt, 24 bayt 4) ve ayrıca gerçek OBD-II (ELM327) var.
 
 ## Çözülemeyenler
 
@@ -46,8 +49,7 @@ olduğu anlaşılır (bu kayıtta fotoğraf/not yok).
 - **133** (`2020` ↔ `2040`), **116**, **117**, **22**, **23**, **24**, **250**: sadece iki değer arasında geziyorlar; eşleşen adım yok.
   133, ESC durumu olabilir (fabrika kodunda öyle), ama ESC o sırada değiştirilmedi.
 - **118**: yaklaşık 12 sn'de bir `C0`/`80` arasında dönüyor; araçla ilgisi yok, kalp atışı gibi.
-- **AIDL #59**: 23,8 / 23,7 °C (0,1 birim). Kabin sıcaklığı olabilir; kümede ya da klima ekranında gördüğün değerle
-  karşılaştırılmadı.
+- **AIDL #59**: sıcaklık değil, `Track` (direksiyon izi); bkz. yukarıdaki düzeltme.
 
 ## Eksik kalanlar
 

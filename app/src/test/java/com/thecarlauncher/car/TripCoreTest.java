@@ -90,6 +90,70 @@ public class TripCoreTest {
         assertNotNull(trip); // and the stop rule still fired on time
     }
 
+    /** A second-by-second speed list in km/h, one sample a second; returns the end time. */
+    private static long speeds(TripCore c, long t0, float... kmh) {
+        long t = t0;
+        for (float v : kmh) {
+            t += 1000;
+            c.step(t, WALL + t, v);
+        }
+        return t;
+    }
+
+    @Test
+    public void aHardBrakingAndAHardAccelerationAreCountedOnceEach() {
+        TripCore c = new TripCore();
+        c.step(0, WALL, 50);
+        long t = speeds(c, 0, 50, 50, 50);
+        t = speeds(c, t, 38, 26, 14, 8, 8);   // 12 km/h a second = 3.3 m/s2 for three seconds: one braking
+        t = speeds(c, t, 20, 32, 44, 44);     // 12 km/h a second the other way: one hard acceleration
+        assertEquals(1, c.brakes());
+        assertEquals(1, c.accels());
+        drive(c, t, 44f, 100);
+        TripCore.Trip trip = c.finish();
+        assertNotNull(trip);
+        assertEquals(1, trip.brakes);
+        assertEquals(1, trip.accels);
+    }
+
+    @Test
+    public void gentleDrivingCountsNothingAndAGpsGapIsNotABraking() {
+        TripCore c = new TripCore();
+        c.step(0, WALL, 50);
+        long t = speeds(c, 0, 52, 54, 56, 58, 60, 58, 56, 54, 52, 50); // 2 km/h a second: gentle
+        assertEquals(0, c.brakes());
+        assertEquals(0, c.accels());
+        // the fix is lost for 6 seconds and the next sample says 0: a gap, not a stop from 50 in one second
+        t += 6000;
+        c.step(t, WALL + t, 0);
+        assertEquals(0, c.brakes());
+    }
+
+    @Test
+    public void theScoreFallsWithTheEventsPerDistance() {
+        assertEquals(100, TripCore.score(0, 0, 40));
+        assertEquals(84, TripCore.score(3, 2, 40));
+        assertEquals(92, TripCore.score(1, 2, 40));
+        assertEquals(0, TripCore.score(40, 40, 10));
+        assertEquals(68, TripCore.score(1, 0, 1)); // a short trip counts as 5 km at least: 2 / 5 * 10 = 4 points, 4 x 8 = 32 off
+    }
+
+    @Test
+    public void aSavedTripKeepsItsEvents() {
+        TripCore c = new TripCore();
+        c.step(0, WALL, 60);
+        long t = speeds(c, 0, 60, 60, 60, 48, 36, 24, 12, 12);
+        drive(c, t, 60f, 200);
+        TripCore.Trip back = TripCore.fromSaved(c.save());
+        assertNotNull(back);
+        assertEquals(1, back.brakes);
+        // an old saved state without the two fields still reads, the events are then unknown
+        TripCore.Trip old = TripCore.fromSaved("1700000000000,1700000300000,5.000,300000,60.0");
+        assertNotNull(old);
+        assertEquals(-1, old.brakes);
+        assertEquals(-1, old.score());
+    }
+
     @Test
     public void aSavedTripCanBeClosedAfterARestart() {
         TripCore c = new TripCore();
@@ -101,5 +165,17 @@ public class TripCoreTest {
         assertEquals(5.0, t.km, 0.1);
         assertNull(TripCore.fromSaved(""));
         assertNull(TripCore.fromSaved("garbage"));
+    }
+
+    @Test
+    public void aLostGpsFixIsNotABrakingAndItsReturnIsNotAPullAway() {
+        TripCore c = new TripCore();
+        c.step(0, WALL, 0);
+        long t = drive(c, 0, 80f, 30);
+        t += 1000;
+        c.step(t, WALL + t, 0); // the fix is lost: fed as 0
+        t = drive(c, t, 80f, 5); // and it is back
+        assertEquals(0, c.brakes());
+        assertEquals(0, c.accels());
     }
 }

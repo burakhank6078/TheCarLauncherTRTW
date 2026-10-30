@@ -41,7 +41,7 @@ import java.util.Locale;
  * Everything comes from GPS and what the driver enters (no diagnostic adapter).
  */
 public class VehicleScreen extends Screen implements LocationTracker.Listener {
-    private static final int STATUS = 0, TYRES = 1, START = 2, LONG = 3, REFUEL = 4, FUEL = 5, SERVICE = 6, HISTORY = 7, PAGES = 8;
+    private static final int STATUS = 0, TYRES = 1, START = 2, LONG = 3, REFUEL = 4, FUEL = 5, SERVICE = 6, HISTORY = 7, DASH = 8, PAGES = 9;
 
     private final Handler main = new Handler(Looper.getMainLooper());
     private TextView title;
@@ -88,6 +88,7 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
             case FUEL: return s("Gorivo", "Fuel");
             case TYRES: return s("Pritisak u gumama", "Tyre pressure");
             case HISTORY: return s("Istorija vožnji", "Trip history");
+            case DASH: return s("Tabla", "Dashboard");
             default: return s("Servis", "Service");
         }
     }
@@ -176,7 +177,7 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
     private void showPages(View key) {
         MibPopup p = new MibPopup(act).columns(1);
         int[] icons = {R.drawable.ui_ic_car_s, R.drawable.ui_ic_car_s, R.drawable.ui_ic_clock, R.drawable.ui_ic_route,
-                R.drawable.ui_ic_speedo, R.drawable.ui_ic_speedo, R.drawable.ui_ic_eq, R.drawable.ui_ic_route};
+                R.drawable.ui_ic_speedo, R.drawable.ui_ic_speedo, R.drawable.ui_ic_eq, R.drawable.ui_ic_route, R.drawable.ui_ic_speedo};
         for (int i = 0; i < PAGES; i++) {
             final int idx = i;
             p.add(pageTitle(i), icons[i], i == page, new Runnable() {
@@ -235,6 +236,13 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
             case FUEL: buildFuel(); break;
             case TYRES: buildTyres(); break;
             case HISTORY: buildHistory(); break;
+            case DASH:
+                buildCells(new int[]{R.drawable.ui_ic_speedo, R.drawable.ui_ic_eq, R.drawable.ui_ic_car_s,
+                                R.drawable.ui_ic_route, R.drawable.ui_ic_nav, R.drawable.ui_ic_clock},
+                        new String[]{s("Brzina", "Speed"), s("Broj obrtaja", "Engine speed"), s("Akumulator", "Battery"),
+                                s("Ova vožnja", "This trip"), s("Ocena vožnje", "Driving score"),
+                                s("Akumulator u mirovanju", "Resting battery")});
+                break;
             default: buildService(); break;
         }
         boolean action = p == FUEL || (!obd && (p == START || p == LONG || p == REFUEL));
@@ -816,6 +824,7 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
             com.thecarlauncher.car.TripCore.Trip t = trips.get(i);
             String value = String.format(Locale.US, "%.1f km", t.km);
             if (t.consumption >= 0) value += String.format(Locale.US, "  ·  %.1f l/100", t.consumption);
+            if (t.score() >= 0) value += "  ·  " + t.score();
             row(col, R.drawable.ui_ic_route, fmt.format(new java.util.Date(t.start)) + "  ·  " + hm(t.durationMs()), value, null);
         }
         row(col, R.drawable.ui_ic_refresh, s("Obriši istoriju vožnji", "Delete the trip history"), null, new Runnable() {
@@ -1066,7 +1075,20 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
         boolean metric = Prefs.metric(act);
         String du = metric ? "km" : "mi";
         double f = metric ? 1 : 0.621371;
-        if (page == START) {
+        if (page == DASH) {
+            com.thecarlauncher.car.VehicleState vs = com.thecarlauncher.car.VehicleState.get();
+            LocationTracker lt = LocationTracker.get(act);
+            com.thecarlauncher.car.TripLog log = com.thecarlauncher.car.TripLog.get(act);
+            cells[0].setText(lt.hasFix() ? Math.round(lt.speed(act)) + " " + LocationTracker.unit(act) : "–");
+            cells[1].setText(vs.rpm() > 0 ? vs.rpm() + " rpm" : "–");
+            float v = vs.voltage();
+            cells[2].setText(Float.isNaN(v) ? "–" : String.format(Locale.US, "%.1f V", v));
+            cells[3].setText(log.driving() ? String.format(Locale.US, "%.1f km", log.currentKm() * f) : "–");
+            int score = log.currentScore();
+            cells[4].setText(score >= 0 ? String.valueOf(score) : "–");
+            float rest = com.thecarlauncher.car.BatteryHistory.average(com.thecarlauncher.car.BatteryHistory.all(act), 5);
+            cells[5].setText(Float.isNaN(rest) ? "–" : String.format(Locale.US, "%.1f V", rest));
+        } else if (page == START) {
             cells[0].setText(hm(tc.elapsedMs()));
             cells[1].setText(String.format(Locale.US, "%.1f %s", tc.distance(), du));
             cells[2].setText(String.format(Locale.US, "%.0f %s", tc.averageSpeed(), LocationTracker.unit(act)));

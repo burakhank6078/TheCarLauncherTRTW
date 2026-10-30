@@ -1471,6 +1471,12 @@ public class SettingsScreen extends Screen {
         });
         note(s("Iskačući prozor kada su vrata otvorena ili pojas vozača nije vezan dok vozilo ide. Radi uz podatke iz OBD-a i GPS brzinu, i samo dok je launcher na ekranu.",
                 "A pop-up in the MIB style when a door is open or the driver belt is off while the car moves. Needs the OBD data and the GPS speed, and only shows while the launcher is on screen."));
+        toggle(s("Obaveštenja o vozilu (kraj vožnje, akumulator)", "Car notices (trip summary, battery)"), Prefs.CAR_EVENTS, true, null);
+        note(s("Kad se kontakt ugasi: sažetak vožnje sa ocenom. Upozorenje za slab akumulator ili punjenje. Radi uz podatke iz OBD-a i samo dok je launcher na ekranu.",
+                "When the ignition goes off: a trip summary with a driving score. A warning for a weak battery or a charging fault. Needs the OBD data and only shows while the launcher is on screen."));
+        toggle(s("Ekran sa satom kad je kontakt ugašen", "Clock screen when the ignition is off"), Prefs.STANDBY_CLOCK, true, null);
+        note(s("Kao stanje mirovanja MIB jedinica: crn ekran sa velikim satom nekoliko sekundi nakon gašenja kontakta. Dodir vraća launcher. Svetlina se ne menja.",
+                "Like the standby of a MIB unit: a black screen with a big clock a few seconds after the ignition goes off. A touch brings the launcher back. The brightness is not changed."));
         toggle(s("Dozvoli slanje komandi jedinici (reset guma, Bluetooth tasteri)", "Allow sending commands to the unit (tyre reset, Bluetooth keys)"),
                 Prefs.TW_COMMANDS, false, new Runnable() {
                     public void run() {

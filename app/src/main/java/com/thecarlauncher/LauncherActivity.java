@@ -78,6 +78,21 @@ public class LauncherActivity extends Activity implements LocationTracker.Listen
 
     private FrameLayout content;
     private com.thecarlauncher.mib.CarWarning carWarning;
+    private com.thecarlauncher.mib.StandbyClock standbyClock;
+
+    /** Where the car events (trip summary, battery warnings, the clock screen) are shown. */
+    private final com.thecarlauncher.mib.CarEvents.Sink carEventSink = new com.thecarlauncher.mib.CarEvents.Sink() {
+        @Override
+        public void notice(String title, java.util.List<String> lines, int mark, long ms) {
+            carWarning.notice(title, lines, mark, ms);
+        }
+
+        @Override
+        public void standby(boolean on) {
+            if (on) standbyClock.show();
+            else standbyClock.hide();
+        }
+    };
     private TextView timeView, tagView, rightView, streetView;
     private View statusBar, statusRule;
     private ImageView backArrow;
@@ -160,6 +175,10 @@ public class LauncherActivity extends Activity implements LocationTracker.Listen
         // The door and belt warning: a MIB-style pop-up over the whole window; only its panel takes touches.
         carWarning = new com.thecarlauncher.mib.CarWarning(this);
         root.addView(carWarning, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT));
+        // The MIB standby screen (a big clock) over everything, once the ignition has been off for a few seconds.
+        standbyClock = new com.thecarlauncher.mib.StandbyClock(this);
+        root.addView(standbyClock, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
         setContentView(root);
         rootView = root;
@@ -685,6 +704,9 @@ public class LauncherActivity extends Activity implements LocationTracker.Listen
 
     private void updateClock() {
         com.thecarlauncher.util.DayNight.get(this).tick(); // once a second: the headlights decide day or night for the map
+        com.thecarlauncher.nav.LocationTracker lt = com.thecarlauncher.nav.LocationTracker.get(this);
+        // once a second: the ignition going on or off, the battery, the clock screen
+        com.thecarlauncher.mib.CarEvents.get().tick(this, lt.hasFix() ? lt.speedMps() * 3.6f : 0f, carEventSink);
         String pattern = Prefs.use24h(this) ? "HH:mm" : "h:mm";
         timeView.setText(new SimpleDateFormat(pattern, Locale.getDefault()).format(new Date()));
     }

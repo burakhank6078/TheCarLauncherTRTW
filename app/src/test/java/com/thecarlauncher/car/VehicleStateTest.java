@@ -76,6 +76,19 @@ public class VehicleStateTest {
     }
 
     @Test
+    public void ignitionFromFrames26And17() {
+        VehicleState v = VehicleState.get();
+        v.decodeFrame(null, 26, hex("7F8100000004FFFD00000000"));
+        assertEquals(1, v.ignition());
+        v.decodeFrame(null, 26, hex("7F0000000004FFFD00000000")); // 17:38:30 on 28 Oct: the engine was switched off
+        assertEquals(0, v.ignition());
+        v.decodeFrame(null, 17, hex("190000000000FFFC0000"));
+        assertEquals(1, v.ignition());
+        v.decodeFrame(null, 17, hex("180000000000FFFD0000"));
+        assertEquals(0, v.ignition());
+    }
+
+    @Test
     public void trunkAndVoltageFromTheRecordedFrames() {
         VehicleState v = VehicleState.get();
         v.setAidl(4, "0.0");

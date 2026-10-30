@@ -720,5 +720,24 @@ final class Tr {
         p("Silver", "Gümüş");
         p("Warm white", "Sıcak beyaz");
         p("Cool white", "Soğuk beyaz");
+        p("Trip finished", "Yolculuk bitti");
+        p("hard braking", "sert fren");
+        p("hard acceleration", "sert kalkış");
+        p("top speed", "en yüksek hız");
+        p("Possible charging problem", "Şarj sorunu olabilir");
+        p("ignition on, engine off", "kontak açık, motor kapalı");
+        p("for more than 90 s while driving", "sürüşte 90 sn'den uzun süredir");
+        p("Do not drain it further: start the engine or have it checked.", "Daha fazla yormayın: motoru çalıştırın ya da kontrol ettirin.");
+        p("The alternator may not be charging the battery: have it checked.", "Alternatör aküyü şarj etmiyor olabilir: servise baktırın.");
+        p("Car notices (trip summary, battery)", "Araç bildirimleri (yolculuk özeti, akü)");
+        p("When the ignition goes off: a trip summary with a driving score. A warning for a weak battery or a charging fault. Needs the OBD data and only shows while the launcher is on screen.", "Kontak kapanınca: sürüş puanlı yolculuk özeti. Zayıf akü veya şarj arızası için uyarı. OBD verisi gerekir ve yalnızca launcher ekrandayken görünür.");
+        p("Clock screen when the ignition is off", "Kontak kapalıyken saat ekranı");
+        p("Like the standby of a MIB unit: a black screen with a big clock a few seconds after the ignition goes off. A touch brings the launcher back. The brightness is not changed.", "MIB ünitelerinin bekleme modu gibi: kontak kapandıktan birkaç saniye sonra büyük saatli siyah ekran. Dokunmak launcher'ı geri getirir. Parlaklık değiştirilmez.");
+        p("Dashboard", "Gösterge paneli");
+        p("Speed", "Hız");
+        p("Engine speed", "Motor devri");
+        p("This trip", "Bu yolculuk");
+        p("Driving score", "Sürüş puanı");
+        p("Resting battery", "Dinlenme voltajı");
     }
 }

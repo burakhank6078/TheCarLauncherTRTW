@@ -80,7 +80,27 @@ public final class TripLog {
         double cons = ObdData.get().get(ObdData.START, ObdData.CONS);
         double dist = ObdData.get().get(ObdData.START, ObdData.DIST);
         if (Double.isNaN(cons) || Double.isNaN(dist) || cons <= 0 || dist <= 0 || Math.abs(dist - t.km) > 0.3 * t.km) return t;
-        return new TripCore.Trip(t.start, t.end, t.km, t.movingMs, t.maxKmh, (float) cons);
+        return new TripCore.Trip(t.start, t.end, t.km, t.movingMs, t.maxKmh, (float) cons, t.brakes, t.accels);
+    }
+
+    /**
+     * Ends the trip in progress now (the ignition went off), keeps it and returns it; null when there was none or it was
+     * too short. The next movement starts a new trip.
+     */
+    public synchronized TripCore.Trip finishNow() {
+        TripCore.Trip t = core.finish();
+        if (t == null) {
+            Prefs.put(app, ACTIVE, "");
+            return null;
+        }
+        TripCore.Trip full = withConsumption(t);
+        add(full);
+        return full;
+    }
+
+    /** Driving score of the trip in progress, or -1 before it has gone 1 km. */
+    public synchronized int currentScore() {
+        return core.active() && core.km() >= 1.0 ? TripCore.score(core.brakes(), core.accels(), core.km()) : -1;
     }
 
     // ---- Storage and summary (no Android needed) -----------------------------------------------------------------
@@ -91,7 +111,8 @@ public final class TripLog {
         for (TripCore.Trip t : list) {
             sb.append(t.start).append(',').append(t.end).append(',').append(Math.round(t.km * 100)).append(',')
                     .append(t.movingMs / 1000).append(',').append(Math.round(t.maxKmh * 10)).append(',')
-                    .append(t.consumption < 0 ? -1 : Math.round(t.consumption * 10)).append('\n');
+                    .append(t.consumption < 0 ? -1 : Math.round(t.consumption * 10)).append(',')
+                    .append(t.brakes).append(',').append(t.accels).append('\n');
         }
         return sb.toString();
     }
@@ -108,8 +129,10 @@ public final class TripLog {
                 long mv = Long.parseLong(p[3]) * 1000;
                 float mx = Long.parseLong(p[4]) / 10f;
                 long c = Long.parseLong(p[5]);
+                // trips saved before the hard events were counted have six fields
+                int br = p.length >= 8 ? Integer.parseInt(p[6]) : -1, ac = p.length >= 8 ? Integer.parseInt(p[7]) : -1;
                 if (en < st || km <= 0) continue;
-                out.add(new TripCore.Trip(st, en, km, mv, mx, c < 0 ? -1f : c / 10f));
+                out.add(new TripCore.Trip(st, en, km, mv, mx, c < 0 ? -1f : c / 10f, br, ac));
             } catch (NumberFormatException ignored) {
                 // a broken line is skipped
             }

@@ -36,6 +36,8 @@ public class CarWarning extends FrameLayout {
 
     private final Handler main = new Handler(Looper.getMainLooper());
     private final LinearLayout panel, lines;
+    private final ImageView icon;
+    private boolean noticeActive;
     private final TextView title;
     private final WarningLogic logic = new WarningLogic();
     private long previewUntil, lastAsk;
@@ -65,7 +67,7 @@ public class CarWarning extends FrameLayout {
 
         LinearLayout head = new LinearLayout(c);
         head.setGravity(Gravity.CENTER_VERTICAL);
-        ImageView icon = new ImageView(c);
+        icon = new ImageView(c);
         icon.setImageDrawable(new VehicleScreen.Mark(VehicleScreen.Mark.WARN));
         head.addView(icon, new LinearLayout.LayoutParams(Mib.px(c, 54), Mib.px(c, 54)));
         title = Mib.text(c, "", 36, Mib.semibold(c), Mib.WHITE);
@@ -94,6 +96,12 @@ public class CarWarning extends FrameLayout {
         ok.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
+                if (noticeActive) {
+                    main.removeCallbacks(endNotice);
+                    noticeActive = false;
+                    if (!logic.visible()) hidePanel();
+                    return;
+                }
                 apply(logic.dismiss(System.currentTimeMillis()), 0, false);
             }
         });
@@ -167,37 +175,70 @@ public class CarWarning extends FrameLayout {
     private void apply(WarningLogic.Action a, int doors, boolean beltOff) {
         Context c = getContext();
         if (a == WarningLogic.Action.SHOW) {
-            title.setText(Mib.t(c, "Pažnja", "Warning", "Dikkat"));
-            lines.removeAllViews();
-            for (String l : CarTexts.lines(c, doors, beltOff)) {
-                TextView t = Mib.text(c, l, 31, Mib.semibold(c), Mib.WHITE);
-                t.setSingleLine(false);
-                LinearLayout.LayoutParams tl = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT);
-                tl.topMargin = Mib.px(c, 6);
-                lines.addView(t, tl);
-            }
-            if (getVisibility() != VISIBLE || getAlpha() < 1f) {
-                // the panel rises in from slightly smaller and slightly higher, the picture dims with it
-                setVisibility(VISIBLE);
-                setAlpha(0f);
-                panel.setScaleX(0.92f);
-                panel.setScaleY(0.92f);
-                panel.setTranslationY(-Mib.px(c, 14));
-                panel.setPivotX(Mib.px(c, 390));
-                panel.setPivotY(0f);
-                animate().alpha(1f).setDuration(IN_MS).setInterpolator(new DecelerateInterpolator()).start();
-                panel.animate().scaleX(1f).scaleY(1f).translationY(0f).setDuration(IN_MS)
-                        .setInterpolator(new DecelerateInterpolator()).start();
-            }
+            // a door or belt warning is more urgent than a notice and takes its place
+            noticeActive = false;
+            main.removeCallbacks(endNotice);
+            present(Mib.t(c, "Pažnja", "Warning", "Dikkat"), CarTexts.lines(c, doors, beltOff), VehicleScreen.Mark.WARN);
         } else if (a == WarningLogic.Action.HIDE) {
-            panel.animate().scaleX(0.96f).scaleY(0.96f).setDuration(OUT_MS).start();
-            animate().alpha(0f).setDuration(OUT_MS).withEndAction(new Runnable() {
-                @Override
-                public void run() {
-                    if (!logic.visible()) setVisibility(GONE);
-                }
-            }).start();
+            if (!noticeActive) hidePanel();
         }
+    }
+
+    /**
+     * Shows a notice (the trip summary when the ignition goes off, a battery warning) in the same panel for {@code ms}
+     * milliseconds, or until it is dismissed. mark is a {@link VehicleScreen.Mark} type: the tick for good news, the
+     * triangle for a warning.
+     */
+    public void notice(String titleText, java.util.List<String> noticeLines, int mark, long ms) {
+        noticeActive = true;
+        present(titleText, noticeLines, mark);
+        main.removeCallbacks(endNotice);
+        main.postDelayed(endNotice, ms);
+    }
+
+    private final Runnable endNotice = new Runnable() {
+        @Override
+        public void run() {
+            noticeActive = false;
+            if (!logic.visible()) hidePanel();
+        }
+    };
+
+    private void present(String titleText, java.util.List<String> ls, int mark) {
+        Context c = getContext();
+        title.setText(titleText);
+        icon.setImageDrawable(new VehicleScreen.Mark(mark));
+        lines.removeAllViews();
+        for (String l : ls) {
+            TextView t = Mib.text(c, l, 31, Mib.semibold(c), Mib.WHITE);
+            t.setSingleLine(false);
+            LinearLayout.LayoutParams tl = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT);
+            tl.topMargin = Mib.px(c, 6);
+            lines.addView(t, tl);
+        }
+        if (getVisibility() != VISIBLE || getAlpha() < 1f) {
+            // the panel rises in from slightly smaller and slightly higher, the picture dims with it
+            setVisibility(VISIBLE);
+            setAlpha(0f);
+            panel.setScaleX(0.92f);
+            panel.setScaleY(0.92f);
+            panel.setTranslationY(-Mib.px(c, 14));
+            panel.setPivotX(Mib.px(c, 390));
+            panel.setPivotY(0f);
+            animate().alpha(1f).setDuration(IN_MS).setInterpolator(new DecelerateInterpolator()).start();
+            panel.animate().scaleX(1f).scaleY(1f).translationY(0f).setDuration(IN_MS)
+                    .setInterpolator(new DecelerateInterpolator()).start();
+        }
+    }
+
+    private void hidePanel() {
+        panel.animate().scaleX(0.96f).scaleY(0.96f).setDuration(OUT_MS).start();
+        animate().alpha(0f).setDuration(OUT_MS).withEndAction(new Runnable() {
+            @Override
+            public void run() {
+                if (!logic.visible() && !noticeActive) setVisibility(GONE);
+            }
+        }).start();
     }
 }

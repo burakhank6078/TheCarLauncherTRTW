@@ -44,6 +44,10 @@ public final class VehicleState {
             doors = ((b[1] >> 4) & 0xF) | ((b[1] & 0x08) != 0 ? DOOR_TRUNK : 0);
             doorsAt = now;
             beatAt = now;
+            ign = b[1] & 1; // the ignition flag: 0x81 -> 0x00 the moment the engine was switched off (28 Oct 2026)
+        } else if (frame == 17 && b.length >= 1) {
+            ign = b[0] & 1; // the same flag in frame 17 (0x19 -> 0x18 at that moment)
+            beatAt = now;
         } else if (frame == 18 && b.length >= 7) {
             doors = ((b[2] >> 4) & 0xF) | ((b[2] & 0x08) != 0 ? DOOR_TRUNK : 0);
             doorsAt = now;
@@ -80,6 +84,14 @@ public final class VehicleState {
         long now = System.currentTimeMillis();
         return now - beatAt < ALIVE_MS || now - serviceAt < ALIVE_MS;
     }
+
+    private int ign = -1;
+
+    /**
+     * 1 = ignition on, 0 = off, -1 = not known yet. It is the last thing the car said (the car sends it when it changes and
+     * about twice a second while it is on), so "off" stays off while the box is silent.
+     */
+    public synchronized int ignition() { return ign; }
 
     /** Open doors as a bit mask of the DOOR_ constants, or -1 when not known. */
     public synchronized int doors() { return alive() ? doors : -1; }
