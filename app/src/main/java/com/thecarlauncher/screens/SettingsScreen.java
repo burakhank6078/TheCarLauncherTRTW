@@ -1301,7 +1301,7 @@ public class SettingsScreen extends Screen {
                             MibMenu m = new MibMenu(act, t.tr(it.en));
                             for (int i = 0; i < it.optionCount(); i++) {
                                 final int value = it.optionValue(i);
-                                m.add(t.tr(it.optionText(i)), new Runnable() {
+                                m.add(it.optionLabel(i, t), new Runnable() {
                                     public void run() { sendCarSetting(p, sec, it, value); }
                                 });
                             }

@@ -21,9 +21,10 @@ en üstüne eklenir; GitHub sürüm sayfası bu en üst bölümü gösterir.
   uygulamasının gönderdiği mesajla gönderilir (ışıklar 109, açma/kapama 111, ayna/silecek 110) ve yarım saniye sonra çerçeve yeniden
   istenip ekranda aracın gerçekte ne yaptığı gösterilir. Yalnızca "Üniteye komut göndermeye izin ver" açıkken çalışır; launcher her
   açılışta ilk değişiklikte bir kez onay sorar.
-- **Henüz değiştirilemeyenler (yalnızca gösterilir):** eve dönüş / çıkış ışığı süresi, far menzili, şerit asistanı parlaklığı, ambiyans
-  rengi ve ton renkleri ile trafik yönü — izin verilen değerler ya da değer eşlemesi sizin araçta doğrulanmadan gönderilmiyor.
-- **Araçta denenmeli:** önce zararsız bir ayar (örneğin "Aynalar ve silecekler → Geri vitesteyken aşağı indir") açıp kapatın ve
+- **Işık sayfasındaki kilitli satırlar artık değiştirilebilir:** eve dönüş / çıkış ışığı süresi (0–30 sn), far menzili (0–6), şerit asistanı
+  parlaklığı (1–5), trafik yönü ve ambiyans rengi (fabrikadaki gibi üç ayrı liste: 3, 10 ve 20 renkli set). Değerler fabrika uygulamasının
+  listelerinden alındı. Yalnızca ana / ikinci ton rengi ve renk kombinasyonu şimdilik salt okunur: izin verilen renkler çerçevedeki bayraklara bağlı.
+- **Araçta denenmeli:** önce zararsız bir ayarı (örneğin "Aynalar ve silecekler → Geri vitesteyken aşağı indir") açıp kapatın ve
   fabrika uygulamasında aynı değerin değiştiğini kontrol edin.
 
 ## 30 Ekim 2026

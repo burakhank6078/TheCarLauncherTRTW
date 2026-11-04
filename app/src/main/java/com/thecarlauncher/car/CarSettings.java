@@ -48,14 +48,28 @@ public final class CarSettings {
         public boolean isCheck() { return kind == Kind.CHECK; }
 
         /** True when the screen may offer to change it: an on/off setting or a list of known values. */
-        public boolean editable() { return !readOnly && (kind == Kind.CHECK || (kind == Kind.LIST && opts != null)); }
+        public boolean editable() {
+            return !readOnly && (kind == Kind.CHECK || (kind == Kind.LIST && opts != null) || values != null);
+        }
 
-        public int optionCount() { return opts == null ? 0 : opts.length; }
+        /** The values the factory list offers for a setting that has no named options (seconds, levels). */
+        int[] values;
+        /** A value outside the list reads as its first entry (the ambient colour byte is shared by three lists). */
+        boolean zeroDefault;
 
-        public int optionValue(int i) { return opts[i].value; }
+        Item choose(int... v) {
+            values = v;
+            return this;
+        }
 
-        /** The English text of a list value (translate it with the screen's translator). */
-        public String optionText(int i) { return opts[i].en; }
+        public int optionCount() { return opts != null ? opts.length : values == null ? 0 : values.length; }
+
+        public int optionValue(int i) { return opts != null ? opts[i].value : values[i]; }
+
+        /** The text of a list value in the language of the translator. */
+        public String optionLabel(int i, Translator t) {
+            return opts != null ? t.tr(opts[i].en) : format(this, values[i], t);
+        }
 
         Item(String en, int frame, int index, int shift, int bits, int enIndex, int enBit, int writeKey, Kind kind, Opt[] opts) {
             this.en = en;
@@ -198,22 +212,29 @@ public final class CarSettings {
     public String text(Item it, Translator t) {
         Reading r = read(it);
         if (!r.known) return "—";
+        return format(it, r.value, t);
+    }
+
+    private static String format(Item it, int v, Translator t) {
         switch (it.kind) {
             case CHECK:
-                return t.tr(r.value != 0 ? "On" : "Off");
+                return t.tr(v != 0 ? "On" : "Off");
             case SECONDS:
-                return r.value == 0 ? t.tr("Off") : r.value + " " + t.tr("sec");
+                return v == 0 ? t.tr("Off") : v + " " + t.tr("sec");
             case LEVEL:
-                return r.value == 0 ? t.tr("Off") : t.tr("Level") + " " + r.value;
+                return v == 0 ? t.tr("Off") : t.tr("Level") + " " + v;
             case COLOUR_NUMBER:
-                return t.tr("Colour") + " " + r.value;
+                return t.tr("Colour") + " " + v;
             case AMBIENT_COLOUR:
-                return ambientColour(r.value, t);
+                return ambientColour(v, t);
             case NUMBER:
-                return String.valueOf(r.value);
+                return String.valueOf(v);
             default:
-                if (it.opts != null) for (Opt o : it.opts) if (o.value == r.value) return t.tr(o.en);
-                return String.valueOf(r.value);
+                if (it.opts != null) {
+                    for (Opt o : it.opts) if (o.value == v) return t.tr(o.en);
+                    if (it.zeroDefault) return t.tr(it.opts[0].en);
+                }
+                return String.valueOf(v);
         }
     }
 
@@ -300,6 +321,22 @@ public final class CarSettings {
         return out;
     }
 
+    /**
+     * One of the three ambient colour lists of the factory page: they all read and write the same byte (0 off, 1-3 the
+     * three-colour set, 4-13 the ten-colour set, 14-33 the twenty-colour set); a value that belongs to another set reads as Off.
+     */
+    private static Item ambientSet(String en, int from, int to, String set) {
+        List<Opt> l = new ArrayList<>();
+        l.add(new Opt(0, "Off"));
+        for (int v = from; v <= to; v++) {
+            String name = set.equals("3") ? (v == 1 ? "White" : v == 2 ? "Orange" : "Blue") : "Colour " + (v - from + 1);
+            l.add(new Opt(v, name));
+        }
+        Item it = new Item(en, 103, 2, 0, 8, 0, 7, 12, Kind.LIST, l.toArray(new Opt[0]));
+        it.zeroDefault = true;
+        return it;
+    }
+
     private static List<Section> buildLightSections() {
         Section lamps = new Section("Headlights", 109);
         lamps.items.add(check("Automatic headlights in rain", 104, 3, 3, 0, 4, 4));
@@ -309,14 +346,12 @@ public final class CarSettings {
         lamps.items.add(check("Motorway light", 104, 3, 6, 0, 6, 2));
         lamps.items.add(new Item("Headlight switch-on time", 104, 3, 4, 2, 0, 5, 3, Kind.LIST,
                 new Opt[]{new Opt(0, "Early"), new Opt(1, "Medium"), new Opt(2, "Late")}));
-        lamps.items.add(new Item("Coming home light", 104, 7, 0, 8, 2, 7, 10, Kind.SECONDS, null));
-        lamps.items.add(new Item("Leaving home light", 104, 8, 0, 8, 2, 6, 11, Kind.SECONDS, null));
-        Item traffic = new Item("Traffic side (travel mode)", 104, 3, 1, 1, 0, 2, 6, Kind.LIST,
-                new Opt[]{new Opt(1, "Right traffic"), new Opt(0, "Left traffic")});
-        traffic.readOnly = true; // the factory list pairs the two values the other way round; shown, not changed
-        lamps.items.add(traffic);
-        lamps.items.add(new Item("Headlight range adjustment", 103, 1, 0, 8, 0, 3, 17, Kind.LEVEL, null));
-        lamps.items.add(new Item("Lane assist brightness", 103, 5, 0, 8, 0, 2, 18, Kind.NUMBER, null));
+        lamps.items.add(new Item("Coming home light", 104, 7, 0, 8, 2, 7, 10, Kind.SECONDS, null).choose(0, 5, 10, 15, 20, 25, 30));
+        lamps.items.add(new Item("Leaving home light", 104, 8, 0, 8, 2, 6, 11, Kind.SECONDS, null).choose(0, 5, 10, 15, 20, 25, 30));
+        lamps.items.add(new Item("Traffic side (travel mode)", 104, 3, 1, 1, 0, 2, 6, Kind.LIST,
+                new Opt[]{new Opt(1, "Right traffic"), new Opt(0, "Left traffic")}));
+        lamps.items.add(new Item("Headlight range adjustment", 103, 1, 0, 8, 0, 3, 17, Kind.LEVEL, null).choose(0, 1, 2, 3, 4, 5, 6));
+        lamps.items.add(new Item("Lane assist brightness", 103, 5, 0, 8, 0, 2, 18, Kind.NUMBER, null).choose(1, 2, 3, 4, 5));
 
         Section inner = new Section("Interior lighting", 109);
         inner.items.add(pct("Instrument and switch lighting", 104, 4, 1, 7, 7, 20));
@@ -325,7 +360,9 @@ public final class CarSettings {
         inner.items.add(pct("Roof ambient light", 103, 3, 0, 6, 13, 20));
         inner.items.add(pct("Front ambient light", 103, 4, 0, 5, 14, 20));
         inner.items.add(pct("All ambient areas", 103, 6, 0, 4, 15, 10));
-        inner.items.add(new Item("Ambient colour", 103, 2, 0, 8, 0, 7, 12, Kind.AMBIENT_COLOUR, null));
+        inner.items.add(ambientSet("Three-colour ambient colour", 1, 3, "3"));
+        inner.items.add(ambientSet("Ten-colour ambient colour", 4, 13, "10"));
+        inner.items.add(ambientSet("Twenty-colour ambient colour", 14, 33, "20"));
 
         Section own = new Section("Personalised ambient lighting", 109);
         own.items.add(new Item("Lighting tone", 102, 1, 0, 8, 0, 6, 33, Kind.LIST, new Opt[]{

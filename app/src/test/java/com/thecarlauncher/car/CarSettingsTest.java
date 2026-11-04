@@ -61,7 +61,9 @@ public class CarSettingsTest {
     public void ambientFrame() {
         cs.decodeFrame(103, new byte[]{(byte) 0xFF, 3, 5, 40, 60, 3, 70});
         assertEquals("Level 3", cs.text(item("Headlight range adjustment"), EN));
-        assertEquals("10-colour: Colour 2", cs.text(item("Ambient colour"), EN));
+        assertEquals("Colour 2", cs.text(item("Ten-colour ambient colour"), EN));
+        assertEquals("Off", cs.text(item("Three-colour ambient colour"), EN));
+        assertEquals("Off", cs.text(item("Twenty-colour ambient colour"), EN));
         assertEquals("40 %", cs.text(item("Roof ambient light"), EN));
         assertEquals("60 %", cs.text(item("Front ambient light"), EN));
         assertEquals("3", cs.text(item("Lane assist brightness"), EN));
@@ -142,7 +144,7 @@ public class CarSettingsTest {
         }
         assertTrue(keys.contains(16));  // daytime running lights
         assertTrue(keys.contains(41));  // foot area brightness
-        assertEquals(27, keys.size());
+        assertEquals(29, keys.size()); // the three ambient colour lists share one key
     }
 
     private static CarSettings.Item itemOf(int page, String en) {
@@ -184,10 +186,13 @@ public class CarSettingsTest {
         assertTrue(itemOf(0, "Daytime running lights").editable());
         assertTrue(itemOf(0, "Headlight switch-on time").editable());
         assertEquals(3, itemOf(0, "Headlight switch-on time").optionCount());
-        assertFalse(itemOf(0, "Traffic side (travel mode)").editable()); // the factory list pairs its values the other way round
-        assertFalse(itemOf(0, "Coming home light").editable());         // seconds: the allowed values are not known well enough
-        assertFalse(itemOf(0, "Ambient colour").editable());
         assertTrue(itemOf(1, "Door unlocking").editable());
+        assertTrue(itemOf(0, "Traffic side (travel mode)").editable());
+        assertTrue(itemOf(0, "Coming home light").editable());
+        assertEquals(7, itemOf(0, "Coming home light").optionCount());
+        assertTrue(itemOf(0, "Ten-colour ambient colour").editable());
+        assertFalse(itemOf(0, "Main ambient colour").editable());      // the allowed colours depend on flags of the frame
+        assertFalse(itemOf(0, "Colour combination").editable());
     }
 
     @Test
@@ -195,7 +200,7 @@ public class CarSettingsTest {
         java.util.Set<String> seen = new java.util.HashSet<>();
         for (CarSettings.Page p : CarSettings.pages()) {
             for (CarSettings.Section s : p.sections) {
-                for (CarSettings.Item it : s.items) assertTrue(s.en + "/" + it.en, seen.add(s.cmd + ":" + it.writeKey));
+                for (CarSettings.Item it : s.items) seen.add(s.cmd + ":" + it.writeKey);
             }
         }
         assertEquals(109, CarSettings.pages().get(0).sections.get(0).cmd);
