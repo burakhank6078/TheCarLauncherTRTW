@@ -19,10 +19,12 @@ import android.widget.TextView;
 import com.thecarlauncher.LauncherActivity;
 import com.thecarlauncher.R;
 import com.thecarlauncher.apps.AppRepository;
+import com.thecarlauncher.car.CarSettings;
 import com.thecarlauncher.media.BluetoothSource;
 import com.thecarlauncher.media.MediaHub;
 import com.thecarlauncher.media.MusicLibrary;
 import com.thecarlauncher.mib.Mib;
+import com.thecarlauncher.mib.MibMenu;
 import com.thecarlauncher.nav.NavHelper;
 import com.thecarlauncher.radio.RadioController;
 import com.thecarlauncher.util.DisplayControl;
@@ -1191,43 +1193,48 @@ public class SettingsScreen extends Screen {
                 "Close the phone app and switch the phone's Bluetooth off first: the strip accepts one connection and cannot be found while the phone is connected. The colour and level of Ambient lighting are sent to the strip."));
     }
 
-    // ---- The car's own settings (the factory "Araç ayarı" pages), read only for now -----------------------
+    // ---- The car's own settings (the factory "Araç ayarı" pages) -------------------------------------------
 
-    private String carLightsTitle() { return s("Svetla", "Lights"); }
+    /** Set once the user has agreed, in this run of the launcher, that a change goes to the car. */
+    private static boolean carWriteOk;
 
-    private boolean onCarLightsPage() {
-        return !stack.isEmpty() && stack.get(stack.size() - 1).title.equals(carLightsTitle());
+    private String carPageTitle(CarSettings.Page p) { return Mib.t(act, p.en, p.en); }
+
+    private boolean onCarPage(CarSettings.Page p) {
+        return !stack.isEmpty() && stack.get(stack.size() - 1).title.equals(carPageTitle(p));
     }
 
     private void buildCarSettings() {
-        com.thecarlauncher.car.CarSettings.get().resetAttempt(); // each visit to a car page asks the car afresh
-        sub(carLightsTitle(), new Page() { public void build() { buildCarLights(); } });
-        note(s("Vrednosti se čitaju iz vozila preko Canbus-a, kao u fabričkoj aplikaciji \"Araç ayarı\". Za sada samo prikaz; izmena stiže posle provere na vozilu.",
-                "The values are read from the car over the Canbus, as the factory \"Araç ayarı\" app does. Display only for now; changing them comes after it has been checked on the car."));
+        CarSettings.get().resetAttempts(); // each visit to the list of car pages asks the car afresh
+        for (final CarSettings.Page p : CarSettings.pages()) {
+            sub(carPageTitle(p), new Page() { public void build() { buildCarPage(p); } });
+        }
+        note(s("Vrednosti se čitaju iz vozila preko Canbus-a, kao u fabričkoj aplikaciji \"Araç ayarı\". Promena se šalje vozilu kao u toj aplikaciji, samo uz uključenu dozvolu za komande (Podešavanja → Vozilo). Ostala podešavanja iz fabričke aplikacije stižu postepeno.",
+                "The values are read from the car over the Canbus, as the factory \"Araç ayarı\" app does. A change is sent to the car the way that app sends it, and only while commands are allowed (Setup → Vehicle). The other settings of the factory app come step by step."));
     }
 
     /**
-     * Asks the car for the light frames one after the other, 60 ms apart (the factory app waits between them; sent in one
-     * go only the first was answered), and once more for what is still missing after a second and a half. Only once per visit
-     * to the page (the list above resets it): a refresh of the page, or a frame that arrives later, never starts a new round.
+     * Asks the car for the frames of a page one after the other, 60 ms apart (the factory app waits between them; sent in
+     * one go only the first was answered), and once more for what is still missing after a second and a half. Only once per
+     * visit to the page (the list above resets it): a refresh of the page, or a frame that arrives later, never starts a new round.
      */
-    private void requestCarLights() {
-        final com.thecarlauncher.car.CarSettings cs = com.thecarlauncher.car.CarSettings.get();
-        if (cs.attempted()) return;
-        cs.asked();
+    private void requestCarPage(final CarSettings.Page p) {
+        final CarSettings cs = CarSettings.get();
+        if (cs.attempted(p)) return;
+        cs.asked(p);
         final android.os.Handler h = new android.os.Handler(android.os.Looper.getMainLooper());
         int n = 0;
-        for (final int frame : com.thecarlauncher.car.CarSettings.LIGHT_FRAMES) {
+        for (final int frame : p.frames) {
             h.postDelayed(new Runnable() {
-                public void run() { com.thecarlauncher.car.TwProbe.get().requestFrameAsync(act, frame); }
+                public void run() { com.thecarlauncher.car.TwProbe.get().requestFrameAsync(act, frame, p.extRequest); }
             }, 60L * n++);
         }
         h.postDelayed(new Runnable() {
             public void run() {
                 int k = 0;
-                for (final int frame : cs.missingLights()) {
+                for (final int frame : cs.missing(p)) {
                     h.postDelayed(new Runnable() {
-                        public void run() { com.thecarlauncher.car.TwProbe.get().requestFrameAsync(act, frame); }
+                        public void run() { com.thecarlauncher.car.TwProbe.get().requestFrameAsync(act, frame, p.extRequest); }
                     }, 60L * k++);
                 }
             }
@@ -1235,46 +1242,47 @@ public class SettingsScreen extends Screen {
         // the page says what is missing once the car has had time to answer
         h.postDelayed(new Runnable() {
             public void run() {
-                if (onCarLightsPage()) refreshKeep();
+                if (onCarPage(p)) refreshKeep();
             }
         }, 4500);
     }
 
-    /** The light page of the car: every setting with the value the car reports, greyed out text for the ones this car lacks. */
-    private void buildCarLights() {
-        final com.thecarlauncher.car.CarSettings cs = com.thecarlauncher.car.CarSettings.get();
+    /** One page of the car's settings: every setting with the value the car reports; the ones this car lacks are faded. */
+    private void buildCarPage(final CarSettings.Page p) {
+        final CarSettings cs = CarSettings.get();
         cs.setListener(new Runnable() {
             public void run() {
                 act.runOnUiThread(new Runnable() {
                     public void run() {
-                        if (onCarLightsPage()) refreshKeep();
+                        if (onCarPage(p)) refreshKeep();
                     }
                 });
             }
         });
-        com.thecarlauncher.car.CarSettings.Translator t = new com.thecarlauncher.car.CarSettings.Translator() {
+        final CarSettings.Translator t = new CarSettings.Translator() {
             public String tr(String en) { return Mib.t(act, en, en); }
         };
-        boolean usable = com.thecarlauncher.car.TwProbe.get().usable(act);
+        final boolean usable = com.thecarlauncher.car.TwProbe.get().usable(act);
         if (!usable) {
             info(s("Stanje", "Status"), s("Uključite komande u Podešavanja → Vozilo", "Allow commands in Setup → Vehicle"));
         } else {
-            requestCarLights(); // once per visit (a refresh of the page does not ask again)
-            if (!cs.haveLights()) {
+            requestCarPage(p); // once per visit (a refresh of the page does not ask again)
+            if (!cs.have(p)) {
                 // after a few seconds say it plainly: the car may simply not have the rest (no ambient lighting, for example)
-                info(s("Stanje", "Status"), cs.sinceAsked() > 4000
+                info(s("Stanje", "Status"), cs.sinceAsked(p) > 4000
                         ? s("Vozilo nije poslalo sve podatke (možda nema ova podešavanja)",
                         "The car did not send all of it (it may not have these settings)")
                         : s("Čekam podatke iz vozila…", "Waiting for car data…"));
             }
         }
-        for (com.thecarlauncher.car.CarSettings.Section sec : com.thecarlauncher.car.CarSettings.lightSections()) {
+        for (final CarSettings.Section sec : p.sections) {
             section(t.tr(sec.en));
-            for (com.thecarlauncher.car.CarSettings.Item it : sec.items) {
-                com.thecarlauncher.car.CarSettings.Reading r = cs.read(it);
+            for (final CarSettings.Item it : sec.items) {
+                final CarSettings.Reading r = cs.read(it);
+                final boolean change = usable && it.editable() && r.known && r.available;
                 // As in the rest of Setup (and the MIB): a light bar, the name on the left, a tick box for an on/off
                 // setting, the value on the right for a list; the ones this car lacks are faded.
-                LinearLayout row;
+                final LinearLayout row;
                 if (it.isCheck() && r.known) {
                     row = bar(t.tr(it.en), null);
                     checkbox(row, r.value != 0);
@@ -1283,17 +1291,72 @@ public class SettingsScreen extends Screen {
                     if (r.known && !r.available) value += "  (" + s("nije na ovom vozilu", "not on this car") + ")";
                     row = bar(t.tr(it.en), value);
                 }
-                row.setClickable(false);
+                if (change && it.isCheck()) {
+                    row.setOnClickListener(new View.OnClickListener() {
+                        public void onClick(View v) { sendCarSetting(p, sec, it, r.value != 0 ? 0 : 1); }
+                    });
+                } else if (change) {
+                    row.setOnClickListener(new View.OnClickListener() {
+                        public void onClick(View v) {
+                            MibMenu m = new MibMenu(act, t.tr(it.en));
+                            for (int i = 0; i < it.optionCount(); i++) {
+                                final int value = it.optionValue(i);
+                                m.add(t.tr(it.optionText(i)), new Runnable() {
+                                    public void run() { sendCarSetting(p, sec, it, value); }
+                                });
+                            }
+                            m.show(v);
+                        }
+                    });
+                } else {
+                    row.setClickable(false);
+                }
                 if (r.known && !r.available) row.setAlpha(0.45f);
             }
         }
         action(s("Osveži", "Refresh"), null, new Runnable() {
             public void run() {
-                cs.forget(); // ask again from scratch (the values show "—" until the car answers)
-                requestCarLights();
+                cs.forget(p); // ask again from scratch (the values show "—" until the car answers)
+                requestCarPage(p);
                 Ui.toast(act, s("Tražim podatke iz vozila…", "Asking the car…"));
             }
         });
+    }
+
+    /**
+     * Sends one change to the car the way the factory page does (message sec.cmd with the setting's key and the value), after
+     * one question per run of the launcher, and asks for the page's frame again a moment later so the screen shows what the car
+     * really did.
+     */
+    private void sendCarSetting(final CarSettings.Page p, final CarSettings.Section sec, final CarSettings.Item it, final int value) {
+        if (!carWriteOk) {
+            new android.app.AlertDialog.Builder(act)
+                    .setTitle(s("Promena podešavanja u vozilu", "Change a setting in the car"))
+                    .setMessage(s("Promena se šalje vozilu, isto kao iz fabričke aplikacije \"Araç ayarı\". Nastaviti?",
+                            "The change is sent to the car, the same as from the factory \"Araç ayarı\" app. Continue?"))
+                    .setPositiveButton(s("Nastavi", "Continue"), new android.content.DialogInterface.OnClickListener() {
+                        public void onClick(android.content.DialogInterface d, int w) {
+                            carWriteOk = true;
+                            sendCarSetting(p, sec, it, value);
+                        }
+                    })
+                    .setNegativeButton(s("Otkaži", "Cancel"), null)
+                    .show();
+            return;
+        }
+        com.thecarlauncher.car.TwProbe.get().writeAsync(act, 0x501, sec.cmd, 2,
+                new byte[]{(byte) it.writeKey, (byte) value}, new com.thecarlauncher.car.TwProbe.Result() {
+                    public void done(boolean ok, String error) {
+                        if (!ok) {
+                            Ui.toast(act, s("Nije poslato: ", "Not sent: ") + error);
+                            return;
+                        }
+                        Ui.toast(act, s("Poslato vozilu", "Sent to the car"));
+                        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(new Runnable() {
+                            public void run() { com.thecarlauncher.car.TwProbe.get().requestFrameAsync(act, it.frame, p.extRequest); }
+                        }, 500);
+                    }
+                });
     }
 
     /** The status texts of AmbientBle are English; Tr.java has the Turkish ones, dynamic ones are handled here. */

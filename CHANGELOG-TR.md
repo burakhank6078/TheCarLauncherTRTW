@@ -13,6 +13,19 @@ en üstüne eklenir; GitHub sürüm sayfası bu en üst bölümü gösterir.
 
 ---
 
+## 4 Kasım 2026
+**Aracın kendi ayarları artık değiştirilebiliyor + iki yeni sayfa**
+- **Ayarlar → Navigasyon ve araç → Aracın kendi ayarları:** artık üç sayfa var: **Işıklar**, **Açma ve kapama** ve **Aynalar ve silecekler**.
+  Değerler fabrikadaki "Araç ayarı" uygulaması gibi Canbus'tan okunur; araçta olmayan ayarlar soluk gösterilir.
+- **Değiştirme:** bir kutuya dokunmak onu açıp kapatır, listeli ayarlara dokunmak değer menüsünü açar. Değişiklik, fabrika
+  uygulamasının gönderdiği mesajla gönderilir (ışıklar 109, açma/kapama 111, ayna/silecek 110) ve yarım saniye sonra çerçeve yeniden
+  istenip ekranda aracın gerçekte ne yaptığı gösterilir. Yalnızca "Üniteye komut göndermeye izin ver" açıkken çalışır; launcher her
+  açılışta ilk değişiklikte bir kez onay sorar.
+- **Henüz değiştirilemeyenler (yalnızca gösterilir):** eve dönüş / çıkış ışığı süresi, far menzili, şerit asistanı parlaklığı, ambiyans
+  rengi ve ton renkleri ile trafik yönü — izin verilen değerler ya da değer eşlemesi sizin araçta doğrulanmadan gönderilmiyor.
+- **Araçta denenmeli:** önce zararsız bir ayar (örneğin "Aynalar ve silecekler → Geri vitesteyken aşağı indir") açıp kapatın ve
+  fabrika uygulamasında aynı değerin değiştiğini kontrol edin.
+
 ## 30 Ekim 2026
 **Kontak olayları: yolculuk özeti, akü uyarıları, bekleme saati, gösterge paneli**
 - **Yolculuk özeti:** kontak kapanınca yolculuk hemen kapanır (eskiden 5 dakika beklenirdi) ve MIB tarzı pencerede özetlenir:

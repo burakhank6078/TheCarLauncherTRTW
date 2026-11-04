@@ -144,4 +144,64 @@ public class CarSettingsTest {
         assertTrue(keys.contains(41));  // foot area brightness
         assertEquals(27, keys.size());
     }
+
+    private static CarSettings.Item itemOf(int page, String en) {
+        for (CarSettings.Section s : CarSettings.pages().get(page).sections) {
+            for (CarSettings.Item it : s.items) if (it.en.equals(en)) return it;
+        }
+        throw new AssertionError("no setting " + en);
+    }
+
+    @Test
+    public void openingAndClosingFrame() {
+        // available bits all set; window opening 2 (all), unlocking 1 (single door); belt-style checks as in the factory page
+        cs.decodeFrame(100, new byte[]{(byte) 0xFF, (byte) 0xFF, (byte) 0xA0, 0x74});
+        assertEquals("All windows", cs.text(itemOf(1, "Convenience opening"), EN));
+        assertEquals("Single door", cs.text(itemOf(1, "Door unlocking"), EN));
+        assertEquals("On", cs.text(itemOf(1, "Automatic locking"), EN));
+        assertEquals("On", cs.text(itemOf(1, "Memory matching of the seat to the remote key"), EN));
+        assertEquals("Off", cs.text(itemOf(1, "Easy Open (tailgate sensor)"), EN));
+        assertEquals("On", cs.text(itemOf(1, "Approach function active"), EN));
+        assertEquals("Off", cs.text(itemOf(1, "Unlock vehicle when approaching"), EN));
+    }
+
+    @Test
+    public void mirrorsAndWipersFrame() {
+        // byte 2 = 1010 0000: mirror sync and fold-away on; byte 3 = 0100 0000: only the rear window wiping on
+        cs.decodeFrame(105, new byte[]{(byte) 0xE0, (byte) 0xE0, (byte) 0xA0, 0x40});
+        assertEquals("On", cs.text(itemOf(2, "Synchronous adjustment"), EN));
+        assertEquals("Off", cs.text(itemOf(2, "Lower while reversing"), EN));
+        assertEquals("On", cs.text(itemOf(2, "Fold away after parking"), EN));
+        assertEquals("Off", cs.text(itemOf(2, "Automatic wiping in rain"), EN));
+        assertEquals("On", cs.text(itemOf(2, "Rear window wiping in reverse gear"), EN));
+        // the wiper service position is not available when its bit in byte 1 is clear
+        cs.decodeFrame(105, new byte[]{(byte) 0xE0, (byte) 0xC0, (byte) 0xA0, 0x40});
+        assertFalse(cs.read(itemOf(2, "Wipers in service position")).available);
+    }
+
+    @Test
+    public void onlyCheckBoxesAndKnownListsMayBeChanged() {
+        assertTrue(itemOf(0, "Daytime running lights").editable());
+        assertTrue(itemOf(0, "Headlight switch-on time").editable());
+        assertEquals(3, itemOf(0, "Headlight switch-on time").optionCount());
+        assertFalse(itemOf(0, "Traffic side (travel mode)").editable()); // the factory list pairs its values the other way round
+        assertFalse(itemOf(0, "Coming home light").editable());         // seconds: the allowed values are not known well enough
+        assertFalse(itemOf(0, "Ambient colour").editable());
+        assertTrue(itemOf(1, "Door unlocking").editable());
+    }
+
+    @Test
+    public void everyPageWritesWithItsOwnMessageAndKeysAreUniquePerMessage() {
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        for (CarSettings.Page p : CarSettings.pages()) {
+            for (CarSettings.Section s : p.sections) {
+                for (CarSettings.Item it : s.items) assertTrue(s.en + "/" + it.en, seen.add(s.cmd + ":" + it.writeKey));
+            }
+        }
+        assertEquals(109, CarSettings.pages().get(0).sections.get(0).cmd);
+        assertEquals(111, CarSettings.pages().get(1).sections.get(0).cmd);
+        assertEquals(110, CarSettings.pages().get(2).sections.get(0).cmd);
+        assertTrue(CarSettings.pages().get(2).extRequest);
+        assertFalse(CarSettings.pages().get(1).extRequest);
+    }
 }

@@ -41,8 +41,21 @@ public final class CarSettings {
         final Opt[] opts;
         final Kind kind;
 
+        /** Set for the few settings whose values are not yet certain enough to send: they are shown, not changed. */
+        boolean readOnly;
+
         /** True for an on/off setting, which the screen draws as a tick box. */
         public boolean isCheck() { return kind == Kind.CHECK; }
+
+        /** True when the screen may offer to change it: an on/off setting or a list of known values. */
+        public boolean editable() { return !readOnly && (kind == Kind.CHECK || (kind == Kind.LIST && opts != null)); }
+
+        public int optionCount() { return opts == null ? 0 : opts.length; }
+
+        public int optionValue(int i) { return opts[i].value; }
+
+        /** The English text of a list value (translate it with the screen's translator). */
+        public String optionText(int i) { return opts[i].en; }
 
         Item(String en, int frame, int index, int shift, int bits, int enIndex, int enBit, int writeKey, Kind kind, Opt[] opts) {
             this.en = en;
@@ -72,16 +85,39 @@ public final class CarSettings {
         }
     }
 
-    /** A titled group of settings. */
+    /** A titled group of settings; cmd is the message number the factory page writes its changes with. */
     public static final class Section {
         public final String en;
+        public final int cmd;
         public final List<Item> items = new ArrayList<>();
 
-        Section(String en) { this.en = en; }
+        Section(String en, int cmd) {
+            this.en = en;
+            this.cmd = cmd;
+        }
+    }
+
+    /**
+     * One page of the factory app: the frames it reads and how it asks for them. extRequest is the other way the factory app
+     * asks (write 106 with {5, 1, frame}, used by the mirrors page); the usual one is write 10 with {1, frame}.
+     */
+    public static final class Page {
+        public final String en;
+        public final int[] frames;
+        public final boolean extRequest;
+        public final List<Section> sections;
+
+        Page(String en, int[] frames, boolean extRequest, List<Section> sections) {
+            this.en = en;
+            this.frames = frames;
+            this.extRequest = extRequest;
+            this.sections = sections;
+        }
     }
 
     private static final CarSettings INSTANCE = new CarSettings();
     private final Map<Integer, byte[]> frames = new HashMap<>();
+    private final Map<String, Long> askedAt = new HashMap<>();
     private volatile Runnable listener;
 
     private CarSettings() {}
@@ -92,7 +128,7 @@ public final class CarSettings {
     public void setListener(Runnable r) { listener = r; }
 
     public void decodeFrame(int frame, byte[] b) {
-        if (b == null || (frame != 102 && frame != 103 && frame != 104)) return;
+        if (b == null || !isPageFrame(frame)) return;
         synchronized (this) {
             frames.put(frame, b.clone());
         }
@@ -100,44 +136,55 @@ public final class CarSettings {
         if (r != null) r.run();
     }
 
-    /** True once every light frame has come in. */
-    public synchronized boolean haveLights() {
-        for (int f : LIGHT_FRAMES) if (!frames.containsKey(f)) return false;
+    private static boolean isPageFrame(int frame) {
+        for (Page p : pages()) for (int f : p.frames) if (f == frame) return true;
+        return false;
+    }
+
+    /** True once every frame of the page has come in. */
+    public synchronized boolean have(Page p) {
+        for (int f : p.frames) if (!frames.containsKey(f)) return false;
         return true;
+    }
+
+    /** True once every light frame has come in. */
+    public synchronized boolean haveLights() { return have(lightPage()); }
+
+    /** Forgets what the car said about this page, so the next look asks from scratch. */
+    public synchronized void forget(Page p) {
+        for (int f : p.frames) frames.remove(f);
+        askedAt.remove(p.en);
     }
 
     public synchronized void forget() {
         frames.clear();
-        askedAt = 0;
-        attempted = false;
+        askedAt.clear();
     }
 
-    private long askedAt;
-    private boolean attempted;
-
-    /** Notes that the light frames were just asked for (so the page does not ask again on every refresh). */
-    public synchronized void asked() {
-        askedAt = System.currentTimeMillis();
-        attempted = true;
-    }
+    /** Notes that the page's frames were just asked for (so the page does not ask again on every refresh). */
+    public synchronized void asked(Page p) { askedAt.put(p.en, System.currentTimeMillis()); }
 
     /** True once the frames were asked for in this visit to the page; a refresh of the page does not ask again. */
-    public synchronized boolean attempted() { return attempted; }
+    public synchronized boolean attempted(Page p) { return askedAt.containsKey(p.en); }
 
-    /** A new visit to the page may ask again (the values already read stay). */
-    public synchronized void resetAttempt() { attempted = false; }
+    /** A new visit to the list of pages may ask again (the values already read stay). */
+    public synchronized void resetAttempts() { askedAt.clear(); }
 
-    /** Milliseconds since the light frames were last asked for, Long.MAX_VALUE if never. */
-    public synchronized long sinceAsked() {
-        return askedAt == 0 ? Long.MAX_VALUE : System.currentTimeMillis() - askedAt;
+    /** Milliseconds since the page's frames were last asked for, Long.MAX_VALUE if never. */
+    public synchronized long sinceAsked(Page p) {
+        Long t = askedAt.get(p.en);
+        return t == null ? Long.MAX_VALUE : System.currentTimeMillis() - t;
+    }
+
+    /** The frames of the page the car has not sent yet. */
+    public synchronized List<Integer> missing(Page p) {
+        List<Integer> out = new ArrayList<>();
+        for (int f : p.frames) if (!frames.containsKey(f)) out.add(f);
+        return out;
     }
 
     /** The light frames the car has not sent yet. */
-    public synchronized List<Integer> missingLights() {
-        List<Integer> out = new ArrayList<>();
-        for (int f : LIGHT_FRAMES) if (!frames.containsKey(f)) out.add(f);
-        return out;
-    }
+    public synchronized List<Integer> missingLights() { return missing(lightPage()); }
 
     public synchronized Reading read(Item it) {
         byte[] f = frames.get(it.frame);
@@ -198,9 +245,63 @@ public final class CarSettings {
         return new Item(en, frame, index, 0, 8, enIndex, enBit, key, Kind.LIST, percent(0, 100, step));
     }
 
+    private static List<Page> pages;
+
+    /** The pages of the factory app that the launcher knows, in the order of its list. */
+    public static synchronized List<Page> pages() {
+        if (pages == null) {
+            List<Page> l = new ArrayList<>();
+            l.add(new Page("Lights", LIGHT_FRAMES, false, buildLightSections()));
+            l.add(new Page("Opening and closing", new int[]{100}, false, buildOpeningSections()));
+            l.add(new Page("Mirrors and wipers", new int[]{105}, true, buildMirrorSections()));
+            pages = l;
+        }
+        return pages;
+    }
+
+    public static Page lightPage() { return pages().get(0); }
+
     /** The settings of the factory app's light page, in its order, grouped under three headings. */
-    public static List<Section> lightSections() {
-        Section lamps = new Section("Headlights");
+    public static List<Section> lightSections() { return lightPage().sections; }
+
+    /** Opening and closing (frame 100, changes written with message 111). */
+    private static List<Section> buildOpeningSections() {
+        Section doors = new Section("Doors and windows", 111);
+        doors.items.add(new Item("Convenience opening", 100, 2, 6, 2, 0, 7, 1, Kind.LIST,
+                new Opt[]{new Opt(0, "Off"), new Opt(1, "Driver window"), new Opt(2, "All windows")}));
+        doors.items.add(new Item("Door unlocking", 100, 3, 6, 2, 1, 7, 2, Kind.LIST,
+                new Opt[]{new Opt(0, "Vehicle side"), new Opt(1, "Single door"), new Opt(2, "All doors")}));
+        doors.items.add(check("Automatic locking", 100, 3, 5, 1, 6, 3));
+        doors.items.add(check("Door lock sound confirmation", 100, 3, 2, 1, 3, 6));
+        doors.items.add(check("Memory matching of the seat to the remote key", 100, 3, 4, 1, 5, 4));
+        doors.items.add(check("Easy Open (tailgate sensor)", 100, 3, 3, 1, 4, 5));
+        Section near = new Section("Approach", 111);
+        near.items.add(check("Approach function active", 100, 2, 5, -1, 0, 7));
+        near.items.add(check("Unlock vehicle when approaching", 100, 2, 4, 2, 5, 8));
+        List<Section> out = new ArrayList<>();
+        out.add(doors);
+        out.add(near);
+        return out;
+    }
+
+    /** Mirrors and wipers (frame 105, asked with message 106, changes written with message 110). */
+    private static List<Section> buildMirrorSections() {
+        Section mirrors = new Section("Mirrors", 110);
+        mirrors.items.add(check("Synchronous adjustment", 105, 2, 7, 0, 7, 1));
+        mirrors.items.add(check("Lower while reversing", 105, 2, 6, 0, 6, 2));
+        mirrors.items.add(check("Fold away after parking", 105, 2, 5, 0, 5, 3));
+        Section wipers = new Section("Wipers", 110);
+        wipers.items.add(check("Automatic wiping in rain", 105, 3, 7, 1, 7, 4));
+        wipers.items.add(check("Rear window wiping in reverse gear", 105, 3, 6, 1, 6, 5));
+        wipers.items.add(check("Wipers in service position", 105, 3, 5, 1, 5, 6));
+        List<Section> out = new ArrayList<>();
+        out.add(mirrors);
+        out.add(wipers);
+        return out;
+    }
+
+    private static List<Section> buildLightSections() {
+        Section lamps = new Section("Headlights", 109);
         lamps.items.add(check("Automatic headlights in rain", 104, 3, 3, 0, 4, 4));
         lamps.items.add(check("Lane change flash", 104, 3, 2, 0, 3, 5));
         lamps.items.add(check("Daytime running lights", 104, 3, 0, 0, 1, 16));
@@ -210,12 +311,14 @@ public final class CarSettings {
                 new Opt[]{new Opt(0, "Early"), new Opt(1, "Medium"), new Opt(2, "Late")}));
         lamps.items.add(new Item("Coming home light", 104, 7, 0, 8, 2, 7, 10, Kind.SECONDS, null));
         lamps.items.add(new Item("Leaving home light", 104, 8, 0, 8, 2, 6, 11, Kind.SECONDS, null));
-        lamps.items.add(new Item("Traffic side (travel mode)", 104, 3, 1, 1, 0, 2, 6, Kind.LIST,
-                new Opt[]{new Opt(1, "Right traffic"), new Opt(0, "Left traffic")}));
+        Item traffic = new Item("Traffic side (travel mode)", 104, 3, 1, 1, 0, 2, 6, Kind.LIST,
+                new Opt[]{new Opt(1, "Right traffic"), new Opt(0, "Left traffic")});
+        traffic.readOnly = true; // the factory list pairs the two values the other way round; shown, not changed
+        lamps.items.add(traffic);
         lamps.items.add(new Item("Headlight range adjustment", 103, 1, 0, 8, 0, 3, 17, Kind.LEVEL, null));
         lamps.items.add(new Item("Lane assist brightness", 103, 5, 0, 8, 0, 2, 18, Kind.NUMBER, null));
 
-        Section inner = new Section("Interior lighting");
+        Section inner = new Section("Interior lighting", 109);
         inner.items.add(pct("Instrument and switch lighting", 104, 4, 1, 7, 7, 20));
         inner.items.add(pct("Door ambient light", 104, 5, 1, 6, 8, 20));
         inner.items.add(pct("Footwell light", 104, 6, 1, 5, 9, 20));
@@ -224,7 +327,7 @@ public final class CarSettings {
         inner.items.add(pct("All ambient areas", 103, 6, 0, 4, 15, 10));
         inner.items.add(new Item("Ambient colour", 103, 2, 0, 8, 0, 7, 12, Kind.AMBIENT_COLOUR, null));
 
-        Section own = new Section("Personalised ambient lighting");
+        Section own = new Section("Personalised ambient lighting", 109);
         own.items.add(new Item("Lighting tone", 102, 1, 0, 8, 0, 6, 33, Kind.LIST, new Opt[]{
                 new Opt(0, "Off"), new Opt(1, "Infinite"), new Opt(2, "Eternal"), new Opt(3, "Longing"),
                 new Opt(4, "Intoxicated"), new Opt(5, "Vitality"), new Opt(6, "Personalised"), new Opt(7, "Automatic")}));
@@ -247,11 +350,14 @@ public final class CarSettings {
     /** Every English text the light page can show, for the check that each has a Turkish translation. */
     public static List<String> lightTexts() {
         List<String> out = new ArrayList<>();
-        for (Section s : lightSections()) {
-            out.add(s.en);
-            for (Item it : s.items) {
-                out.add(it.en);
-                if (it.opts != null) for (Opt o : it.opts) if (!o.en.endsWith("%")) out.add(o.en);
+        for (Page p : pages()) {
+            out.add(p.en);
+            for (Section s : p.sections) {
+                out.add(s.en);
+                for (Item it : s.items) {
+                    out.add(it.en);
+                    if (it.opts != null) for (Opt o : it.opts) if (!o.en.endsWith("%")) out.add(o.en);
+                }
             }
         }
         for (String s : new String[]{"On", "Off", "sec", "Level", "Colour", "3-colour", "10-colour", "20-colour", "White", "Orange", "Blue"}) {

@@ -58,3 +58,18 @@ yanlıştı. Serviste su (hararet) ya da dış sıcaklık adı geçen hiçbir ka
   Motor çalışırken kutu yaklaşık 3 dakika çerçeve göndermemiş görünüyor (nedeni bilinmiyor).
 - Yapılmayan ya da işaretlenmeyen adımlar: A06, A08, A12, A19–A22, A24, A26–A28, B01, B04, B05, B07, C bölümü, D03–D13, E01–E03.
 - Dış sıcaklık yine bulunamadı. Adaylar: çerçeve 49 son bayt, çerçeve 24 bayt 4 (önceki kayıttan).
+
+## Aracın kendi ayar sayfaları (fabrika "Araç ayarı", com.tw.car v114)
+
+Her sayfa çerçeveyi isteyip değerleri bit olarak okur; değişiklik sayfaya özgü bir mesaj numarasıyla `write(0x501, mesaj, 2, {anahtar, değer})` olarak gider.
+Çerçeve isteği genelde `write(0x501, 10, 2, {1, çerçeve})`; ayna/silecek ve çok işlevli ekran sayfaları `write(0x501, 106, 3, {5, 1, çerçeve})` kullanır.
+
+| Sayfa | Çerçeve | Yazma mesajı | Not |
+|---|---|---|---|
+| Işıklar | 104, 103, 102 | 109 | anahtarlar `CarSettings` tablosunda |
+| Açma ve kapama | 100 | 111 | 1 cam açma, 2 kapı kilidi, 3 otomatik kilit, 4 koltuk hafızası, 5 Easy Open, 6 kilit sesi, 7 yaklaşma etkin, 8 yaklaşınca aç |
+| Aynalar ve silecekler | 105 | 110 | 1 eşzamanlı, 2 geri vitesteyken indir, 3 park sonrası katla, 4 yağmurda sil, 5 arka cam, 6 servis konumu |
+| Birimler | 193 | 202 | henüz yok: değer eşlemesi (`values2`) araçta doğrulanmalı |
+| Park ve manevra | 18, 69 | 74 | henüz yok |
+| Çok işlevli ekran | 118 | 123 | henüz yok |
+| Sürücü asistanı | 18, 71 | 76 (ve 74) | henüz yok |

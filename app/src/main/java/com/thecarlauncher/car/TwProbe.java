@@ -410,6 +410,13 @@ public final class TwProbe {
      * Only while "Allow sending commands" is on; otherwise nothing happens. Runs on its own thread.
      */
     public void requestFrameAsync(Context ctx, final int frame) {
+        requestFrameAsync(ctx, frame, false);
+    }
+
+    /**
+     * As above; ext asks the way the factory mirrors and multifunction pages do: message 106 with {5, 1, frame}.
+     */
+    public void requestFrameAsync(Context ctx, final int frame, final boolean ext) {
         final Context app = ctx.getApplicationContext();
         if (!usable(app)) return;
         writerHandler().post(new Runnable() {
@@ -417,7 +424,8 @@ public final class TwProbe {
             public void run() {
                 synchronized (TwProbe.this) {
                     autoStart(app);
-                    write(app, 0x501, 10, 2, new byte[]{1, (byte) frame});
+                    if (ext) write(app, 0x501, 106, 3, new byte[]{5, 1, (byte) frame});
+                    else write(app, 0x501, 10, 2, new byte[]{1, (byte) frame});
                 }
             }
         });
