@@ -75,6 +75,42 @@ public final class TripCore {
     private float max, lastKmh;
     private int brakes, accels;
     private boolean inBrake, inAccel;
+    /** The car's own "since start" average (l/100 km) and distance (km): the first reading of this trip and the latest. */
+    private float baseCons = -1f, obdCons = -1f;
+    private double baseKm = -1, obdKm = -1, baseOurKm;
+
+    /**
+     * The car's own trip average, noted while the trip runs so it is still known when the trip ends later (the car resets
+     * its "since start" figures, the launcher may have been closed). Ignored when it is not a plausible reading. The
+     * car's trip can have begun before ours (it only ends after hours with the ignition off), so the first reading is kept
+     * and the litres used since then are worked out from the two.
+     */
+    public void noteObd(double consumption, double distanceKm) {
+        if (!active || !(consumption > 0 && consumption < 60) || !(distanceKm > 0)) return;
+        if (baseKm < 0) {
+            baseCons = (float) consumption;
+            baseKm = distanceKm;
+            baseOurKm = km;
+        }
+        obdCons = (float) consumption;
+        obdKm = distanceKm;
+    }
+
+    /**
+     * The consumption of this trip from the car's figures, or -1. When the car's trip began with ours its average is
+     * used as it is; when it began earlier the litres since the first reading are divided by the distance since then, which
+     * is only trusted over 10 km (the figures are rounded to a tenth). Either way the car's distance has to agree with ours.
+     */
+    float matchedConsumption() {
+        if (obdCons <= 0 || obdKm <= 0 || baseKm < 0) return -1f;
+        if (baseKm - baseOurKm <= 0.3) {
+            return Math.abs(obdKm - km) <= 0.3 * km ? obdCons : -1f;
+        }
+        double carKm = obdKm - baseKm, ourKm = km - baseOurKm;
+        if (carKm < 10 || Math.abs(carKm - ourKm) > 0.3 * ourKm) return -1f;
+        double litres = obdCons * obdKm / 100.0 - baseCons * baseKm / 100.0;
+        return litres > 0 ? (float) (litres / carKm * 100.0) : -1f;
+    }
 
     /**
      * One speed sample (km/h; 0 when there is no fix). mono is the monotonic time in ms, wall the wall clock in ms.
@@ -94,6 +130,8 @@ public final class TripCore {
                 lastKmh = kmh;
                 brakes = accels = 0;
                 inBrake = inAccel = false;
+                baseCons = obdCons = -1f;
+                baseKm = obdKm = -1;
             }
             return null;
         }
@@ -143,7 +181,7 @@ public final class TripCore {
         if (!active) return null;
         active = false;
         if (km < MIN_KM) return null;
-        return new Trip(startWall, lastMoveWall, km, movingMs, max, -1f, brakes, accels);
+        return new Trip(startWall, lastMoveWall, km, movingMs, max, matchedConsumption(), brakes, accels);
     }
 
     public boolean active() { return active; }
@@ -155,10 +193,11 @@ public final class TripCore {
 
     public int accels() { return accels; }
 
-    /** State to keep while a trip is running, so a restart can still close it: start, lastMove (wall clock), km, movingMs, max, brakes, accels. */
+    /** State to keep while a trip is running, so a restart can still close it: start, lastMove (wall clock), km, movingMs, max, brakes, accels, the consumption worked out from the car (or -1). */
     public String save() {
         return active ? startWall + "," + lastMoveWall + "," + String.format(java.util.Locale.US, "%.3f", km) + "," + movingMs + ","
-                + String.format(java.util.Locale.US, "%.1f", max) + "," + brakes + "," + accels : "";
+                + String.format(java.util.Locale.US, "%.1f", max) + "," + brakes + "," + accels + ","
+                + String.format(java.util.Locale.US, "%.2f", matchedConsumption()) : "";
     }
 
     /** The trip a saved state describes (ended where it last moved), or null when it is empty, broken or too short. */
@@ -172,7 +211,12 @@ public final class TripCore {
             float mx = Float.parseFloat(p[4]);
             int b = p.length >= 7 ? Integer.parseInt(p[5]) : -1, a = p.length >= 7 ? Integer.parseInt(p[6]) : -1;
             if (k < MIN_KM || lm <= st) return null;
-            return new Trip(st, lm, k, mv, mx, -1f, b, a);
+            float cons = -1f;
+            if (p.length >= 8) {
+                float c = Float.parseFloat(p[7]);
+                if (c > 0) cons = c;
+            }
+            return new Trip(st, lm, k, mv, mx, cons, b, a);
         } catch (NumberFormatException e) {
             return null;
         }

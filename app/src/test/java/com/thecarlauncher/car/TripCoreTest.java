@@ -178,4 +178,50 @@ public class TripCoreTest {
         assertEquals(0, c.brakes());
         assertEquals(0, c.accels());
     }
+
+    /** A trip of 20 km: one minute at 60 km/h, then 19 km more, with the car's two readings noted after the first minute and at the end. */
+    private static TripCore twentyKm(double firstCons, double firstKm, double lastCons, double lastKm) {
+        TripCore c = new TripCore();
+        c.step(0, WALL, 0);
+        long t = drive(c, 0, 60f, 60);
+        c.noteObd(firstCons, firstKm);
+        drive(c, t, 60f, 1140);
+        c.noteObd(lastCons, lastKm);
+        return c;
+    }
+
+    @Test
+    public void theCarsAverageIsUsedWhenItsTripBeganWithOurs() {
+        TripCore c = twentyKm(6.0, 1.0, 6.5, 20.0);
+        assertEquals(6.5f, c.finish().consumption, 0.001f);
+    }
+
+    @Test
+    public void theLitresSinceOurStartAreWorkedOutWhenTheCarsTripBeganEarlier() {
+        // the car had 50 km at 7.0 (3.5 l) and has 70 km at 7.5 (5.25 l): 1.75 l over 20 km
+        TripCore c = twentyKm(7.0, 50.0, 7.5, 70.0);
+        assertEquals(8.75f, c.finish().consumption, 0.01f);
+    }
+
+    @Test
+    public void aShortDifferenceOfTheCarsFiguresIsNotTrustedAndADisagreeingDistanceIsNot() {
+        TripCore c = new TripCore();
+        c.step(0, WALL, 0);
+        long t = drive(c, 0, 60f, 60);
+        c.noteObd(7.0, 50.0);
+        drive(c, t, 60f, 540); // 10 km of ours
+        c.noteObd(7.5, 56.0);  // only 6 km on the car's side: the rounding would dominate
+        assertEquals(-1f, c.finish().consumption, 0.001f);
+        assertEquals(-1f, twentyKm(6.0, 1.0, 6.5, 40.0).finish().consumption, 0.001f); // 39 km on the car, 19 on ours
+    }
+
+    @Test
+    public void theNotedConsumptionSurvivesASave() {
+        TripCore c = twentyKm(6.0, 1.0, 6.5, 20.0);
+        TripCore.Trip t = TripCore.fromSaved(c.save());
+        assertNotNull(t);
+        assertEquals(6.5f, t.consumption, 0.01f);
+        // an older save without it still reads
+        assertEquals(-1f, TripCore.fromSaved("1000,900000,5.000,600000,80.0,1,2").consumption, 0.001f);
+    }
 }

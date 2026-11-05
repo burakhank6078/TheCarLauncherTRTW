@@ -41,7 +41,7 @@ import java.util.Locale;
  * Everything comes from GPS and what the driver enters (no diagnostic adapter).
  */
 public class VehicleScreen extends Screen implements LocationTracker.Listener {
-    private static final int STATUS = 0, TYRES = 1, START = 2, LONG = 3, REFUEL = 4, FUEL = 5, SERVICE = 6, HISTORY = 7, DASH = 8, PAGES = 9;
+    private static final int STATUS = 0, TYRES = 1, START = 2, LONG = 3, REFUEL = 4, FUEL = 5, SERVICE = 6, HISTORY = 7, DASH = 8, BATT = 9, PAGES = 10;
 
     private final Handler main = new Handler(Looper.getMainLooper());
     private TextView title;
@@ -89,6 +89,7 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
             case TYRES: return s("Pritisak u gumama", "Tyre pressure");
             case HISTORY: return s("Istorija vožnji", "Trip history");
             case DASH: return s("Tabla", "Dashboard");
+            case BATT: return s("Istorija akumulatora", "Battery history");
             default: return s("Servis", "Service");
         }
     }
@@ -177,7 +178,7 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
     private void showPages(View key) {
         MibPopup p = new MibPopup(act).columns(1);
         int[] icons = {R.drawable.ui_ic_car_s, R.drawable.ui_ic_car_s, R.drawable.ui_ic_clock, R.drawable.ui_ic_route,
-                R.drawable.ui_ic_speedo, R.drawable.ui_ic_speedo, R.drawable.ui_ic_eq, R.drawable.ui_ic_route, R.drawable.ui_ic_speedo};
+                R.drawable.ui_ic_speedo, R.drawable.ui_ic_speedo, R.drawable.ui_ic_eq, R.drawable.ui_ic_route, R.drawable.ui_ic_speedo, R.drawable.ui_ic_eq};
         for (int i = 0; i < PAGES; i++) {
             final int idx = i;
             p.add(pageTitle(i), icons[i], i == page, new Runnable() {
@@ -236,6 +237,7 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
             case FUEL: buildFuel(); break;
             case TYRES: buildTyres(); break;
             case HISTORY: buildHistory(); break;
+            case BATT: buildBattery(); break;
             case DASH:
                 buildCells(new int[]{R.drawable.ui_ic_speedo, R.drawable.ui_ic_eq, R.drawable.ui_ic_car_s,
                                 R.drawable.ui_ic_route, R.drawable.ui_ic_nav, R.drawable.ui_ic_clock},
@@ -823,6 +825,16 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
             col.addView(hint);
             return;
         }
+        // the last ten trips added up, then this and last month, then the trips themselves
+        com.thecarlauncher.car.TripLog.Recent rc = com.thecarlauncher.car.TripLog.recent(trips, 10);
+        row(col, R.drawable.ui_ic_route, s("Poslednjih 10 vožnji", "Last 10 trips"),
+                String.format(Locale.US, "%.0f km  ·  %s", rc.km, hm(rc.durationMs)), null);
+        if (rc.consumption >= 0) {
+            String v = String.format(Locale.US, "%.1f l/100 km", rc.consumption);
+            if (rc.withConsumption > 1) v += String.format(Locale.US, "  (%.1f – %.1f)", rc.best, rc.worst);
+            row(col, 0, s("Prosečna potrošnja", "Average consumption"), v, null);
+        }
+        if (rc.score >= 0) row(col, 0, s("Ocena vožnje", "Driving score"), String.valueOf(rc.score), null);
         double price = CarData.get(act).averagePrice();
         List<com.thecarlauncher.car.TripLog.Month> months = com.thecarlauncher.car.TripLog.months(trips, price);
         for (int i = 0; i < Math.min(2, months.size()); i++) {
@@ -841,7 +853,7 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
         for (int i = 0; i < Math.min(10, trips.size()); i++) {
             com.thecarlauncher.car.TripCore.Trip t = trips.get(i);
             String value = String.format(Locale.US, "%.1f km", t.km);
-            if (t.consumption >= 0) value += String.format(Locale.US, "  ·  %.1f l/100", t.consumption);
+            value += t.consumption >= 0 ? String.format(Locale.US, "  ·  %.1f l/100", t.consumption) : "  ·  – l/100";
             if (t.score() >= 0) value += "  ·  " + t.score();
             row(col, R.drawable.ui_ic_route, fmt.format(new java.util.Date(t.start)) + "  ·  " + hm(t.durationMs()), value, null);
         }
@@ -861,6 +873,54 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
                         .show();
             }
         });
+    }
+
+    /** The resting voltage of the battery, one reading per ignition cycle, with a verdict and the trend. Text only. */
+    private void buildBattery() {
+        LinearLayout col = list();
+        List<com.thecarlauncher.car.BatteryHistory.Reading> l = com.thecarlauncher.car.BatteryHistory.all(act);
+        float live = com.thecarlauncher.car.VehicleState.get().voltage();
+        if (!Float.isNaN(live)) row(col, R.drawable.ui_ic_car_s, s("Napon sada", "Voltage now"), String.format(Locale.US, "%.1f V", live), null);
+        if (l.isEmpty()) {
+            row(col, 0, s("Još nema merenja", "No readings yet"), null, null);
+        } else {
+            String verdict = com.thecarlauncher.car.BatteryHistory.verdict(l);
+            String word = verdict.equals("good") ? s("dobro", "good") : verdict.equals("ok") ? s("u redu", "fair")
+                    : verdict.equals("low") ? s("nisko", "low") : s("slabo", "weak");
+            row(col, R.drawable.ui_ic_eq, s("Stanje akumulatora", "Battery condition"), word, null);
+            row(col, 0, s("Prosek poslednjih 5 merenja", "Average of the last 5 readings"),
+                    String.format(Locale.US, "%.2f V", com.thecarlauncher.car.BatteryHistory.average(l, 5)), null);
+            float trend = com.thecarlauncher.car.BatteryHistory.trend(l);
+            if (!Float.isNaN(trend)) {
+                String t = trend < -0.2f ? s("pada", "falling") : trend > 0.2f ? s("raste", "rising") : s("stabilan", "steady");
+                row(col, 0, s("U odnosu na prethodnih 5", "Against the 5 before"), String.format(Locale.US, "%+.2f V  ·  %s", trend, t), null);
+            }
+            java.text.SimpleDateFormat fmt = new java.text.SimpleDateFormat("dd.MM  HH:mm", Locale.US);
+            for (int i = l.size() - 1; i >= 0; i--) {
+                row(col, R.drawable.ui_ic_clock, fmt.format(new java.util.Date(l.get(i).at)), String.format(Locale.US, "%.1f V", l.get(i).volts), null);
+            }
+            row(col, R.drawable.ui_ic_refresh, s("Obriši istoriju akumulatora", "Delete the battery history"), null, new Runnable() {
+                public void run() {
+                    new android.app.AlertDialog.Builder(act)
+                            .setTitle(s("Obriši istoriju akumulatora", "Delete the battery history"))
+                            .setMessage(s("Sva zabeležena merenja biće obrisana.", "All recorded readings will be deleted."))
+                            .setPositiveButton(s("Obriši", "Delete"), new android.content.DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(android.content.DialogInterface d, int w) {
+                                    com.thecarlauncher.car.BatteryHistory.clear(act);
+                                    setPage(BATT);
+                                }
+                            })
+                            .setNegativeButton(s("Otkaži", "Cancel"), null)
+                            .show();
+                }
+            });
+        }
+        TextView hint = Mib.text(act, s("Napon u mirovanju se meri nekoliko sekundi posle uključenja kontakta, pre pokretanja motora. Zdrav akumulator miruje na 12,4–12,7 V. Čuva se poslednjih 30 merenja.",
+                "The resting voltage is measured a few seconds after the ignition goes on, before the engine starts. A healthy battery rests at 12.4–12.7 V. The last 30 readings are kept."), 22, Mib.regular(act), Mib.GREY);
+        hint.setSingleLine(false);
+        hint.setPadding(Mib.px(act, 10), Mib.px(act, 6), Mib.px(act, 10), Mib.px(act, 6));
+        col.addView(hint);
     }
 
     private String km(double v) {

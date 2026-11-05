@@ -69,4 +69,29 @@ public class TripLogTest {
         assertEquals(6.0f, m.consumption, 0.01f);
         assertTrue(m.cost < 0);
     }
+
+    @Test
+    public void theLatestTripsAreAddedUpWithWeightedFigures() {
+        List<TripCore.Trip> newestFirst = new ArrayList<>();
+        newestFirst.add(new TripCore.Trip(at(2026, 10, 4, 8), at(2026, 10, 4, 8) + 600_000L, 100, 3_600_000L, 90f, 8.0f, 0, 0));
+        newestFirst.add(new TripCore.Trip(at(2026, 10, 3, 8), at(2026, 10, 3, 8) + 600_000L, 100, 3_600_000L, 90f, 6.0f, 4, 4));
+        newestFirst.add(trip(at(2026, 10, 2, 8), 50, 40, -1f)); // no consumption, no score
+        newestFirst.add(trip(at(2026, 10, 1, 8), 900, 600, 20f)); // beyond the first three
+        TripLog.Recent r = TripLog.recent(newestFirst, 3);
+        assertEquals(3, r.count);
+        assertEquals(2, r.withConsumption);
+        assertEquals(250.0, r.km, 0.01);
+        assertEquals(7.0f, r.consumption, 0.01f);
+        assertEquals(6.0f, r.best, 0.01f);
+        assertEquals(8.0f, r.worst, 0.01f);
+        assertTrue(r.score >= 0 && r.score <= 100);
+    }
+
+    @Test
+    public void noTripsGiveNothingToAverage() {
+        TripLog.Recent r = TripLog.recent(new ArrayList<TripCore.Trip>(), 10);
+        assertEquals(0, r.count);
+        assertEquals(-1f, r.consumption, 0.001f);
+        assertEquals(-1, r.score);
+    }
 }

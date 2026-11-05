@@ -13,6 +13,19 @@ en üstüne eklenir; GitHub sürüm sayfası bu en üst bölümü gösterir.
 
 ---
 
+## 5 Kasım 2026
+**Akü geçmişi, son 10 yolculuk ve yakıt tüketiminin hafızada tutulması**
+- **Araç → Akü geçmişi (yeni sayfa):** kontak açıldıktan birkaç saniye sonra, motor çalışmadan ölçülen dinlenme voltajı son 30 kayıt
+  olarak tarihiyle listelenir. Üstte şu anki voltaj, akü durumu (iyi / orta / düşük / zayıf: son 5 ölçümün ortalaması 12,5 / 12,3 /
+  12,0 V sınırlarına göre), son 5'in önceki 5'e göre farkı ve "düşüyor / sabit / yükseliyor" yazar. Sayfadan silinebilir.
+- **Araç → Yolculuk geçmişi:** en üste **son 10 yolculuğun** toplamı eklendi: mesafe, süre, ortalama tüketim (km ağırlıklı; en iyi ve en
+  kötü yolculuk parantez içinde) ve ortalama sürüş puanı. Her yolculuk satırı artık tüketimi de gösterir (yoksa "– l/100").
+- **Yakıt tüketimi artık yolculuk sürerken hafızaya alınır:** aracın "başlangıçtan beri" ortalaması yolculuk boyunca not edilir ve
+  yolculuk kaydıyla birlikte saklanır; araç sayacını sıfırlasa ya da launcher kapanıp açılsa bile tüketim kaybolmaz. Aracın sayacı
+  bizim yolculuğumuzdan önce başlamışsa (5 dakikadan uzun duraklar yolculuğu böler ama araç sayacı sürer) yolculuğa düşen litre,
+  iki ölçüm arasındaki farktan hesaplanır; yuvarlama hatası büyümesin diye yalnızca 10 km üstündeki farklar kullanılır. Aracın
+  mesafesi bizimkiyle %30'dan fazla ayrışırsa tüketim yazılmaz.
+
 ## 4 Kasım 2026
 **Aracın kendi ayarları artık değiştirilebiliyor + iki yeni sayfa**
 - **Ayarlar → Navigasyon ve araç → Aracın kendi ayarları:** artık üç sayfa var: **Işıklar**, **Açma ve kapama** ve **Aynalar ve silecekler**.

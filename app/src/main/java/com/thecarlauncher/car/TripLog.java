@@ -41,6 +41,9 @@ public final class TripLog {
 
     /** One speed sample (km/h, 0 without a fix); call about once a second. */
     public synchronized void tick(long mono, long wall, float kmh) {
+        // the car's own average is noted while the trip runs, so it is not lost when the car resets its figures or the app closes
+        double cons = ObdData.get().get(ObdData.START, ObdData.CONS), dist = ObdData.get().get(ObdData.START, ObdData.DIST);
+        if (!Double.isNaN(cons) && !Double.isNaN(dist)) core.noteObd(cons, dist);
         TripCore.Trip t = core.step(mono, wall, kmh);
         if (t != null) {
             add(withConsumption(t));
@@ -77,6 +80,7 @@ public final class TripLog {
 
     /** The car's average since start, when its trip matches ours (same distance within 30 %). */
     private static TripCore.Trip withConsumption(TripCore.Trip t) {
+        if (t.consumption >= 0) return t; // already known from the figures noted during the trip
         double cons = ObdData.get().get(ObdData.START, ObdData.CONS);
         double dist = ObdData.get().get(ObdData.START, ObdData.DIST);
         if (Double.isNaN(cons) || Double.isNaN(dist) || cons <= 0 || dist <= 0 || Math.abs(dist - t.km) > 0.3 * t.km) return t;
@@ -138,6 +142,46 @@ public final class TripLog {
             }
         }
         return out;
+    }
+
+    /** The latest trips added up. */
+    public static final class Recent {
+        public int count, withConsumption;
+        public double km;
+        public long durationMs;
+        /** Weighted average consumption in l/100 km over the trips that have one, else -1. */
+        public float consumption = -1f;
+        /** Average driving score (weighted by distance) over the trips that have one, else -1. */
+        public int score = -1;
+        /** Lowest and highest consumption among the trips that have one, else -1. */
+        public float best = -1f, worst = -1f;
+    }
+
+    /** The first n of a list that is newest first, added up. */
+    public static Recent recent(List<TripCore.Trip> newestFirst, int n) {
+        Recent r = new Recent();
+        double consKm = 0, consLitres = 0, scoreKm = 0, scoreSum = 0;
+        for (int i = 0; i < Math.min(n, newestFirst.size()); i++) {
+            TripCore.Trip t = newestFirst.get(i);
+            r.count++;
+            r.km += t.km;
+            r.durationMs += t.durationMs();
+            if (t.consumption >= 0) {
+                r.withConsumption++;
+                consKm += t.km;
+                consLitres += t.km * t.consumption / 100.0;
+                if (r.best < 0 || t.consumption < r.best) r.best = t.consumption;
+                if (t.consumption > r.worst) r.worst = t.consumption;
+            }
+            int s = t.score();
+            if (s >= 0) {
+                scoreKm += t.km;
+                scoreSum += s * t.km;
+            }
+        }
+        if (consKm > 0) r.consumption = (float) (consLitres / consKm * 100.0);
+        if (scoreKm > 0) r.score = (int) Math.round(scoreSum / scoreKm);
+        return r;
     }
 
     /** The trips of one calendar month added up. */

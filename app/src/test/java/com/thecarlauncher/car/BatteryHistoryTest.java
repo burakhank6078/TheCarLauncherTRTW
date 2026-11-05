@@ -33,4 +33,29 @@ public class BatteryHistoryTest {
         assertEquals(12.45f, BatteryHistory.average(l, 10), 0.001f);
         assertTrue(Float.isNaN(BatteryHistory.average(BatteryHistory.decode(""), 5)));
     }
+
+    private static List<BatteryHistory.Reading> readings(float... volts) {
+        String s = "";
+        for (int i = 0; i < volts.length; i++) s = BatteryHistory.append(s, 1000L + i, volts[i]);
+        return BatteryHistory.decode(s);
+    }
+
+    @Test
+    public void theVerdictFollowsTheAverageOfTheLastFive() {
+        assertEquals("", BatteryHistory.verdict(readings()));
+        assertEquals("good", BatteryHistory.verdict(readings(12.6f, 12.7f, 12.5f)));
+        assertEquals("ok", BatteryHistory.verdict(readings(12.4f, 12.4f, 12.3f)));
+        assertEquals("low", BatteryHistory.verdict(readings(12.1f, 12.2f)));
+        assertEquals("weak", BatteryHistory.verdict(readings(11.8f, 11.9f)));
+        // only the last five count: five old good readings do not hide a battery that has since fallen
+        assertEquals("low", BatteryHistory.verdict(readings(12.7f, 12.7f, 12.7f, 12.7f, 12.7f, 12.2f, 12.2f, 12.2f, 12.2f, 12.2f)));
+    }
+
+    @Test
+    public void theTrendComparesTheLastFiveWithTheFiveBefore() {
+        assertTrue(Float.isNaN(BatteryHistory.trend(readings(12.5f, 12.5f, 12.5f))));
+        float falling = BatteryHistory.trend(readings(12.7f, 12.7f, 12.7f, 12.7f, 12.7f, 12.3f, 12.3f, 12.3f, 12.3f, 12.3f));
+        assertEquals(-0.4f, falling, 0.01f);
+        assertEquals(0f, BatteryHistory.trend(readings(12.5f, 12.5f, 12.5f, 12.5f, 12.5f, 12.5f, 12.5f)), 0.01f);
+    }
 }
