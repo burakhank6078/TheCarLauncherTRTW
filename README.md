@@ -41,35 +41,62 @@ Aynı TW yazılımını kullanan başka head unit'lerde de çalışması bekleni
 
 ## Bu fork'un eklediği özellikler
 
+**Araç ve Canbus**
+- **Araç durumu**: kapılar, bagaj, sürücü kemeri, akü voltajı ve farlar canlı gösterilir. Sayfanın altındaki
+  üç tuş: **Servis**, **Canlı veri** ve **Ambijent**.
+- **Gösterge paneli** (Araç → Canlı veri): hız, motor devri, akü voltajı, bu yolculuğun mesafesi, sürüş puanı ve
+  dinlenme voltajı ortalaması.
+- **Gezi sayfaları (Canbus)**: *Başlangıçtan beri*, *Yakıt aldıktan sonra*, *Uzun süreli*; aracın kendi verisiyle:
+  mesafe, süre, ortalama hız, ortalama tüketim, seyir aralığı. Tüm sayfa arka plan resmi seçilebilir (1024×444 önerilir).
+- **Yolculuk geçmişi**: aylık toplamlar ve son yolculuklar (mesafe, süre, tüketim, girilen yakıt fiyatına göre tutar,
+  sürüş puanı). GPS ile arka planda da kaydedilir.
+- **Kontak kapanınca yolculuk özeti** ve **sürüş puanı** (sert fren ve sert kalkış sayılır), MIB açılır penceresinde.
+- **Uyarılar** (MIB açılır penceresi): sürüşte açık kapı / bagaj ve bağlanmamış sürücü kemeri; zayıf akü; şarj sorunu.
+- **Bekleme saati**: kontak kapandıktan birkaç saniye sonra MIB ünitelerindeki gibi siyah ekranda büyük saat.
+  Dokununca launcher döner; ekran parlaklığına dokunulmaz.
+- **Aracın kendi ayarları** (Ayarlar → Navigasyon ve araç): fabrikadaki "Araç ayarı" uygulamasının **Işıklar**,
+  **Açma ve kapama** ve **Aynalar ve silecekler** sayfaları launcher içinden okunur ve (komut izni açıksa, onaydan sonra)
+  değiştirilir.
+- **Lastik basıncı sayfası** ve launcher içinden **lastik basıncı sıfırlama** (onaylı).
+- **Otomatik gece haritası**: farlar yanınca harita gece görünümüne geçer.
+
+**Medya, radyo, ışık**
+- **Radyo**: fabrika radyonun tunerini aynalar ve kumanda eder: frekans, RDS adı, 18 hafıza × 3 sayfa, band tuşu,
+  istasyon listesi, elle ayar, hafızaya kaydetme ve istasyon logoları. Ses fabrika radyodan çalmaya devam eder.
+- **Bluetooth müzik**: şarkı bilgisi fabrika Bluetooth uygulamasının medya oturumundan gelir; sonraki / önceki /
+  oynat-durdur tuşları fabrika uygulamasına gerçekten ulaşır; albüm kapağı internetten bulunur (kapatılabilir).
+- **Ambiyans şeridi**: Raise LAMP&FRGN şeridi Bluetooth LE ile doğrudan launcher'dan kontrol edilir; **iki bölge**
+  ayrı renk ve parlaklıkla sürülür (ekranın kendi parlaklığına dokunulmaz).
+
+**Genel**
 - **Türkçe arayüz**: Ayarlar → Dil. MIB 2 görünümü aynen korunur; yalnızca metinler Türkçedir
   (sesli navigasyon ve sokak adları dahil). Çeviriler `mib/Tr.java` içindedir.
-- **Gezi sayfaları (Canbus)**: *Başlangıçtan beri*, *Yakıt aldıktan sonra*, *Uzun süreli*; aracın
-  kendi verisiyle: mesafe, süre, ortalama hız, ortalama tüketim, seyir aralığı. Tüm sayfa arka plan
-  resmi seçilebilir (1024×444 önerilir).
-- **Lastik basıncı sayfası** ve launcher içinden **lastik basıncı sıfırlama** (onaylı).
-- **Bluetooth müzik**: şarkı bilgisi fabrika Bluetooth uygulamasının medya oturumundan gelir;
-  sonraki / önceki / oynat-durdur tuşları fabrika uygulamasına gerçekten ulaşır; albüm kapağı
-  internetten bulunur (kapatılabilir).
-- **Ambiyans şeridi**: Raise LAMP&FRGN şeridi Bluetooth LE ile doğrudan launcher'dan kontrol edilir.
-  Renk ve **%100'den %1'e** parlaklık listesi (ekranın kendi parlaklığına dokunulmaz).
-- **Fabrika uygulamalarına kısayollar**: Araç ayarı (`com.tw.car`) ve Bluetooth (`com.tw.bt`).
+- **Uygulamalar** ekranında uzun basış menüsü (MENU'ye ekle, telefon / radyo uygulaması yap, bilgi, kaldır);
+  **Telefon** karosu fabrika Bluetooth uygulamasını (`com.tw.bt`) açar.
+- **Ayar yedeği**: ayarlar USB'ye tek dosya olarak kaydedilir ve geri yüklenir.
 - **Tanılama kaydedici** ve **uygulama içi ekran görüntüsü** (aşağıda).
 
-Ayrıntılı geçmiş: [CHANGELOG-TR.md](CHANGELOG-TR.md).
+Ayrıntılı geçmiş: [CHANGELOG-TR.md](CHANGELOG-TR.md). Protokol notları: [docs/](docs/).
 
 ## Durum: neler çalışıyor, neler yolda
 
 | Özellik | Durum |
 | --- | --- |
 | Türkçe arayüz, MIB 2 görünümü | Çalışıyor |
-| Medya (USB / Bluetooth), şarkı bilgisi, kapak, tuşlar | Çalışıyor |
-| Gezi sayfaları (Canbus), lastik basıncı | Çalışıyor |
+| Medya (USB / Bluetooth), şarkı bilgisi, kapak, tuşlar | Çalışıyor (direksiyon "sonraki / önceki" tuşları ara sıra gitmeyebilir; araştırılıyor) |
+| Gezi sayfaları, yolculuk geçmişi, lastik basıncı | Çalışıyor |
+| Radyo (fabrika tuneri) | Çalışıyor; fabrika radyonun logo veritabanı henüz okunmuyor |
 | Ambiyans şeridi (BLE) | Çalışıyor (telefonun Bluetooth'u kapalı olmalı) |
+| Kapı / kemer uyarısı | Çalışıyor |
+| Kontak olayları: yolculuk özeti, akü uyarıları, bekleme saati, gösterge paneli | **Yeni**, araçta denenecek |
+| Aracın kendi ayarları: okuma (Işıklar) | Çalışıyor |
+| Aracın kendi ayarları: değiştirme, Açma ve kapama, Aynalar ve silecekler | **Yeni**, araçta denenecek |
+| Birimler, Park ve manevra, Çok işlevli ekran, Sürücü asistanı sayfaları | **Yolda** (fabrika uygulamasında çözüldü) |
+| Sürüş modu / ESC ayarları | **Yolda** |
 | Navigasyon (OpenStreetMap) | Upstream'den, internet / çevrimdışı harita |
-| Radyo | **Yolda**: yerleşik FM ekranı QF tuner içindir, TW cihazda çalışmaz; fabrika radyosuna bağlanılacak |
-| Arama ekranı (rehber, arama kaydı) | **Yolda** |
-| Sürüş modu / ESC ayarları | **Yolda** (fabrika uygulamasındaki protokol çözüldü) |
+| Arama ekranı (rehber, arama kaydı) | **Yolda**; şimdilik fabrika Bluetooth uygulamasını açar |
 | Dış sıcaklık | Şimdilik internetten (hava durumu); Canbus'ta bulunamadı |
+| Soğutma suyu / yağ sıcaklığı | Canbus kutusu vermiyor; olası yol OBD-II (ELM327) adaptörü, henüz yok |
 
 Upstream'in QF cihaza özel parçaları (Goodocom Bluetooth eşleştirme sayfaları, QF tuner) TW
 cihazlarda gizlenir veya kullanılmaz.
@@ -89,18 +116,21 @@ Android 5.0 veya üzeri gerekir.
 | Ayar | Nerede | Ne işe yarar |
 | --- | --- | --- |
 | Dil → Türkçe | Ayarlar → Dil | Arayüz dili |
-| Gezi verilerini OBD'den al | Ayarlar → Araç | Gezi sayfalarını Canbus ile doldurur (yalnızca okur) |
-| Üniteye komut göndermeye izin ver | Ayarlar → Araç | Lastik sıfırlama ve Bluetooth tuşları için gerekir |
+| Gezi verilerini OBD'den al | Ayarlar → Araç | Gezi, araç durumu, uyarılar ve kontak olayları için araç verisini okur |
+| Üniteye komut göndermeye izin ver | Ayarlar → Araç | Lastik sıfırlama, Bluetooth / radyo kumandası ve aracın kendi ayarlarını okuma-değiştirme için gerekir |
+| Araç bildirimleri, Kontak kapalıyken saat ekranı | Ayarlar → Araç | Yolculuk özeti, akü uyarıları ve bekleme saati (ikisi de açık gelir) |
 | Bildirim erişimi | Medya → Kaynak | Bluetooth şarkı bilgisi |
 | Bluetooth (yakındaki cihazlar) / Konum | İlk açılışta istenir | Ambiyans şeridini aramak için |
 | Ambiyans şeridi (Bluetooth LE) | Ayarlar | Telefonun Bluetooth'unu kapatıp şeridi arayın |
 
 ## Güvenlik: araca komut gönderme
 
-Varsayılan olarak launcher araca ve üniteye **hiçbir şey göndermez**; yalnızca dinler. Komut gönderen
-her özellik (lastik sıfırlama, Bluetooth tuşları) **"Üniteye komut göndermeye izin ver"** anahtarının
-arkasındadır ve fabrika uygulamasının kullandığı mesajların aynısını kullanır. Araç için kritik
-ayarlar (ör. ESC) eklenirse ayrıca onay penceresi ile sorulacaktır.
+Varsayılan olarak launcher araca ve üniteye **hiçbir şey göndermez**; yalnızca dinler. Bir şey gönderen her
+özellik (lastik sıfırlama, Bluetooth tuşları, radyo kumandası, aracın ayar sayfalarını isteme ve değiştirme)
+**"Üniteye komut göndermeye izin ver"** anahtarının arkasındadır ve fabrika uygulamasının kullandığı mesajların
+aynısını kullanır. Aracın ayarlarını değiştirmeden önce launcher her açılışta bir kez onay sorar; izin verilen
+değerleri fabrika uygulamasının listelerinden aldığı için yalnızca bilinen değerler gönderilir, değerleri
+doğrulanmamış ayarlar salt okunur kalır. Kritik ayarlar (ör. ESC) eklenirse ayrıca onay penceresi ile sorulacaktır.
 
 ## Sorun olursa: tanılama kaydı ve ekran görüntüsü
 
