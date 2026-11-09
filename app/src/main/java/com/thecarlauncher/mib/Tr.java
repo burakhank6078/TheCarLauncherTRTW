@@ -730,7 +730,7 @@ final class Tr {
         p("Do not drain it further: start the engine or have it checked.", "Daha fazla yormayın: motoru çalıştırın ya da kontrol ettirin.");
         p("The alternator may not be charging the battery: have it checked.", "Alternatör aküyü şarj etmiyor olabilir: servise baktırın.");
         p("Car notices (trip summary, battery)", "Araç bildirimleri (yolculuk özeti, akü)");
-        p("When the ignition goes off: a trip summary with a driving score. A warning for a weak battery or a charging fault. Needs the OBD data and only shows while the launcher is on screen.", "Kontak kapanınca: sürüş puanlı yolculuk özeti. Zayıf akü veya şarj arızası için uyarı. OBD verisi gerekir ve yalnızca launcher ekrandayken görünür.");
+        p("When the ignition goes off: a trip summary with a driving score. A warning for a weak battery or a charging fault. Needs the OBD data. The trip is closed and the battery noted in the background; a notice made while another app is in front appears when the launcher is back (within half an hour).", "Kontak kapanınca: sürüş puanlı yolculuk özeti. Zayıf akü veya şarj arızası için uyarı. OBD verisi gerekir. Yolculuk kapanır ve akü değeri arka planda kaydedilir; başka uygulama öndeyken oluşan bildirim, launcher geri gelince (yarım saat içinde) gösterilir.");
         p("Clock screen when the ignition is off", "Kontak kapalıyken saat ekranı");
         p("Like the standby of a MIB unit: a black screen with a big clock a few seconds after the ignition goes off. A touch brings the launcher back. The brightness is not changed.", "MIB ünitelerinin bekleme modu gibi: kontak kapandıktan birkaç saniye sonra büyük saatli siyah ekran. Dokunmak launcher'ı geri getirir. Parlaklık değiştirilmez.");
         p("Dashboard", "Gösterge paneli");
@@ -805,6 +805,15 @@ final class Tr {
         p("Last 10 trips", "Son 10 yolculuk");
         p("Battery history", "Akü geçmişi");
         p("Voltage now", "Şu anki voltaj");
+        p("While the headlights are on", "Farlar yanıkken");
+        p("While the headlights are off", "Farlar sönükken");
+        p("Leave as it is", "Dokunma");
+        p("Switch the strip off when the ignition goes off", "Kontak kapanınca şeridi kapat");
+        p("Switch off after", "Şu kadar sonra kapat");
+        p("Tie the strip to the ignition and the headlights", "Şeridi kontağa ve farlara bağla");
+        p("Automation (ignition and headlights)", "Otomasyon (kontak ve farlar)");
+        p("Immediately", "Hemen");
+        p("The strip gets a share of the level you set yourself (100 % is unchanged). The car gives one flag for parking lights, low beam and high beam alike, so they cannot be told apart yet. Needs the OBD data and the Bluetooth LE link to the strip, and works while another app is in front.", "Şerit, sizin ayarladığınız seviyenin bir oranını alır (%100 değişmeden bırakır). Araç park lambası, kısa far ve uzun far için tek bir bayrak gönderdiğinden bunlar henüz ayırt edilemiyor. OBD verisi ve şeritle Bluetooth LE bağlantısı gerekir; başka uygulama öndeyken de çalışır.");
         p("Speed", "Hız");
         p("Engine speed", "Motor devri");
         p("This trip", "Bu yolculuk");

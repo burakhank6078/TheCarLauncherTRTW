@@ -67,4 +67,13 @@ public class AmbientBleTest {
         // sum = 0x8D + 4 + 0 + 0x48 + 1 + 1 = 0xDB, XOR 0xFF = 0x24
         assertArrayEquals(new byte[]{0x2E, (byte) 0x8D, 0x04, 0x00, 0x48, 0x01, 0x01, 0x24}, m);
     }
+
+    @Test
+    public void theAutomationsShareScalesALevelButNeverLeavesItAtZeroByAccident() {
+        assertEquals(40, AmbientBle.shared(40, -1));   // no automation
+        assertEquals(40, AmbientBle.shared(40, 100));
+        assertEquals(20, AmbientBle.shared(40, 50));
+        assertEquals(1, AmbientBle.shared(1, 50));     // a lit strip stays lit
+        assertEquals(0, AmbientBle.shared(40, 0));     // only a share of 0 makes it dark
+    }
 }

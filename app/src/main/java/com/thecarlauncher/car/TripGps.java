@@ -26,7 +26,7 @@ public final class TripGps implements LocationListener {
     private final Context app;
     private HandlerThread thread;
     private Handler io;
-    private boolean running;
+    private volatile boolean running;
     private volatile long lastFixAt;
     private volatile float kmh;
 
@@ -66,6 +66,12 @@ public final class TripGps implements LocationListener {
         } catch (SecurityException | IllegalArgumentException ignored) {
             // no permission after all: stays off
         }
+    }
+
+    /** The speed in km/h from the background listener, or NaN when it is off or has had no fix for a few seconds. */
+    public float speedKmh() {
+        if (!running || SystemClock.elapsedRealtime() - lastFixAt > NO_FIX_MS) return Float.NaN;
+        return kmh;
     }
 
     private final Runnable check = new Runnable() {

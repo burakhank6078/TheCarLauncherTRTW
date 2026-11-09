@@ -25,6 +25,25 @@ en üstüne eklenir; GitHub sürüm sayfası bu en üst bölümü gösterir.
   bizim yolculuğumuzdan önce başlamışsa (5 dakikadan uzun duraklar yolculuğu böler ama araç sayacı sürer) yolculuğa düşen litre,
   iki ölçüm arasındaki farktan hesaplanır; yuvarlama hatası büyümesin diye yalnızca 10 km üstündeki farklar kullanılır. Aracın
   mesafesi bizimkiyle %30'dan fazla ayrışırsa tüketim yazılmaz.
+- **Ambiyans şeridi kontağa ve farlara bağlanabiliyor (Ayarlar → Ambiyans şeridi → Otomasyon):** "Şeridi kontağa ve farlara bağla"
+  açıkken kontak kapandıktan sonra (hemen / 30 sn / 1 dk / 3 dk) şerit kararır ve kontak açılınca geri gelir. Farlar yanıkken ve sönükken
+  şerit, sizin ayarladığınız seviyenin ayrı birer oranını alır (örneğin gece %40, gündüz %100; "Dokunma" seçilirse o durumda karışmaz).
+  Farların durumu 4 saniye kararlı kalınca değişir, uzun far flaşı ya da kısa tünel şeridi oynatmaz. Park lambası ile kısa far ayrı
+  tetiklenemiyor: araç ikisi için tek bir bayrak gönderiyor (22 Ekim kaydında kısa far adımında hiçbir çerçeve değişmedi). Ayrım için
+  tanılama kaydıyla park lambası, kısa far, uzun far sırasıyla ayrı işaretlenerek yeni bir kayıt gerekir. Bölge 1 / Bölge 2 ayarlarınız
+  değişmez; yalnızca şeride giden seviye ölçeklenir. Yalnızca OBD verisiyle ve şerit bağlıyken çalışır, başka uygulama öndeyken de.
+- **Dış sıcaklık kaldırıldı:** üst çubuğun sağındaki sıcaklık internetten (Open-Meteo) hava durumuyla dolduruluyordu; araç dış sıcaklık vermediği için
+  bu araçtaki gerçek değeri göstermiyordu. Yazı, hava durumu isteği ve saklanan eski değerler kaldırıldı. Araçtan gerçek değer ancak
+  OBD-II (ELM327) ile gelebilir.
+- **Kontak olayları artık arka planda izleniyor:** yolculuğu kapatma, akü ölçümü ve uyarıların hesabı launcher'dan bağımsız kendi iş
+  parçacığında saniyede bir yapılır; ön planda navigasyon gibi başka bir uygulama olsa da kontak kapanınca yolculuk o anda kapanır
+  ve dinlenme voltajı kaydedilir. Gösterilecek bildirim (yolculuk özeti, akü / şarj uyarısı) sıraya alınır ve launcher ekrana
+  geldiğinde (yarım saat içindeyse) tek tek gösterilir; üst üste binmezler. Bekleme saati yine yalnızca launcher içinde görünür.
+  Hız, arka plandaki GPS dinleyicisinden gelir; o kapalıysa launcher'ın hızı kullanılır.
+- **İmza anahtarı depodan çıkıyor (hazırlık):** derleme artık GitHub secret'larından gelen anahtarı kullanabilir
+  (`SIGNING_KEYSTORE_BASE64`, `SIGNING_STORE_PASSWORD`, `SIGNING_KEY_ALIAS`, `SIGNING_KEY_PASSWORD`). Secret'lar tanımlanana kadar
+  hiçbir şey değişmez: eski anahtarla imzalanmaya devam eder. Secret'lar eklendiğinde yeni sürüm yeni anahtarla imzalanır ve
+  eski kurulumun üzerine kurulamaz: önce Ayarlar → Ayar yedeği ile yedek alın, uygulamayı kaldırıp yeni sürümü kurun.
 
 ## 4 Kasım 2026
 **Aracın kendi ayarları artık değiştirilebiliyor + iki yeni sayfa**

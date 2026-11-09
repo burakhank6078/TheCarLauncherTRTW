@@ -34,6 +34,14 @@ public final class Prefs {
     public static final String AMBIENT_Z2 = "ambient_z2", AMBIENT_L2 = "ambient_l2";
     /** Sends the strip saturated colours (a pastel colour looks white on LEDs); default on. */
     public static final String AMBIENT_VIVID = "ambient_led_vivid";
+    /** The strip follows the ignition and the headlights (default off): see AmbientAutoLogic. */
+    public static final String AMBIENT_AUTO = "ambient_auto";
+    /** With the automation: the strip goes dark some seconds after the ignition is switched off (default on). */
+    public static final String AMBIENT_AUTO_OFF = "ambient_auto_off";
+    /** Seconds the strip stays lit after the ignition is off (default 30). */
+    public static final String AMBIENT_AUTO_DELAY = "ambient_auto_delay";
+    /** Share of the strip's own level while the headlights are on / off, in percent; 0 = do not touch. */
+    public static final String AMBIENT_AUTO_NIGHT = "ambient_auto_night", AMBIENT_AUTO_DAY = "ambient_auto_day";
     public static final String SHOT_HIDE_STREET = "screenshot_hide_street";
     public static final String RADIO_PKG = "radio_pkg";
     public static final String RADIO_INTERNAL = "radio_internal";

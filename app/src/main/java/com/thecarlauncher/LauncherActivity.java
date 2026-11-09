@@ -53,7 +53,6 @@ import com.thecarlauncher.screens.VehicleScreen;
 import com.thecarlauncher.util.Prefs;
 import com.thecarlauncher.util.Ui;
 import com.thecarlauncher.util.Storage;
-import com.thecarlauncher.util.Weather;
 import com.thecarlauncher.mib.LoadingBanner;
 
 import java.text.SimpleDateFormat;
@@ -93,7 +92,7 @@ public class LauncherActivity extends Activity implements LocationTracker.Listen
             else standbyClock.hide();
         }
     };
-    private TextView timeView, tagView, rightView, streetView;
+    private TextView timeView, tagView, streetView;
     private View statusBar, statusRule;
     private ImageView backArrow;
     private ImageView btIcon, battIcon, signalIcon, msgIcon;
@@ -138,6 +137,8 @@ public class LauncherActivity extends Activity implements LocationTracker.Listen
         com.thecarlauncher.util.AmbientBle.get(this).start();
         // The trip history listens to the GPS on its own, whatever app is in front.
         com.thecarlauncher.car.TripGps.get(this).sync();
+        com.thecarlauncher.mib.CarEvents.get().start(this); // watches the car on its own thread, whatever app is in front
+        Prefs.of(this).edit().remove("weather_temp").remove("weather_at").apply(); // the outside temperature is gone, so are its leftovers
         com.thecarlauncher.car.VehicleState.forgetChassisNumber(this);
         com.thecarlauncher.media.Tone.get(this).attachGlobal();
         // The QF unit's Bluetooth module, broadcasts and MCU tuner. Not started on the TW platform, where
@@ -295,13 +296,6 @@ public class LauncherActivity extends Activity implements LocationTracker.Listen
         FrameLayout.LayoutParams ml = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.MATCH_PARENT, Gravity.CENTER_HORIZONTAL);
         bar.addView(center, ml);
-
-        rightView = Mib.text(this, "", 22, Mib.semibold(this), Mib.WHITE);
-        rightView.setGravity(Gravity.CENTER_VERTICAL);
-        FrameLayout.LayoutParams rl = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.MATCH_PARENT, Gravity.RIGHT);
-        rl.rightMargin = pad;
-        bar.addView(rightView, rl);
         return bar;
     }
 
@@ -360,7 +354,6 @@ public class LauncherActivity extends Activity implements LocationTracker.Listen
         }
         hadAllFiles = files;
         com.thecarlauncher.nav.OfflineMaps.get(this).finishDownloads();
-        Weather.get(this).update(LocationTracker.get(this));
         MediaHub.get(this).connectExternal();
         if (current >= 0) screens[current].onShow();
     }
@@ -705,8 +698,10 @@ public class LauncherActivity extends Activity implements LocationTracker.Listen
     private void updateClock() {
         com.thecarlauncher.util.DayNight.get(this).tick(); // once a second: the headlights decide day or night for the map
         com.thecarlauncher.nav.LocationTracker lt = com.thecarlauncher.nav.LocationTracker.get(this);
-        // once a second: the ignition going on or off, the battery, the clock screen
-        com.thecarlauncher.mib.CarEvents.get().tick(this, lt.hasFix() ? lt.speedMps() * 3.6f : 0f, carEventSink);
+        // once a second: hands over the notices the background watching has queued and switches the clock screen
+        com.thecarlauncher.mib.CarEvents ce = com.thecarlauncher.mib.CarEvents.get();
+        ce.noteSpeed(lt.hasFix() ? lt.speedMps() * 3.6f : 0f);
+        ce.poll(this, carEventSink);
         String pattern = Prefs.use24h(this) ? "HH:mm" : "h:mm";
         timeView.setText(new SimpleDateFormat(pattern, Locale.getDefault()).format(new Date()));
     }
@@ -724,13 +719,7 @@ public class LauncherActivity extends Activity implements LocationTracker.Listen
 
     @Override
     public void onLocationUpdate(LocationTracker t) {
-        // Top-right corner: outside temperature (weather at the car's position).
-        Weather.get(this).update(t);
-    }
-
-    /** Called by Weather when a new temperature is known. */
-    public void onTemperature(String text) {
-        rightView.setText(text == null ? "" : text);
+        // nothing to show from the position here (the outside temperature was dropped: the car gives none, and the weather is not it)
     }
 
     @Override

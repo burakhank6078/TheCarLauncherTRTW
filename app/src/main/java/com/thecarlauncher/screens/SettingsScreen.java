@@ -1141,6 +1141,30 @@ public class SettingsScreen extends Screen {
     }
 
     /** The launcher's Ambient colour and level also set a Raise LAMP&FRGN strip, as the phone app does. */
+    /** A row showing the chosen value of a setting; a tap opens a menu of the values (texts and values in the same order). */
+    private void autoChoice(String label, final String key, final int def, final int[] values, final String[] texts) {
+        int cur = Prefs.integer(act, key, def);
+        String shown = String.valueOf(cur);
+        for (int i = 0; i < values.length; i++) if (values[i] == cur) shown = texts[i];
+        final String title = label;
+        LinearLayout row = bar(label, shown);
+        row.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                MibMenu m = new MibMenu(act, title);
+                for (int i = 0; i < values.length; i++) {
+                    final int value = values[i];
+                    m.add(texts[i], new Runnable() {
+                        public void run() {
+                            Prefs.put(act, key, value);
+                            refreshKeep();
+                        }
+                    });
+                }
+                m.show(v);
+            }
+        });
+    }
+
     private void buildAmbientBle() {
         final com.thecarlauncher.util.AmbientBle ble = com.thecarlauncher.util.AmbientBle.get(act);
         ble.setListener(new Runnable() {
@@ -1160,6 +1184,26 @@ public class SettingsScreen extends Screen {
         });
         note(s("Svaka boja se šalje traci pojačana do pune zasićenosti: pastelne boje na LED traci izgledaju bele i pobele kad se zatamne. Toplo i hladno bela ostaju kakve jesu.",
                 "Each colour is sent to the strip at full saturation: pastel colours look white on an LED strip and go white when dimmed. Warm and cool white stay as they are."));
+        section(s("Automatika (kontakt i farovi)", "Automation (ignition and headlights)"));
+        toggle(s("Veži traku za kontakt i farove", "Tie the strip to the ignition and the headlights"), Prefs.AMBIENT_AUTO, false, new Runnable() {
+            public void run() { refreshKeep(); }
+        });
+        if (Prefs.bool(act, Prefs.AMBIENT_AUTO, false)) {
+            toggle(s("Ugasi traku kad se kontakt ugasi", "Switch the strip off when the ignition goes off"), Prefs.AMBIENT_AUTO_OFF, true, new Runnable() {
+                public void run() { refreshKeep(); }
+            });
+            if (Prefs.bool(act, Prefs.AMBIENT_AUTO_OFF, true)) {
+                autoChoice(s("Ugasi posle", "Switch off after"), Prefs.AMBIENT_AUTO_DELAY, 30, new int[]{0, 30, 60, 180},
+                        new String[]{s("Odmah", "Immediately"), "30 s", "1 min", "3 min"});
+            }
+            String[] shares = new String[12];
+            int[] shareValues = {0, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100};
+            for (int i = 0; i < shares.length; i++) shares[i] = shareValues[i] == 0 ? s("Ne diraj", "Leave as it is") : shareValues[i] + " %";
+            autoChoice(s("Kad su farovi upaljeni", "While the headlights are on"), Prefs.AMBIENT_AUTO_NIGHT, 40, shareValues, shares);
+            autoChoice(s("Kad su farovi ugašeni", "While the headlights are off"), Prefs.AMBIENT_AUTO_DAY, 100, shareValues, shares);
+        }
+        note(s("Traka dobija deo nivoa koji ste sami podesili (100 % je nepromenjeno). Parking svetla, oborena i dugačka svetla kola javlja jednom zastavicom, pa se još ne razlikuju. Radi uz podatke iz OBD-a i Bluetooth LE vezu sa trakom, i dok je druga aplikacija ispred.",
+                "The strip gets a share of the level you set yourself (100 % is unchanged). The car gives one flag for parking lights, low beam and high beam alike, so they cannot be told apart yet. Needs the OBD data and the Bluetooth LE link to the strip, and works while another app is in front."));
         info(s("Stanje", "Status"), ble.status().isEmpty() ? "—" : bleStatus(ble.status()));
         String saved = Prefs.str(act, com.thecarlauncher.util.AmbientBle.ADDR, "");
         info(s("Izabrani uređaj", "Chosen device"), saved.isEmpty() ? "—" : saved);
@@ -1535,8 +1579,8 @@ public class SettingsScreen extends Screen {
         note(s("Iskačući prozor kada su vrata otvorena ili pojas vozača nije vezan dok vozilo ide. Radi uz podatke iz OBD-a i GPS brzinu, i samo dok je launcher na ekranu.",
                 "A pop-up in the MIB style when a door is open or the driver belt is off while the car moves. Needs the OBD data and the GPS speed, and only shows while the launcher is on screen."));
         toggle(s("Obaveštenja o vozilu (kraj vožnje, akumulator)", "Car notices (trip summary, battery)"), Prefs.CAR_EVENTS, true, null);
-        note(s("Kad se kontakt ugasi: sažetak vožnje sa ocenom. Upozorenje za slab akumulator ili punjenje. Radi uz podatke iz OBD-a i samo dok je launcher na ekranu.",
-                "When the ignition goes off: a trip summary with a driving score. A warning for a weak battery or a charging fault. Needs the OBD data and only shows while the launcher is on screen."));
+        note(s("Kad se kontakt ugasi: sažetak vožnje sa ocenom. Upozorenje za slab akumulator ili punjenje. Radi uz podatke iz OBD-a. Vožnja se zatvara i akumulator beleži u pozadini; poruka nastala dok je druga aplikacija ispred prikazuje se kad se launcher vrati (u roku od pola sata).",
+                "When the ignition goes off: a trip summary with a driving score. A warning for a weak battery or a charging fault. Needs the OBD data. The trip is closed and the battery noted in the background; a notice made while another app is in front appears when the launcher is back (within half an hour)."));
         toggle(s("Ekran sa satom kad je kontakt ugašen", "Clock screen when the ignition is off"), Prefs.STANDBY_CLOCK, true, null);
         note(s("Kao stanje mirovanja MIB jedinica: crn ekran sa velikim satom nekoliko sekundi nakon gašenja kontakta. Dodir vraća launcher. Svetlina se ne menja.",
                 "Like the standby of a MIB unit: a black screen with a big clock a few seconds after the ignition goes off. A touch brings the launcher back. The brightness is not changed."));

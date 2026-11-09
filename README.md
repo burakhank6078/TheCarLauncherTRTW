@@ -67,7 +67,8 @@ Aynı TW yazılımını kullanan başka head unit'lerde de çalışması bekleni
 - **Bluetooth müzik**: şarkı bilgisi fabrika Bluetooth uygulamasının medya oturumundan gelir; sonraki / önceki /
   oynat-durdur tuşları fabrika uygulamasına gerçekten ulaşır; albüm kapağı internetten bulunur (kapatılabilir).
 - **Ambiyans şeridi**: Raise LAMP&FRGN şeridi Bluetooth LE ile doğrudan launcher'dan kontrol edilir; **iki bölge**
-  ayrı renk ve parlaklıkla sürülür (ekranın kendi parlaklığına dokunulmaz).
+  ayrı renk ve parlaklıkla sürülür (ekranın kendi parlaklığına dokunulmaz). İsteğe bağlı **otomasyon**: kontak kapanınca
+  (gecikmeyle) kararır, farlar yanıkken / sönükken ayrı seviye oranı alır.
 
 **Genel**
 - **Türkçe arayüz**: Ayarlar → Dil. MIB 2 görünümü aynen korunur; yalnızca metinler Türkçedir
@@ -96,7 +97,7 @@ Ayrıntılı geçmiş: [CHANGELOG-TR.md](CHANGELOG-TR.md). Protokol notları: [d
 | Sürüş modu / ESC ayarları | **Yolda** |
 | Navigasyon (OpenStreetMap) | Upstream'den, internet / çevrimdışı harita |
 | Arama ekranı (rehber, arama kaydı) | **Yolda**; şimdilik fabrika Bluetooth uygulamasını açar |
-| Dış sıcaklık | Şimdilik internetten (hava durumu); Canbus'ta bulunamadı |
+| Dış sıcaklık | **Kaldırıldı**: araç vermiyor, internetten hava durumu yanıltıcıydı. Gelirse OBD-II (ELM327) ile eklenir |
 | Soğutma suyu / yağ sıcaklığı | Canbus kutusu vermiyor; olası yol OBD-II (ELM327) adaptörü, henüz yok |
 
 Upstream'in QF cihaza özel parçaları (Goodocom Bluetooth eşleştirme sayfaları, QF tuner) TW
@@ -151,6 +152,8 @@ doğrulanmamış ayarlar salt okunur kalır. Kritik ayarlar (ör. ESC) eklenirse
 ```
 
 JDK 17 ve Android SDK (API 34) gerekir. GitHub Actions her push'ta APK üretir ve sürüm olarak yayınlar.
+
+**İmza anahtarı:** CI, APK'yı GitHub secret'larındaki anahtarla imzalar (`SIGNING_KEYSTORE_BASE64`, `SIGNING_STORE_PASSWORD`, `SIGNING_KEY_ALIAS`, `SIGNING_KEY_PASSWORD`). Secret yoksa (fork, pull request ya da yerel derleme) `keystore/` altındaki anahtar kullanılır. Anahtar değişirse yeni sürüm eskisinin üzerine kurulamaz; önce Ayar yedeği alıp uygulamayı kaldırın.
 
 ## Upstream ile birleştirme ve çeviri
 

@@ -565,8 +565,25 @@ public final class AmbientBle {
         return own != 0 ? own : Prefs.integer(c, Prefs.AMBIENT_LEVEL, 100);
     }
 
+    /** The share of the user's levels the automation asks for (see AmbientAutoLogic): -1 none, 0 dark, else percent. */
+    private static volatile int autoPercent = -1;
+
+    /** Sets the automation's share; true when it changed (the strip then needs to be sent its levels again). */
+    public static boolean setAutoPercent(int percent) {
+        if (autoPercent == percent) return false;
+        autoPercent = percent;
+        return true;
+    }
+
+    /** A level of the user's with the automation's share applied; never below 1 % unless the share is 0. */
+    static int shared(int level, int percent) {
+        if (percent < 0 || percent >= 100) return level;
+        if (percent == 0) return 0;
+        return Math.max(1, Math.round(level * percent / 100f));
+    }
+
     private static List<byte[]> messages(Context c) {
-        return messages(zoneColor(c, 1), zoneColor(c, 2), zoneLevel(c, 1), zoneLevel(c, 2),
+        return messages(zoneColor(c, 1), zoneColor(c, 2), shared(zoneLevel(c, 1), autoPercent), shared(zoneLevel(c, 2), autoPercent),
                 Prefs.bool(c, Prefs.AMBIENT_VIVID, true));
     }
 

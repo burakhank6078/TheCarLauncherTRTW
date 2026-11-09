@@ -15,12 +15,21 @@ android {
     }
 
     signingConfigs {
-        // A fixed key so every build (local or CI) installs as an update over the last one.
+        // CI passes its own key through the environment (GitHub secrets, see the workflow). Without it, a local build or a
+        // fork signs with the key kept in keystore/, so every build still installs as an update over the one built with the same key.
         release {
-            storeFile rootProject.file('keystore/release.jks')
-            storePassword 'carlauncher'
-            keyAlias 'carlauncher'
-            keyPassword 'carlauncher'
+            def envStore = System.getenv('SIGNING_STORE_FILE')
+            if (envStore) {
+                storeFile file(envStore)
+                storePassword System.getenv('SIGNING_STORE_PASSWORD')
+                keyAlias System.getenv('SIGNING_KEY_ALIAS')
+                keyPassword System.getenv('SIGNING_KEY_PASSWORD')
+            } else {
+                storeFile rootProject.file('keystore/release.jks')
+                storePassword 'carlauncher'
+                keyAlias 'carlauncher'
+                keyPassword 'carlauncher'
+            }
         }
     }
 
