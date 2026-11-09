@@ -32,6 +32,12 @@ en üstüne eklenir; GitHub sürüm sayfası bu en üst bölümü gösterir.
   tetiklenemiyor: araç ikisi için tek bir bayrak gönderiyor (22 Ekim kaydında kısa far adımında hiçbir çerçeve değişmedi). Ayrım için
   tanılama kaydıyla park lambası, kısa far, uzun far sırasıyla ayrı işaretlenerek yeni bir kayıt gerekir. Bölge 1 / Bölge 2 ayarlarınız
   değişmez; yalnızca şeride giden seviye ölçeklenir. Yalnızca OBD verisiyle ve şerit bağlıyken çalışır, başka uygulama öndeyken de.
+- **Aracın saatine dokunma (Ayarlar → Araç → "Aracın saatine dokunma"):** açık gelir. Açıkken araç kutusuna yalnızca launcher'ın bildiği
+  komutlar gider (veri istekleri, ışık / açma-kapama / ayna-silecek ayar sayfaları, lastik sıfırlama, Bluetooth tuşları); başka hiçbir
+  mesaj gönderilmez ve engellenen her deneme tanılama kaydına "blocked write" olarak yazılır. Launcher zaten hiçbir zaman saat
+  göndermiyordu (araç saati çerçevesi 194 yalnızca okunur); bu kilit, ileride eklenecek bir komutun da saate değememesini
+  güvenceye alır. Araçtaki saat sizden bağımsız değişiyorsa bunu ünitenin kendi saat eşitlemesi yapıyordur (ünite saati ile araç saati
+  arasında 2 saatlik fark çoğu zaman saat dilimi farkıdır: Türkiye UTC+3, Almanya kışın UTC+1).
 - **Dış sıcaklık kaldırıldı:** üst çubuğun sağındaki sıcaklık internetten (Open-Meteo) hava durumuyla dolduruluyordu; araç dış sıcaklık vermediği için
   bu araçtaki gerçek değeri göstermiyordu. Yazı, hava durumu isteği ve saklanan eski değerler kaldırıldı. Araçtan gerçek değer ancak
   OBD-II (ELM327) ile gelebilir.

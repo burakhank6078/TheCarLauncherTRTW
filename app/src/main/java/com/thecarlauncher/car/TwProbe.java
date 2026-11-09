@@ -468,6 +468,18 @@ public final class TwProbe {
     }
 
     /**
+     * The messages this launcher sends to the car box and the unit, and nothing else: frame requests (10, and 106 for the
+     * mirror page), the settings pages (109 lights, 110 mirrors and wipers, 111 opening and closing), the tyre pressure reset
+     * (75) and the Bluetooth keys (0x201 with a key). The car's clock has its own message, which is not in this list, so
+     * with "Leave the car's clock alone" on (the default) it cannot be set from here.
+     */
+    static boolean knownCommand(int what, int arg1) {
+        if (what == 0x501) return arg1 == 10 || arg1 == 106 || arg1 == 109 || arg1 == 110 || arg1 == 111 || arg1 == 75;
+        if (what == 0x201) return arg1 == 1;
+        return false;
+    }
+
+    /**
      * Sends one message over TWUtil, the same call the unit's own apps make (tyre pressure reset,
      * Bluetooth keys). Only while "Allow sending commands to the unit" is on in Setup > Vehicle.
      * Starts the channel first when needed. Returns false when refused or when TWUtil is not usable;
@@ -479,6 +491,12 @@ public final class TwProbe {
         writeError = "";
         if (!com.thecarlauncher.util.Prefs.bool(appCtx, com.thecarlauncher.util.Prefs.TW_COMMANDS, false)) {
             writeError = "commands are not allowed";
+            return false;
+        }
+        if (com.thecarlauncher.util.Prefs.bool(appCtx, com.thecarlauncher.util.Prefs.CANBUS_LOCK, true) && !knownCommand(what, arg1)) {
+            // nothing outside the list of messages this launcher is known to send goes to the car box (a clock setting included)
+            writeError = "not a known command (blocked)";
+            com.thecarlauncher.util.AppLog.d(appCtx, "CAN", String.format(Locale.US, "blocked write 0x%X %d/%d", what, arg1, arg2));
             return false;
         }
         if (stage < 4) openOnly(ctx);

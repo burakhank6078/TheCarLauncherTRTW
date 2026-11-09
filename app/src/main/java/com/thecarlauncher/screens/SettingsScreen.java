@@ -1599,6 +1599,9 @@ public class SettingsScreen extends Screen {
                 });
         note(s("Isključeno: ništa se ne šalje jedinici ni vozilu.",
                 "Off: nothing is sent to the unit or the car."));
+        toggle(s("Ne diraj sat vozila (samo poznate komande)", "Leave the car's clock alone (only known commands)"), Prefs.CANBUS_LOCK, true, null);
+        note(s("Uključeno: vozilu se šalju samo komande koje launcher zna (zahtevi podataka, podešavanja vozila, reset guma, Bluetooth tasteri). Sat vozila se nikad ne postavlja odavde. Sat u vozilu eventualno menja sama jedinica, ne launcher.",
+                "On: only the commands the launcher knows go to the car (data requests, the car's settings pages, tyre reset, Bluetooth keys). The car's clock is never set from here. If the clock in the car changes, it is the unit itself that does it, not the launcher."));
         action(s("Fabrička podešavanja vozila", "Factory car settings"), s("otvara aplikaciju jedinice", "opens the unit's app"), new Runnable() {
             public void run() {
                 // The unit's own car app (TW platform); it is only opened, nothing of it is copied.

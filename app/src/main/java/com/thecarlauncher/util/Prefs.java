@@ -71,6 +71,8 @@ public final class Prefs {
     public static final String TRIP_OBD = "trip_from_obd";
     /** Lets the launcher send commands to the unit over TWUtil (tyre pressure reset, Bluetooth keys). */
     public static final String TW_COMMANDS = "allow_car_commands";
+    /** Only messages the launcher is known to send go to the car box; the car's clock can not be set from here (default on). */
+    public static final String CANBUS_LOCK = "canbus_lock";
     /** Banner for an open door or an unfastened driver belt while the car moves (default on). */
     public static final String CAR_WARNING = "car_warning";
     /** The map follows the headlights: night style while they are on, day style while they are off (default off). */

@@ -2,6 +2,7 @@ package com.thecarlauncher.car;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
@@ -77,5 +78,20 @@ public class TwProbeTest {
         for (int i = 0; i < 100; i++) sb.append('x');
         String s = TwProbe.shape(sb.toString());
         assertEquals(64 + 1 + 2, s.length()); // quotes and the ellipsis
+    }
+
+    @Test
+    public void onlyTheKnownMessagesMayGoToTheCarBox() {
+        assertTrue(TwProbe.knownCommand(0x501, 10));   // frame request
+        assertTrue(TwProbe.knownCommand(0x501, 106));  // frame request of the mirror page
+        assertTrue(TwProbe.knownCommand(0x501, 109));  // lights
+        assertTrue(TwProbe.knownCommand(0x501, 110));  // mirrors and wipers
+        assertTrue(TwProbe.knownCommand(0x501, 111));  // opening and closing
+        assertTrue(TwProbe.knownCommand(0x501, 75));   // tyre reset
+        assertTrue(TwProbe.knownCommand(0x201, 1));    // Bluetooth keys
+        assertFalse(TwProbe.knownCommand(0x501, 194)); // the car's clock frame is only ever read
+        assertFalse(TwProbe.knownCommand(0x501, 202)); // units: not sent yet
+        assertFalse(TwProbe.knownCommand(0x501, 0));
+        assertFalse(TwProbe.knownCommand(0x401, 10));
     }
 }
