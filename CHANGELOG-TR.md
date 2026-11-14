@@ -38,6 +38,12 @@ en üstüne eklenir; GitHub sürüm sayfası bu en üst bölümü gösterir.
   göndermiyordu (araç saati çerçevesi 194 yalnızca okunur); bu kilit, ileride eklenecek bir komutun da saate değememesini
   güvenceye alır. Araçtaki saat sizden bağımsız değişiyorsa bunu ünitenin kendi saat eşitlemesi yapıyordur (ünite saati ile araç saati
   arasında 2 saatlik fark çoğu zaman saat dilimi farkıdır: Türkiye UTC+3, Almanya kışın UTC+1).
+- **Konser salonu efekti (Ayarlar → Ses ve medya → Konser salonu):** Samsung SoundAlive'daki gibi salon sesi: salon yankısı ve daha geniş
+  stereo görüntü. Dört kademe: Kapalı, Hafif (oda), Orta (orta salon), Konser salonu (büyük salon). Android'in kendi efektlerinden
+  yapılır, bu yüzden **yalnızca launcher'ın kendi çaldığı müzikte** (USB ve yerel dosyalar) çalışır. **Bluetooth müzik ve radyo
+  ünitenin çipi üzerinden gittiği için bu efekt onlara ulaşmaz**; Bluetooth için telefonun kendi ses ayarları gerekir. Kapalı başlar,
+  önce Hafif'i deneyin: arabada yankı sesi bulandırabilir. Sayfa efektin oynatıcıda etkin olup olmadığını ya da ünitenin kabul
+  etmediğini gösterir. Araçta denenmedi.
 - **Dış sıcaklık kaldırıldı:** üst çubuğun sağındaki sıcaklık internetten (Open-Meteo) hava durumuyla dolduruluyordu; araç dış sıcaklık vermediği için
   bu araçtaki gerçek değeri göstermiyordu. Yazı, hava durumu isteği ve saklanan eski değerler kaldırıldı. Araçtan gerçek değer ancak
   OBD-II (ELM327) ile gelebilir.

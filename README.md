@@ -64,6 +64,7 @@ Aynı TW yazılımını kullanan başka head unit'lerde de çalışması bekleni
 **Medya, radyo, ışık**
 - **Radyo**: fabrika radyonun tunerini aynalar ve kumanda eder: frekans, RDS adı, 18 hafıza × 3 sayfa, band tuşu,
   istasyon listesi, elle ayar, hafızaya kaydetme ve istasyon logoları. Ses fabrika radyodan çalmaya devam eder.
+- **Konser salonu efekti**: launcher'ın kendi çaldığı müzikte (USB, yerel) salon yankısı ve geniş stereo, dört kademe; Bluetooth ve radyoya ulaşmaz.
 - **Bluetooth müzik**: şarkı bilgisi fabrika Bluetooth uygulamasının medya oturumundan gelir; sonraki / önceki /
   oynat-durdur tuşları fabrika uygulamasına gerçekten ulaşır; albüm kapağı internetten bulunur (kapatılabilir).
 - **Ambiyans şeridi**: Raise LAMP&FRGN şeridi Bluetooth LE ile doğrudan launcher'dan kontrol edilir; **iki bölge**

@@ -113,6 +113,7 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
         session.setSessionActivity(PendingIntent.getActivity(this, 1, open, pendingFlags()));
         MediaHub.get(this).setOwnSession(session.getSessionToken());
         Tone.get(this).attach(player.getAudioSessionId());
+        Hall.get(this).attach(player.getAudioSessionId());
         updateState();
 
         restoreState();
@@ -136,6 +137,7 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
         saveState();
         main.removeCallbacksAndMessages(null);
         audio.abandonAudioFocus(this);
+        Hall.get(this).detach(player.getAudioSessionId());
         Tone.get(this).detach(player.getAudioSessionId());
         player.release();
         session.release();

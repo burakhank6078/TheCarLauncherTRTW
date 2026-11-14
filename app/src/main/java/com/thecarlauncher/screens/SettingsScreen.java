@@ -279,10 +279,32 @@ public class SettingsScreen extends Screen {
                 act.show(LauncherActivity.SOUND, true);
             }
         });
+        sub(s("Koncertna sala", "Concert hall"), new Page() { public void build() { buildHall(); } });
         sub(s("Mediji", "Media"), new Page() { public void build() { buildMedia(); } });
         sub("Radio", new Page() { public void build() { buildRadio(); } });
         sub("Bluetooth audio", new Page() { public void build() { buildBluetooth(); } });
         sub(s("Telefon i radio", "Phone and radio"), new Page() { public void build() { buildPhoneRadio(); } });
+    }
+
+    /** The concert hall effect of the launcher's own player: four steps, off first. */
+    private void buildHall() {
+        final com.thecarlauncher.media.Hall hall = com.thecarlauncher.media.Hall.get(act);
+        String state = hall.state();
+        info(s("Stanje", "Status"), "active".equals(state) ? s("Aktivno na plejeru", "Active on the player")
+                : "unsupported".equals(state) ? s("Jedinica ne prihvata efekat", "This unit does not accept the effect")
+                : s("Čeka muziku (počinje kad launcher pusti pesmu)", "Waiting for music (starts when the launcher plays a song)"));
+        String[][] steps = {{"Isključeno", "Off"}, {"Blago", "Light"}, {"Srednje", "Medium"}, {"Koncertna sala", "Concert hall"}};
+        for (int i = 0; i < steps.length; i++) {
+            final int level = i;
+            choice(s(steps[i][0], steps[i][1]), hall.level() == i, new Runnable() {
+                public void run() {
+                    hall.set(level);
+                    refreshKeep();
+                }
+            });
+        }
+        note(s("Zvuk sale (jeka sale i šire stereo): radi samo za muziku koju launcher pušta sam (USB i lokalne datoteke). Bluetooth muzika i radio idu do zvučnika drugim putem, preko čipa jedinice, gde Android efekti ne važe; za Bluetooth koristite zvučna podešavanja telefona. Podrazumevano je isključeno: u automobilu jeka može da zamuti zvuk, pa prvo probajte Blago.",
+                "A hall sound (a hall reverb and a wider stereo picture): it only works for what the launcher plays itself (USB and local files). Bluetooth music and the radio reach the speakers by another path, through the unit's chip, where Android effects do not apply; for Bluetooth use the phone's own sound settings. It starts off: in a car a hall can blur the sound, so try Light first."));
     }
 
     private void buildDrivingGroup() {

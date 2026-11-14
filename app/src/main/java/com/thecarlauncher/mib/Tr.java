@@ -813,6 +813,13 @@ final class Tr {
         p("Tie the strip to the ignition and the headlights", "Şeridi kontağa ve farlara bağla");
         p("Automation (ignition and headlights)", "Otomasyon (kontak ve farlar)");
         p("Immediately", "Hemen");
+        p("Concert hall", "Konser salonu");
+        p("Light", "Hafif");
+        p("Medium", "Orta");
+        p("Active on the player", "Oynatıcıda etkin");
+        p("This unit does not accept the effect", "Ünite bu efekti kabul etmiyor");
+        p("Waiting for music (starts when the launcher plays a song)", "Müzik bekleniyor (launcher bir şarkı çalınca başlar)");
+        p("A hall sound (a hall reverb and a wider stereo picture): it only works for what the launcher plays itself (USB and local files). Bluetooth music and the radio reach the speakers by another path, through the unit's chip, where Android effects do not apply; for Bluetooth use the phone's own sound settings. It starts off: in a car a hall can blur the sound, so try Light first.", "Salon sesi (salon yankısı ve daha geniş stereo görüntü): yalnızca launcher'ın kendi çaldığı müzikte (USB ve yerel dosyalar) çalışır. Bluetooth müzik ve radyo hoparlöre ünitenin çipi üzerinden başka bir yoldan ulaşır, orada Android efektleri geçmez; Bluetooth için telefonun kendi ses ayarlarını kullanın. Kapalı başlar: arabada salon yankısı sesi bulandırabilir, önce Hafif'i deneyin.");
         p("Leave the car's clock alone (only known commands)", "Aracın saatine dokunma (yalnızca bilinen komutlar)");
         p("On: only the commands the launcher knows go to the car (data requests, the car's settings pages, tyre reset, Bluetooth keys). The car's clock is never set from here. If the clock in the car changes, it is the unit itself that does it, not the launcher.", "Açıkken: araca yalnızca launcher'ın bildiği komutlar gider (veri istekleri, aracın ayar sayfaları, lastik sıfırlama, Bluetooth tuşları). Aracın saati buradan hiçbir zaman ayarlanmaz. Araçtaki saat değişiyorsa bunu launcher değil ünitenin kendisi yapıyordur.");
         p("The strip gets a share of the level you set yourself (100 % is unchanged). The car gives one flag for parking lights, low beam and high beam alike, so they cannot be told apart yet. Needs the OBD data and the Bluetooth LE link to the strip, and works while another app is in front.", "Şerit, sizin ayarladığınız seviyenin bir oranını alır (%100 değişmeden bırakır). Araç park lambası, kısa far ve uzun far için tek bir bayrak gönderdiğinden bunlar henüz ayırt edilemiyor. OBD verisi ve şeritle Bluetooth LE bağlantısı gerekir; başka uygulama öndeyken de çalışır.");
