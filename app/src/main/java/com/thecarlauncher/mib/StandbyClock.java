@@ -10,6 +10,7 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import com.thecarlauncher.car.VehicleState;
 import com.thecarlauncher.util.Prefs;
 
 import java.text.SimpleDateFormat;
@@ -97,6 +98,8 @@ public final class StandbyClock extends FrameLayout {
         Locale loc = Mib.isTr(c) ? new Locale("tr") : Locale.getDefault();
         time.setText(new SimpleDateFormat(Prefs.use24h(c) ? "HH:mm" : "h:mm", loc).format(now));
         date.setText(new SimpleDateFormat("EEEE, d MMMM", loc).format(now));
+        // Optionally dimmer at night (the backlight itself cannot be changed on this unit): the same picture, less of it
+        box.setAlpha(Prefs.bool(c, Prefs.STANDBY_DIM, false) && VehicleState.get().lights() == 1 ? 0.45f : 1f);
         int minute = (int) (now.getTime() / 60000L);
         if (minute != lastMinute) {
             lastMinute = minute;

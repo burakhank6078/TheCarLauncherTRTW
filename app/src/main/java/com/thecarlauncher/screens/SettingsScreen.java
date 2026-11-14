@@ -1606,6 +1606,39 @@ public class SettingsScreen extends Screen {
         toggle(s("Ekran sa satom kad je kontakt ugašen", "Clock screen when the ignition is off"), Prefs.STANDBY_CLOCK, true, null);
         note(s("Kao stanje mirovanja MIB jedinica: crn ekran sa velikim satom nekoliko sekundi nakon gašenja kontakta. Dodir vraća launcher. Svetlina se ne menja.",
                 "Like the standby of a MIB unit: a black screen with a big clock a few seconds after the ignition goes off. A touch brings the launcher back. The brightness is not changed."));
+        action(s("Prikaži ekran sa satom sada", "Show the clock screen now"), s("dodirnite", "tap here"), new Runnable() {
+            public void run() { act.showStandbyNow(); }
+        });
+        String keyNow = com.thecarlauncher.util.StandbyKey.describe(act);
+        action(s("Taster za ekran sa satom", "Standby key"),
+                com.thecarlauncher.util.StandbyKey.isLearning() ? s("pritisnite taster…", "press the key now…")
+                        : keyNow.isEmpty() ? s("nije podešen – dodirnite", "not set – tap here") : keyNow,
+                new Runnable() {
+                    public void run() {
+                        com.thecarlauncher.util.StandbyKey.learn(new com.thecarlauncher.util.StandbyKey.Learn() {
+                            public void done(String description, boolean refused) {
+                                if (description != null) Ui.toast(act, s("Taster sačuvan: ", "Standby key saved: ") + description);
+                                else if (refused) Ui.toast(act, s("Taj taster već ima svoju ulogu (zvuk, mediji, poziv). Izaberite drugi.",
+                                        "That key already has a job (volume, media, call). Choose another one."));
+                                else Ui.toast(act, s("Nijedan taster nije stigao. Jedinica možda sama uzima taj taster (taster napajanja obično).",
+                                        "No key arrived. The unit may take that key itself (the power key usually does)."));
+                                refreshKeep();
+                            }
+                        });
+                        refreshKeep();
+                    }
+                });
+        if (!keyNow.isEmpty()) {
+            action(s("Obriši taster za ekran sa satom", "Remove the standby key"), null, new Runnable() {
+                public void run() {
+                    com.thecarlauncher.util.StandbyKey.clear(act);
+                    refreshKeep();
+                }
+            });
+        }
+        toggle(s("Ekran sa satom slabiji noću", "Dimmer clock screen at night"), Prefs.STANDBY_DIM, false, null);
+        note(s("Taster se uči: dodirnite red i pritisnite taster jedinice ili volana. Radi i kad je druga aplikacija ispred (launcher se vraća). Taster napajanja obično uzima sam sistem pa do aplikacije ne stiže. Dugi pritisak na sat u statusnoj traci takođe otvara ekran sa satom. Svetlina ekrana se ne menja (jedinica to ne dozvoljava), pa \"slabiji noću\" samo zatamni sam sat kad su farovi upaljeni; podrazumevano je isključeno da izgled ostane kao na MIB-u.",
+                "The key is learned: tap the row and press a key of the unit or the steering wheel. It also works while another app is in front (the launcher comes back). The power key is usually taken by the system itself and never reaches an app. A long press on the clock in the status bar brings up the clock screen too. The screen's brightness is not changed (this unit does not allow it), so \"dimmer at night\" only dims the clock itself while the headlights are on; it is off by default so the picture stays as on a MIB."));
         toggle(s("Dozvoli slanje komandi jedinici (reset guma, Bluetooth tasteri)", "Allow sending commands to the unit (tyre reset, Bluetooth keys)"),
                 Prefs.TW_COMMANDS, false, new Runnable() {
                     public void run() {

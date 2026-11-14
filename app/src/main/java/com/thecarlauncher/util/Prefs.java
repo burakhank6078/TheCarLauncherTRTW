@@ -49,6 +49,8 @@ public final class Prefs {
     public static final String CAR_EVENTS = "car_events";
     /** The clock screen after the ignition has been off for a few seconds (default on). */
     public static final String STANDBY_CLOCK = "standby_clock";
+    /** The clock screen is shown dimmer while the headlights are on (default off, so it keeps the MIB look). */
+    public static final String STANDBY_DIM = "standby_dim";
     /** On a TW unit: opening the Radio screen while another source plays switches the radio on (default on). */
     public static final String RADIO_AUTO = "radio_auto_activate";
     public static final String RADIO_LOC = "radio_loc";

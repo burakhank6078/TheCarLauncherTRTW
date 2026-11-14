@@ -63,7 +63,7 @@ public final class CarEvents {
     private Handler io;
     private long offSince, lastShown, uiSpeedAt;
     private float uiKmh;
-    private boolean dismissed, standbyOn;
+    private boolean dismissed, standbyOn, manual;
 
     private CarEvents() {}
 
@@ -89,8 +89,26 @@ public final class CarEvents {
         });
     }
 
-    /** A touch on the clock screen: it stays away until the ignition changes. */
-    public synchronized void dismissStandby() { dismissed = true; }
+    /** A touch on the clock screen: it goes, and the automatic one stays away until the ignition changes. */
+    public synchronized void dismissStandby() {
+        dismissed = true;
+        manual = false;
+    }
+
+    /** The clock screen on request (a long press on the clock, the standby key), with the ignition on or off. */
+    public synchronized void requestStandby() {
+        manual = true;
+        dismissed = false;
+    }
+
+    /** True while the clock screen was asked for by hand and has not been dismissed. */
+    public synchronized boolean standbyRequested() { return manual; }
+
+    /** The standby key: the clock screen if it is not up, else away again. */
+    public synchronized void toggleStandby() {
+        if (standbyOn || manual) dismissStandby();
+        else requestStandby();
+    }
 
     /** The launcher's own speed, used when the background GPS listener has nothing (it is switched off or has no fix). */
     public synchronized void noteSpeed(float kmh) {
@@ -156,7 +174,7 @@ public final class CarEvents {
             sink.notice(n.title, n.lines, n.mark, NOTICE_MS);
         }
         int ign = VehicleState.get().ignition();
-        boolean want = CarEventsLogic.standbyWanted(Prefs.bool(c, Prefs.STANDBY_CLOCK, true), ign, offSince == 0 ? 0 : now - offSince, dismissed);
+        boolean want = manual || CarEventsLogic.standbyWanted(Prefs.bool(c, Prefs.STANDBY_CLOCK, true), ign, offSince == 0 ? 0 : now - offSince, dismissed);
         if (want != standbyOn) {
             standbyOn = want;
             sink.standby(want);

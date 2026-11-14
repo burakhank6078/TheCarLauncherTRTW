@@ -813,6 +813,16 @@ final class Tr {
         p("Tie the strip to the ignition and the headlights", "Şeridi kontağa ve farlara bağla");
         p("Automation (ignition and headlights)", "Otomasyon (kontak ve farlar)");
         p("Immediately", "Hemen");
+        p("Show the clock screen now", "Saat ekranını şimdi göster");
+        p("Standby key", "Bekleme tuşu");
+        p("press the key now…", "şimdi tuşa basın…");
+        p("not set – tap here", "ayarlı değil – dokunun");
+        p("Standby key saved: ", "Bekleme tuşu kaydedildi: ");
+        p("That key already has a job (volume, media, call). Choose another one.", "Bu tuşun zaten bir görevi var (ses, medya, arama). Başka bir tuş seçin.");
+        p("No key arrived. The unit may take that key itself (the power key usually does).", "Hiçbir tuş gelmedi. Ünite o tuşu kendisi alıyor olabilir (güç tuşunu genellikle sistem alır).");
+        p("Remove the standby key", "Bekleme tuşunu sil");
+        p("Dimmer clock screen at night", "Gece daha soluk saat ekranı");
+        p("The key is learned: tap the row and press a key of the unit or the steering wheel. It also works while another app is in front (the launcher comes back). The power key is usually taken by the system itself and never reaches an app. A long press on the clock in the status bar brings up the clock screen too. The screen's brightness is not changed (this unit does not allow it), so \"dimmer at night\" only dims the clock itself while the headlights are on; it is off by default so the picture stays as on a MIB.", "Tuş öğretilir: satıra dokunup ünitenin ya da direksiyonun bir tuşuna basın. Başka uygulama öndeyken de çalışır (launcher geri gelir). Güç tuşunu genellikle sistemin kendisi alır ve uygulamaya hiç ulaşmaz. Durum çubuğundaki saate uzun basmak da saat ekranını açar. Ekran parlaklığı değiştirilmez (bu ünite buna izin vermiyor), bu yüzden \"gece daha soluk\" yalnızca farlar yanıkken saatin kendisini soluklaştırır; MIB görünümü bozulmasın diye varsayılan olarak kapalıdır.");
         p("Concert hall", "Konser salonu");
         p("Light", "Hafif");
         p("Medium", "Orta");

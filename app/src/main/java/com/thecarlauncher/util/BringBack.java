@@ -38,11 +38,16 @@ public final class BringBack {
         if (!Ui.start(c, i)) Ui.start(c, new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION));
     }
 
-    public static void toMedia(Context c) {
+    public static void toMedia(Context c) { toLauncher(c, "media"); }
+
+    /** Brings the launcher up on whatever screen it was on. */
+    public static void toLauncher(Context c) { toLauncher(c, null); }
+
+    private static void toLauncher(Context c, String screen) {
         final Context app = c.getApplicationContext();
         final View pixel = canOverlay(app) ? addPixel(app) : null;
         Intent back = new Intent(app, LauncherActivity.class)
-                .putExtra(LauncherActivity.EXTRA_SCREEN, "media")
+                .putExtra(LauncherActivity.EXTRA_SCREEN, screen)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
                         | Intent.FLAG_ACTIVITY_NO_ANIMATION);
         Ui.start(app, back);

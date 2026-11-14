@@ -624,6 +624,8 @@ public final class TwProbe {
             int cut = isRadioId(m.what) ? 64 : 24;
             obj = " " + (plain ? (s.length() > cut ? s.substring(0, cut) : s) : shape(s));
         }
+        // The unit's own key message (0x201, arg1 1 = down, arg2 = its key code): the standby key may be one of them.
+        if (m.what == 0x201 && m.arg1 == 1 && appCtx != null) com.thecarlauncher.util.StandbyKey.onTwKey(appCtx, m.arg2);
         // Golf 7 trip frames (19 since start, 20 long-term, 21 since refuelling) feed the trip pages.
         // The car's own service reminder (frame 30), when it was asked for (Vehicle > Service).
         if (m.what == 0x501 && m.arg1 == 30 && m.obj instanceof byte[]) ServiceData.get().decodeFrame((byte[]) m.obj);

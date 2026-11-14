@@ -44,6 +44,14 @@ en üstüne eklenir; GitHub sürüm sayfası bu en üst bölümü gösterir.
   ünitenin çipi üzerinden gittiği için bu efekt onlara ulaşmaz**; Bluetooth için telefonun kendi ses ayarları gerekir. Kapalı başlar,
   önce Hafif'i deneyin: arabada yankı sesi bulandırabilir. Sayfa efektin oynatıcıda etkin olup olmadığını ya da ünitenin kabul
   etmediğini gösterir. Araçta denenmedi.
+- **Bekleme ekranı: tuş, uzun basış ve elle açma (Ayarlar → Araç):** saat ekranı artık istenince de açılır. (1) Durum çubuğundaki saate
+  **uzun basmak** hemen açar. (2) **"Bekleme tuşu"**: satıra dokunup ünitenin ya da direksiyonun bir tuşuna basın, launcher o tuşu öğrenir
+  (Android tuş olayı ya da ünitenin kendi 0x201 tuş mesajı, hangisi gelirse). O tuşa basınca saat ekranı açılır, bir daha basınca
+  kapanır; başka uygulama öndeyse launcher öne gelir. Geri, ana ekran, ses, medya ve arama tuşları (ve ünitenin 18, 19, 20, 21, 24, 25
+  kodları) seçilemez, böylece öğrenme onların işini bozmaz. Güç tuşunu çoğu ünitede sistem kendisi alır ve uygulamaya hiç göndermez;
+  gelmezse 20 saniye sonra "Hiçbir tuş gelmedi" der. Ünite tuşları için araç verisi (OBD) açık olmalı: tuş mesajları aynı kanaldan gelir.
+  (3) "Saat ekranını şimdi göster" satırı deneme içindir. (4) **"Gece daha soluk saat ekranı"** (varsayılan kapalı, MIB görünümü
+  korunur): farlar yanıkken yalnızca saati soluklaştırır; ekran parlaklığına yine dokunulmaz, bu ünitede ayarlanamıyor.
 - **Dış sıcaklık kaldırıldı:** üst çubuğun sağındaki sıcaklık internetten (Open-Meteo) hava durumuyla dolduruluyordu; araç dış sıcaklık vermediği için
   bu araçtaki gerçek değeri göstermiyordu. Yazı, hava durumu isteği ve saklanan eski değerler kaldırıldı. Araçtan gerçek değer ancak
   OBD-II (ELM327) ile gelebilir.

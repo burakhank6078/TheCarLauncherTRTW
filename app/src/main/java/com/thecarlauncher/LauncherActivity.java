@@ -277,6 +277,14 @@ public class LauncherActivity extends Activity implements LocationTracker.Listen
         tl.leftMargin = Mib.px(this, 30);
         tl.rightMargin = Mib.px(this, 26);
         center.addView(timeView, tl);
+        // A long press on the clock brings up the clock screen at once, as the power key does on a MIB.
+        timeView.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                showStandbyNow();
+                return true;
+            }
+        });
         LinearLayout rightSlot = new LinearLayout(this);
         rightSlot.setGravity(Gravity.CENTER_VERTICAL | Gravity.LEFT);
         tagView = Mib.text(this, "", 22, Mib.semibold(this), Mib.WHITE);
@@ -691,6 +699,24 @@ public class LauncherActivity extends Activity implements LocationTracker.Listen
             }
             decor.setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
         }
+    }
+
+    /** The clock screen now (a long press on the clock, the Setup test row): shown at once, not at the next tick. */
+    public void showStandbyNow() {
+        com.thecarlauncher.mib.CarEvents ce = com.thecarlauncher.mib.CarEvents.get();
+        ce.requestStandby();
+        ce.poll(this, carEventSink);
+    }
+
+    /** The standby key learned in Setup, when it comes as an Android key event in this window. */
+    @Override
+    public boolean dispatchKeyEvent(android.view.KeyEvent e) {
+        if (e.getAction() == android.view.KeyEvent.ACTION_DOWN && e.getRepeatCount() == 0
+                && com.thecarlauncher.util.StandbyKey.onAndroidKey(this, e.getKeyCode())) {
+            com.thecarlauncher.mib.CarEvents.get().poll(this, carEventSink); // the clock screen at once
+            return true;
+        }
+        return super.dispatchKeyEvent(e);
     }
 
     // ---- Status bar -------------------------------------------------------------------------
