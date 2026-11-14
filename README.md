@@ -48,7 +48,7 @@ Aynı TW yazılımını kullanan başka head unit'lerde de çalışması bekleni
   dinlenme voltajı ortalaması.
 - **Gezi sayfaları (Canbus)**: *Başlangıçtan beri*, *Yakıt aldıktan sonra*, *Uzun süreli*; aracın kendi verisiyle:
   mesafe, süre, ortalama hız, ortalama tüketim, seyir aralığı. Tüm sayfa arka plan resmi seçilebilir (1024×444 önerilir).
-- **Yolculuk geçmişi**: son 10 yolculuğun toplamı, aylık toplamlar ve son yolculuklar (mesafe, süre, tüketim, girilen yakıt fiyatına göre tutar,
+- **Yolculuk geçmişi**: CSV dışa aktarma, son 10 yolculuğun toplamı, aylık toplamlar ve son yolculuklar (mesafe, süre, tüketim, girilen yakıt fiyatına göre tutar,
   sürüş puanı). GPS ile arka planda da kaydedilir.
 - **Akü geçmişi** (Araç → Akü geçmişi): kontak açıldıktan sonra ölçülen dinlenme voltajı, durum ve eğilim.
 - **Kontak kapanınca yolculuk özeti** ve **sürüş puanı** (sert fren ve sert kalkış sayılır), MIB açılır penceresinde.
@@ -98,8 +98,7 @@ Ayrıntılı geçmiş: [CHANGELOG-TR.md](CHANGELOG-TR.md). Protokol notları: [d
 | Sürüş modu / ESC ayarları | **Yolda** |
 | Navigasyon (OpenStreetMap) | Upstream'den, internet / çevrimdışı harita |
 | Arama ekranı (rehber, arama kaydı) | **Yolda**; şimdilik fabrika Bluetooth uygulamasını açar |
-| Dış sıcaklık | **Kaldırıldı**: araç vermiyor, internetten hava durumu yanıltıcıydı. Gelirse OBD-II (ELM327) ile eklenir |
-| Soğutma suyu / yağ sıcaklığı | Canbus kutusu vermiyor; olası yol OBD-II (ELM327) adaptörü, henüz yok |
+| Dış sıcaklık, soğutma suyu, yağ sıcaklığı | **Yeni**: OBD-II adaptörü (ELM327, klasik Bluetooth) ile, araçta denenecek; araç vermezse görünmez |
 
 Upstream'in QF cihaza özel parçaları (Goodocom Bluetooth eşleştirme sayfaları, QF tuner) TW
 cihazlarda gizlenir veya kullanılmaz.

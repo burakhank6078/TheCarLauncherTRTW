@@ -103,7 +103,11 @@ public final class VehicleState {
     public synchronized int lights() { return serviceFresh() ? lights : -1; }
 
     /** Engine speed from the car info service, or -1 when the service has gone quiet. */
-    public synchronized int rpm() { return serviceFresh() ? rpm : -1; }
+    public synchronized int rpm() {
+        if (serviceFresh()) return rpm;
+        double o = Obd2Data.get().rpm(); // the ELM327 on the OBD-II port, when the Canbus box is silent
+        return Double.isNaN(o) ? -1 : (int) Math.round(o);
+    }
 
     /**
      * True when the engine is running. The service may keep reporting the last rpm after the engine stops,
@@ -111,13 +115,20 @@ public final class VehicleState {
      * at all in the 28 Oct 2026 recording while the battery sat at 13.1-13.2 V, so a charging voltage alone counts too.
      */
     public synchronized boolean engineRunning() {
-        if (!serviceFresh()) return false;
+        if (!serviceFresh()) {
+            double v = Obd2Data.get().voltage(), r = Obd2Data.get().rpm();
+            return (!Double.isNaN(v) && v >= CHARGING_V) || (r > 400 && (Double.isNaN(v) || v >= 12.9));
+        }
         if (!Float.isNaN(voltage) && voltage >= CHARGING_V) return true;
         return rpm > 400 && (Float.isNaN(voltage) || voltage >= 12.9f);
     }
 
     /** Battery voltage, NaN when not known. */
-    public synchronized float voltage() { return serviceFresh() ? voltage : Float.NaN; }
+    public synchronized float voltage() {
+        if (serviceFresh()) return voltage;
+        double o = Obd2Data.get().voltage(); // the ELM327 on the OBD-II port, when the Canbus box is silent
+        return Double.isNaN(o) ? Float.NaN : (float) o;
+    }
 
     /** True while the car info service keeps answering (its values are only as old as the last poll). */
     private boolean serviceFresh() { return System.currentTimeMillis() - serviceAt < ALIVE_MS; }

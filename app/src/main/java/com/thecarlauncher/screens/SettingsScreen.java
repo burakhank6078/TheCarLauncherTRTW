@@ -307,10 +307,99 @@ public class SettingsScreen extends Screen {
                 "A hall sound (a hall reverb and a wider stereo picture): it only works for what the launcher plays itself (USB and local files). Bluetooth music and the radio reach the speakers by another path, through the unit's chip, where Android effects do not apply; for Bluetooth use the phone's own sound settings. It starts off: in a car a hall can blur the sound, so try Light first."));
     }
 
+    // ---- OBD-II adapter (ELM327 over classic Bluetooth) ----------------------------------------------------
+
+    private String elmTitle() { return s("OBD-II adapter (ELM327)", "OBD-II adapter (ELM327)"); }
+
+    private boolean onElmPage() {
+        return !stack.isEmpty() && stack.get(stack.size() - 1).title.equals(elmTitle());
+    }
+
+    private long elmRefreshedAt;
+
+    private void buildElm() {
+        final com.thecarlauncher.car.Elm327Link link = com.thecarlauncher.car.Elm327Link.get(act);
+        link.setListener(new Runnable() {
+            public void run() {
+                // the link reports every round: the page is redrawn about once a second at most
+                if (android.os.SystemClock.elapsedRealtime() - elmRefreshedAt < 1000) return;
+                elmRefreshedAt = android.os.SystemClock.elapsedRealtime();
+                act.runOnUiThread(new Runnable() {
+                    public void run() {
+                        if (onElmPage()) refreshKeep();
+                    }
+                });
+            }
+        });
+        toggle(s("Koristi OBD-II adapter", "Use the OBD-II adapter"), com.thecarlauncher.car.Elm327Link.ON, false, new Runnable() {
+            public void run() {
+                if (Prefs.bool(act, com.thecarlauncher.car.Elm327Link.ON, false) && !com.thecarlauncher.util.AmbientBle.hasPermissions(act)) {
+                    act.requestPermissions(com.thecarlauncher.util.AmbientBle.permissions(), 44);
+                }
+                link.sync();
+                refreshKeep();
+            }
+        });
+        com.thecarlauncher.car.Obd2Data od = com.thecarlauncher.car.Obd2Data.get();
+        String st = od.status();
+        info(s("Stanje", "Status"), st.isEmpty() ? "—" : Mib.t(act, st, st));
+        String chosen = Prefs.str(act, com.thecarlauncher.car.Elm327Link.ADDR, "");
+        info(s("Izabrani adapter", "Chosen adapter"), chosen.isEmpty() ? "—"
+                : Prefs.str(act, com.thecarlauncher.car.Elm327Link.NAME, "") + "  " + chosen);
+        section(s("Upareni uređaji", "Paired devices"));
+        for (final String[] d : link.paired()) {
+            action(d[0].isEmpty() ? d[1] : d[0], d[1], new Runnable() {
+                public void run() {
+                    link.choose(d[0], d[1]);
+                    refreshKeep();
+                }
+            });
+        }
+        action(s("Traži nove uređaje", "Search for new devices"), s("oko 12 sekundi", "about 12 seconds"), new Runnable() {
+            public void run() {
+                if (!com.thecarlauncher.util.AmbientBle.hasPermissions(act)) {
+                    act.requestPermissions(com.thecarlauncher.util.AmbientBle.permissions(), 44);
+                    return;
+                }
+                link.search();
+                refreshKeep();
+            }
+        });
+        for (final String[] d : link.found()) {
+            action(d[0].isEmpty() ? d[1] : d[0], s("upari i izaberi", "pair and choose") + "  " + d[1], new Runnable() {
+                public void run() {
+                    link.stopSearch();
+                    link.choose(d[0], d[1]);
+                    refreshKeep();
+                }
+            });
+        }
+        if (od.alive()) {
+            section(s("Vrednosti iz vozila", "Values from the car"));
+            String[] names = {"Coolant temperature", "Oil temperature", "Outside temperature", "Intake air temperature", "Fuel level",
+                    "Engine load", "Throttle", "Engine speed", "Speed"};
+            int[] pids = {com.thecarlauncher.car.Elm327Protocol.COOLANT, com.thecarlauncher.car.Elm327Protocol.OIL,
+                    com.thecarlauncher.car.Elm327Protocol.AMBIENT, com.thecarlauncher.car.Elm327Protocol.INTAKE,
+                    com.thecarlauncher.car.Elm327Protocol.FUEL, com.thecarlauncher.car.Elm327Protocol.LOAD,
+                    com.thecarlauncher.car.Elm327Protocol.THROTTLE, com.thecarlauncher.car.Elm327Protocol.RPM,
+                    com.thecarlauncher.car.Elm327Protocol.SPEED};
+            String[] units = {" °C", " °C", " °C", " °C", " %", " %", " %", " rpm", " km/h"};
+            for (int i = 0; i < pids.length; i++) {
+                double v = od.get(pids[i]);
+                if (!Double.isNaN(v)) info(Mib.t(act, names[i], names[i]), String.format(java.util.Locale.US, "%.0f", v) + units[i]);
+            }
+            double volts = od.voltage();
+            if (!Double.isNaN(volts)) info(Mib.t(act, "Battery", "Battery"), String.format(java.util.Locale.US, "%.1f V", volts));
+        }
+        note(s("Samo čitanje: launcher adapteru šalje samo njegove podesive komande i zahteve za trenutne vrednosti (Mode 01), ništa se ne upisuje u vozilo. Kad je kontakt ugašen veza se prekida da adapter ne troši akumulator. Adapter treba prvo da se upari (PIN obično 1234 ili 0000); ako Android ne traži PIN, uparite ga u Bluetooth podešavanjima. Vrednosti koje vozilo ne daje se ne prikazuju.",
+                "Read only: the launcher sends the adapter only its own set-up commands and requests for current values (Mode 01); nothing is written to the car. With the ignition off the link is closed so the adapter does not keep draining the battery. The adapter has to be paired first (the PIN is usually 1234 or 0000); if Android does not ask for a PIN, pair it in the Bluetooth settings. Values the car does not give are not shown."));
+    }
+
     private void buildDrivingGroup() {
         sub(s("Navigacija", "Navigation"), new Page() { public void build() { buildNav(); } });
         sub(s("Vozilo", "Vehicle"), new Page() { public void build() { buildVehicle(); } });
         sub(s("Podešavanja vozila (iz vozila)", "Car's own settings"), new Page() { public void build() { buildCarSettings(); } });
+        sub(elmTitle(), new Page() { public void build() { buildElm(); } });
     }
 
     private void buildConnections() {

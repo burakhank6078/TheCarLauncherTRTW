@@ -52,6 +52,23 @@ en üstüne eklenir; GitHub sürüm sayfası bu en üst bölümü gösterir.
   gelmezse 20 saniye sonra "Hiçbir tuş gelmedi" der. Ünite tuşları için araç verisi (OBD) açık olmalı: tuş mesajları aynı kanaldan gelir.
   (3) "Saat ekranını şimdi göster" satırı deneme içindir. (4) **"Gece daha soluk saat ekranı"** (varsayılan kapalı, MIB görünümü
   korunur): farlar yanıkken yalnızca saati soluklaştırır; ekran parlaklığına yine dokunulmaz, bu ünitede ayarlanamıyor.
+- **Yolculuk geçmişi CSV olarak dışa aktarılır (Araç → Yolculuk geçmişi → "Yolculukları dışa aktar (CSV)"):** her yolculuk bir satır
+  (başlangıç, bitiş, süre, mesafe, ortalama ve en yüksek hız, tüketim, sert fren, sert kalkış, puan), en eski en üstte. Dosya
+  `TheCarLauncher-yolculuklar.csv`, ayar yedeği gibi önce USB'ye, olmazsa İndirilenler'e yazılır. Launcher Türkçeyken Türkçe Excel'in
+  beklediği biçimde (noktalı virgül ayracı, ondalık virgül), diğer dillerde virgül ve ondalık noktayla yazılır; Türkçe harfler doğru
+  okunsun diye dosya BOM ile başlar. Bilinmeyen değerler (tüketim, olay sayısı) boş bırakılır.
+- **OBD-II adaptörü (ELM327, klasik Bluetooth) — ilk sürüm, araçta denenmedi (Ayarlar → Navigasyon ve araç → OBD-II adaptörü):**
+  OBD-II soketindeki ELM327 ile Canbus kutusunun vermediği değerler okunur: soğutma suyu, yağ, emme havası ve **dış sıcaklık**, yakıt
+  seviyesi, motor yükü, gaz kelebeği, devir, hız ve akü voltajı (adaptörün kendi ölçümü). Değerler Canbus verisinin yanında **tek bir
+  ortak depoya** (`Obd2Data`) yazılır; hız, devir ve voltajda Canbus kutusu sustuğunda adaptörün değeri kullanılır, böylece akü
+  uyarıları ve motor çalışıyor algısı hangi kaynaktan geldiğini bilmeden aynı yerden okur. **Yalnızca okuma:** adaptöre yalnızca kendi
+  ayar komutları (ATZ, ATE0, ATSP0…) ve Mode 01 anlık değer istekleri gider, kodda başka hiçbir komut gönderilemez (testle de sabit);
+  araca hiçbir şey yazılmaz. Kontak kapalıyken bağlantı kapatılır ve sorgu durur, adaptör aküyü boşaltmasın. Araç hangi değerleri
+  veriyorsa yalnızca onlar sorulur (adaptörden "desteklenenler" listesi okunur); araç vermiyorsa o satır görünmez. Adaptörü önce
+  eşleştirmek gerekir (PIN genellikle 1234 / 0000): sayfada eşleşmiş cihazlar ve "Yeni cihaz ara" var; sayfa canlı değerleri de gösterir,
+  yani aracınızda hangi sorguların cevap aldığını oradan görebilirsiniz.
+- **Gösterge paneli ve durum çubuğu:** adaptör açıkken Araç → Canlı veri sayfasına üçüncü bir sıra (soğutma suyu, yağ, dış sıcaklık)
+  eklenir; dış sıcaklık varsa MIB'deki gibi üst çubuğun sağında görünür (kaldırılan internet sıcaklığının yerine, bu sefer gerçek).
 - **Dış sıcaklık kaldırıldı:** üst çubuğun sağındaki sıcaklık internetten (Open-Meteo) hava durumuyla dolduruluyordu; araç dış sıcaklık vermediği için
   bu araçtaki gerçek değeri göstermiyordu. Yazı, hava durumu isteği ve saklanan eski değerler kaldırıldı. Araçtan gerçek değer ancak
   OBD-II (ELM327) ile gelebilir.

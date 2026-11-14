@@ -92,7 +92,7 @@ public class LauncherActivity extends Activity implements LocationTracker.Listen
             else standbyClock.hide();
         }
     };
-    private TextView timeView, tagView, streetView;
+    private TextView timeView, tagView, rightView, streetView;
     private View statusBar, statusRule;
     private ImageView backArrow;
     private ImageView btIcon, battIcon, signalIcon, msgIcon;
@@ -138,6 +138,7 @@ public class LauncherActivity extends Activity implements LocationTracker.Listen
         // The trip history listens to the GPS on its own, whatever app is in front.
         com.thecarlauncher.car.TripGps.get(this).sync();
         com.thecarlauncher.mib.CarEvents.get().start(this); // watches the car on its own thread, whatever app is in front
+        com.thecarlauncher.car.Elm327Link.get(this).sync(); // the OBD-II adapter, when it is switched on and chosen
         Prefs.of(this).edit().remove("weather_temp").remove("weather_at").apply(); // the outside temperature is gone, so are its leftovers
         com.thecarlauncher.car.VehicleState.forgetChassisNumber(this);
         com.thecarlauncher.media.Tone.get(this).attachGlobal();
@@ -304,6 +305,14 @@ public class LauncherActivity extends Activity implements LocationTracker.Listen
         FrameLayout.LayoutParams ml = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.MATCH_PARENT, Gravity.CENTER_HORIZONTAL);
         bar.addView(center, ml);
+
+        // Top-right corner: the outside temperature, as on a MIB. Only from the OBD-II adapter (the car box gives none); empty while unknown.
+        rightView = Mib.text(this, "", 22, Mib.semibold(this), Mib.WHITE);
+        rightView.setGravity(Gravity.CENTER_VERTICAL);
+        FrameLayout.LayoutParams rl = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.MATCH_PARENT, Gravity.RIGHT);
+        rl.rightMargin = pad;
+        bar.addView(rightView, rl);
         return bar;
     }
 
@@ -706,6 +715,8 @@ public class LauncherActivity extends Activity implements LocationTracker.Listen
         com.thecarlauncher.mib.CarEvents ce = com.thecarlauncher.mib.CarEvents.get();
         ce.requestStandby();
         ce.poll(this, carEventSink);
+        double outside = com.thecarlauncher.car.Obd2Data.get().outsideC();
+        rightView.setText(Double.isNaN(outside) ? "" : Prefs.metric(this) ? Math.round(outside) + " °C" : Math.round(outside * 9 / 5 + 32) + " °F");
     }
 
     /** The standby key learned in Setup, when it comes as an Android key event in this window. */

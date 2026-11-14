@@ -49,7 +49,7 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
     private MibBar.Key izbor, actionKey;
     private int page;
     /** Value cells of the data pages, refreshed every second. */
-    private TextView[] cells = new TextView[6];
+    private TextView[] cells = new TextView[9];
     /** Values of the OBD-style trip layout (distance, time, speed, consumption, range), or null. */
     private TextView[] trip;
     private int tripPage;
@@ -202,7 +202,7 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
         page = p;
         title.setText(pageTitle(p));
         body.removeAllViews();
-        cells = new TextView[6];
+        cells = new TextView[9];
         trip = null;
         liveBox = null;
         liveSig = null;
@@ -239,11 +239,23 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
             case HISTORY: buildHistory(); break;
             case BATT: buildBattery(); break;
             case DASH:
-                buildCells(new int[]{R.drawable.ui_ic_speedo, R.drawable.ui_ic_eq, R.drawable.ui_ic_car_s,
-                                R.drawable.ui_ic_route, R.drawable.ui_ic_nav, R.drawable.ui_ic_clock},
-                        new String[]{s("Brzina", "Speed"), s("Broj obrtaja", "Engine speed"), s("Akumulator", "Battery"),
-                                s("Ova vožnja", "This trip"), s("Ocena vožnje", "Driving score"),
-                                s("Akumulator u mirovanju", "Resting battery")});
+                if (com.thecarlauncher.car.Elm327Link.enabled(act)) {
+                    // with the OBD-II adapter on, a third row: what only the adapter can tell
+                    buildCells(new int[]{R.drawable.ui_ic_speedo, R.drawable.ui_ic_eq, R.drawable.ui_ic_car_s,
+                                    R.drawable.ui_ic_route, R.drawable.ui_ic_nav, R.drawable.ui_ic_clock,
+                                    R.drawable.ui_ic_car_s, R.drawable.ui_ic_eq, R.drawable.ui_ic_globe},
+                            new String[]{s("Brzina", "Speed"), s("Broj obrtaja", "Engine speed"), s("Akumulator", "Battery"),
+                                    s("Ova vožnja", "This trip"), s("Ocena vožnje", "Driving score"),
+                                    s("Akumulator u mirovanju", "Resting battery"),
+                                    Mib.t(act, "Coolant temperature", "Coolant temperature"), Mib.t(act, "Oil temperature", "Oil temperature"),
+                                    Mib.t(act, "Outside temperature", "Outside temperature")});
+                } else {
+                    buildCells(new int[]{R.drawable.ui_ic_speedo, R.drawable.ui_ic_eq, R.drawable.ui_ic_car_s,
+                                    R.drawable.ui_ic_route, R.drawable.ui_ic_nav, R.drawable.ui_ic_clock},
+                            new String[]{s("Brzina", "Speed"), s("Broj obrtaja", "Engine speed"), s("Akumulator", "Battery"),
+                                    s("Ova vožnja", "This trip"), s("Ocena vožnje", "Driving score"),
+                                    s("Akumulator u mirovanju", "Resting battery")});
+                }
                 break;
             default: buildService(); break;
         }
@@ -857,6 +869,20 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
             if (t.score() >= 0) value += "  ·  " + t.score();
             row(col, R.drawable.ui_ic_route, fmt.format(new java.util.Date(t.start)) + "  ·  " + hm(t.durationMs()), value, null);
         }
+        row(col, R.drawable.ui_ic_folder, s("Izvezi vožnje (CSV)", "Export the trips (CSV)"), s("USB / preuzimanja", "USB / Downloads"), new Runnable() {
+            public void run() {
+                new Thread(new Runnable() {
+                    public void run() {
+                        final String path = com.thecarlauncher.util.TripExport.export(act);
+                        act.runOnUiThread(new Runnable() {
+                            public void run() {
+                                Ui.toast(act, path != null ? s("Sačuvano: ", "Saved: ") + path : s("Nije uspelo", "Could not save"));
+                            }
+                        });
+                    }
+                }, "trip-export").start();
+            }
+        });
         row(col, R.drawable.ui_ic_refresh, s("Obriši istoriju vožnji", "Delete the trip history"), null, new Runnable() {
             public void run() {
                 new android.app.AlertDialog.Builder(act)
@@ -921,6 +947,12 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
         hint.setSingleLine(false);
         hint.setPadding(Mib.px(act, 10), Mib.px(act, 6), Mib.px(act, 10), Mib.px(act, 6));
         col.addView(hint);
+    }
+
+    /** A temperature given in degrees C, in the unit chosen under Setup (C or F); "–" when it is not known. */
+    private String temperature(double c) {
+        if (Double.isNaN(c)) return "–";
+        return Prefs.metric(act) ? String.format(Locale.US, "%.0f °C", c) : String.format(Locale.US, "%.0f °F", c * 9 / 5 + 32);
     }
 
     private String km(double v) {
@@ -1166,6 +1198,12 @@ public class VehicleScreen extends Screen implements LocationTracker.Listener {
             cells[4].setText(score >= 0 ? String.valueOf(score) : "–");
             float rest = com.thecarlauncher.car.BatteryHistory.average(com.thecarlauncher.car.BatteryHistory.all(act), 5);
             cells[5].setText(Float.isNaN(rest) ? "–" : String.format(Locale.US, "%.1f V", rest));
+            if (cells[8] != null) {
+                com.thecarlauncher.car.Obd2Data od = com.thecarlauncher.car.Obd2Data.get();
+                cells[6].setText(temperature(od.get(com.thecarlauncher.car.Elm327Protocol.COOLANT)));
+                cells[7].setText(temperature(od.get(com.thecarlauncher.car.Elm327Protocol.OIL)));
+                cells[8].setText(temperature(od.outsideC()));
+            }
         } else if (page == START) {
             cells[0].setText(hm(tc.elapsedMs()));
             cells[1].setText(String.format(Locale.US, "%.1f %s", tc.distance(), du));
